@@ -8,7 +8,7 @@ import * as turf from '@turf/turf';
 // Daftarkan worker URL untuk bundler Vite agar GeoJSON source dapat di-render tanpa kendala
 maplibregl.setWorkerUrl(workerUrl);
 
-const API= import.meta.env.VITE_API_URL;
+const API= import.meta.env.VITE_API_URL || "http://localhost:8080";
 
 // ===================== MODEL & KONSTANTA =====================
 export interface AoiItem {
@@ -796,7 +796,7 @@ export default function App() {
   // ---------- Muat daftar provinsi (sekali, saat pertama membuka aplikasi peta) ----------
   const loadProvinsi = () => {
     setApiError('');
-    fetch(`${API}/get-wilayah`)
+    fetch(`${API}/api/get-wilayah`)
       .then((res) => {
         if (!res.ok) throw new Error(String(res.status));
         return res.json();
@@ -804,7 +804,7 @@ export default function App() {
       .then((provinces) => {
         if (Array.isArray(provinces)) setListProvinsi(provinces);
       })
-      .catch(() => setApiError('Server data wilayah tidak dapat dihubungi. Pastikan server API berjalan di localhost:8080.'));
+      .catch(() => setApiError('Server data wilayah tidak dapat dihubungi.'));
   };
 
   useEffect(() => {
@@ -1169,7 +1169,7 @@ export default function App() {
     setListDesa([]);
     if (!prov) return;
 
-    fetch(`${API}/get-wilayah?provinsi=${encodeURIComponent(prov)}`)
+    fetch(`${API}/api/get-wilayah?provinsi=${encodeURIComponent(prov)}`)
       .then((res) => res.json())
       .then((kabupatens) => {
         if (Array.isArray(kabupatens)) setListKabupaten(kabupatens);
@@ -1187,7 +1187,7 @@ export default function App() {
 
     setApiError('');
     setLoadingKab(true);
-    fetch(`${API}/get-desa?kabupaten=${encodeURIComponent(kab)}`)
+    fetch(`${API}/api/get-desa?kabupaten=${encodeURIComponent(kab)}`)
       .then((res) => res.json())
       .then((geoJsonData) => {
         if (!geoJsonData || !geoJsonData.features) return;
