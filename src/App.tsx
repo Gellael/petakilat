@@ -8,7 +8,7 @@ import * as turf from '@turf/turf';
 // Daftarkan worker URL untuk bundler Vite agar GeoJSON source dapat di-render tanpa kendala
 maplibregl.setWorkerUrl(workerUrl);
 
-const API= import.meta.env.VITE_API_URL || "http://localhost:8080";
+const API= import.meta.env.VITE_API_URL;
 
 // ===================== MODEL & KONSTANTA =====================
 export interface AoiItem {
