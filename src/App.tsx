@@ -702,10 +702,10 @@ const PLANS = [
     packs: [] as { n: string; p: string }[], cta: 'Mulai gratis'
   },
   {
-    id: 'kredit', name: 'Paket kredit', price: 'Mulai Rp4.000', unit: 'per ekspor', hi: true,
-    blurb: 'Bayar sesuai pemakaian. Satu kredit untuk satu ekspor PNG atau PDF A4.',
+    id: 'kredit', name: 'Paket kredit', price: 'Mulai Rp20.000', unit: 'per kredit', hi: true,
+    blurb: 'Bayar sesuai pemakaian. Satu kredit untuk satu peta kabupaten (akses 24 jam).',
     feats: ['Ekspor tanpa watermark', 'Resolusi cetak penuh', 'Kredit berlaku 12 bulan'],
-    packs: [{ n: '5 kredit', p: 'Rp35.000' }, { n: '20 kredit', p: 'Rp100.000' }, { n: '50 kredit', p: 'Rp200.000' }],
+    packs: [{ n: '5 kredit', p: 'Rp100.000' }, { n: '20 kredit', p: 'Rp400.000' }, { n: '50 kredit', p: 'Rp1.000.000' }],
     cta: 'Pilih paket'
   },
   {
@@ -2030,7 +2030,20 @@ export default function App() {
 
   const exportFileBase = () => `Peta-Administrasi-${(selectedDesa || selectedKab || 'Wilayah').replace(/\s+/g, '-')}`;
 
+  const izinEkspor = async (): Promise<boolean> => {
+  const res = await apiFetch('/api/ekspor', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ kabupaten: selectedKab }),
+  });
+  if (res.ok) return true;
+  const d = await res.json().catch(() => null);
+  alert(d?.error || 'Tidak dapat mengekspor.');
+  if (res.status === 402) setShowAccount(true);
+  return false;
+};
   const handleExportPNG = async () => {
+    if (!(await izinEkspor())) return;
     setExporting('png');
     try {
       const canvas = await renderSheetToCanvas();
@@ -2048,6 +2061,7 @@ export default function App() {
   };
 
   const handleExportPDF = async () => {
+    if (!(await izinEkspor())) return;
     setExporting('pdf');
     try {
       const pdfOk = await ensureScript('jspdf', 'https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js');
