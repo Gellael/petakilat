@@ -458,19 +458,32 @@ const LegendSymbol = ({ aoi, size = 16 }: { aoi: AoiItem; size?: number }) =>
 const legendName = (a: AoiItem, i: number) => (a.legendLabel || '').trim() || (a.title || '').trim() || `Titik ${i + 1}`;
 
 // ===================== KOMPONEN FORM =====================
-const Section = ({ step, title, badge, open, onToggle, children }: {
+const Section = ({ step, title, badge, open, onToggle, children, locked }: {
   step: number; title: string; badge?: ReactNode; open: boolean; onToggle: () => void; children: ReactNode;
-}) => (
-  <section className={`gl-sec ${open ? 'is-open' : ''}`}>
-    <button type="button" className="gl-sec__head" onClick={onToggle} aria-expanded={open}>
-      <span className="gl-sec__step">{step}</span>
-      <span className="gl-sec__title">{title}</span>
-      {badge}
-      <span className="gl-sec__chev"><Icon name="chevron" size={16} /></span>
-    </button>
-    {open && <div className="gl-sec__body">{children}</div>}
-  </section>
-);
+  /** Terkunci: tidak bisa dibuka sebelum wilayah (kabupaten/kota) dipilih. */
+  locked?: boolean;
+}) => {
+  const isOpen = open && !locked;
+  return (
+    <section className={`gl-sec ${isOpen ? 'is-open' : ''}`} aria-disabled={locked || undefined}>
+      <button
+        type="button"
+        className="gl-sec__head"
+        onClick={() => { if (!locked) onToggle(); }}
+        aria-expanded={isOpen}
+        disabled={locked}
+        title={locked ? 'Pilih provinsi dan kabupaten/kota terlebih dahulu' : undefined}
+        style={locked ? { opacity: 0.55, cursor: 'not-allowed' } : undefined}
+      >
+        <span className="gl-sec__step">{step}</span>
+        <span className="gl-sec__title">{title}</span>
+        {locked ? <span style={{ fontSize: 11, fontWeight: 600 }}>Pilih wilayah dahulu</span> : badge}
+        <span className="gl-sec__chev"><Icon name="chevron" size={16} /></span>
+      </button>
+      {isOpen && <div className="gl-sec__body">{children}</div>}
+    </section>
+  );
+};
 
 const Toggle = ({ label, checked, onChange }: { label: string; checked: boolean; onChange: (v: boolean) => void }) => (
   <label className="gl-toggle">
@@ -1265,6 +1278,8 @@ export default function App() {
   const aoiMarkersMapRef = useRef<Map<string, { pointMarker: maplibregl.Marker; calloutMarker?: maplibregl.Marker }>>(new Map());
 
   const toggleSec = (k: string) => setOpenSec((p) => ({ ...p, [k]: !p[k] }));
+  // Fitur lain baru terbuka setelah kabupaten/kota dipilih dan datanya berhasil dimuat
+  const wilayahSiap = !!selectedKab && !loadingKab && listDesa.length > 0;
   const patchAoi = (id: string, patch: Partial<AoiItem>) =>
     setAoiList((prev) => prev.map((it) => (it.id === id ? { ...it, ...patch } : it)));
 
@@ -2067,6 +2082,7 @@ export default function App() {
   const exportFileBase = () => `Peta-Administrasi-${(selectedDesa || selectedKab || 'Wilayah').replace(/\s+/g, '-')}`;
 
   const izinEkspor = async (): Promise<boolean> => {
+  if (!wilayahSiap) { alert('Pilih provinsi dan kabupaten/kota terlebih dahulu sebelum mengekspor.'); return false; }
   const res = await apiFetch('/api/ekspor', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
@@ -2356,7 +2372,7 @@ export default function App() {
             </Section>
 
             {/* 2. PETA DASAR */}
-            <Section step={2} title="Peta dasar" open={!!openSec.dasar} onToggle={() => toggleSec('dasar')}>
+            <Section step={2} locked={!wilayahSiap} title="Peta dasar" open={!!openSec.dasar} onToggle={() => toggleSec('dasar')}>
               {BASEMAP_GROUPS.filter((g) => AVAILABLE_KEYS.some((k) => BASEMAP_TILES[k].group === g)).map((g) => (
                 <div className="gl-bmgroup" key={g}>
                   <div className="gl-subhead">{g}</div>
@@ -2398,7 +2414,7 @@ export default function App() {
             </Section>
 
             {/* 3. SIMBOLOGI */}
-            <Section step={3} title="Simbologi batas wilayah" open={!!openSec.simbol} onToggle={() => toggleSec('simbol')}>
+            <Section step={3} locked={!wilayahSiap} title="Simbologi batas wilayah" open={!!openSec.simbol} onToggle={() => toggleSec('simbol')}>
               <div className="gl-row">
                 <ColorField label="Warna isi" value={fillColor} onChange={setFillColor} />
                 <RangeField label="Opasitas isi" value={opacityVal} min={0.1} max={1} step={0.05} display={`${Math.round(opacityVal * 100)}%`} onChange={setOpacityVal} />
@@ -2420,7 +2436,7 @@ export default function App() {
             </Section>
 
             {/* 4. LAYER GOOGLE EARTH ENGINE */}
-            <Section step={4} title="Layer Google Earth Engine" open={!!openSec.gee} onToggle={() => toggleSec('gee')} badge={Object.values(geeActive).some(Boolean) ? <span className="gl-badge">{Object.values(geeActive).filter(Boolean).length} aktif</span> : undefined}>
+            <Section step={4} locked={!wilayahSiap} title="Layer Google Earth Engine" open={!!openSec.gee} onToggle={() => toggleSec('gee')} badge={Object.values(geeActive).some(Boolean) ? <span className="gl-badge">{Object.values(geeActive).filter(Boolean).length} aktif</span> : undefined}>
               <div className="gl-subhead">Layer (boleh lebih dari satu)</div>
               {GEE_LAYERS.map((l) => (
                 <Toggle
@@ -2441,7 +2457,7 @@ export default function App() {
             </Section>
 
             {/* 5. AOI */}
-            <Section step={5} title="Titik AOI dan foto" open={!!openSec.aoi} onToggle={() => toggleSec('aoi')} badge={<span className="gl-badge">{aoiList.length} titik</span>}>
+            <Section step={5} locked={!wilayahSiap} title="Titik AOI dan foto" open={!!openSec.aoi} onToggle={() => toggleSec('aoi')} badge={<span className="gl-badge">{aoiList.length} titik</span>}>
               <button type="button" className={`gl-btn gl-btn--block ${isAddingAoi ? 'gl-btn--danger' : 'gl-btn--primary'}`} onClick={toggleAddAoi}>
                 {isAddingAoi ? <><Icon name="x" size={16} /> Batalkan tambah titik</> : <><Icon name="plus" size={16} /> Tambah titik AOI</>}
               </button>
@@ -2606,7 +2622,7 @@ export default function App() {
             </Section>
 
             {/* 5. IDENTITAS */}
-            <Section step={6} title="Identitas dan judul peta" open={!!openSec.identitas} onToggle={() => toggleSec('identitas')}>
+            <Section step={6} locked={!wilayahSiap} title="Identitas dan judul peta" open={!!openSec.identitas} onToggle={() => toggleSec('identitas')}>
               <label className="gl-field">
                 <span className="gl-label">Judul utama</span>
                 <input type="text" className="gl-input" value={judulUtama} onChange={(e) => setJudulUtama(e.target.value)} />
@@ -2638,10 +2654,10 @@ export default function App() {
           </div>
 
           <div className="gl-side__foot">
-            <button type="button" className="gl-btn gl-btn--primary" onClick={handleExportPNG} disabled={!!exporting}>
+            <button type="button" className="gl-btn gl-btn--primary" onClick={handleExportPNG} disabled={!!exporting || !wilayahSiap}>
               <Icon name="download" size={16} /> {exporting === 'png' ? 'Memproses...' : 'Unduh PNG'}
             </button>
-            <button type="button" className="gl-btn gl-btn--dark" onClick={handleExportPDF} disabled={!!exporting}>
+            <button type="button" className="gl-btn gl-btn--dark" onClick={handleExportPDF} disabled={!!exporting || !wilayahSiap}>
               <Icon name="printer" size={16} /> {exporting === 'pdf' ? 'Memproses...' : 'Ekspor PDF A4'}
             </button>
           </div>
