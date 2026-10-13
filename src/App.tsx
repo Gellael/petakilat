@@ -1,13 +1,16 @@
+// src/App.tsx
 import { useEffect, useRef, useState, type ReactNode, type CSSProperties } from 'react';
 import * as maplibregl from 'maplibre-gl';
 import 'maplibre-gl/dist/maplibre-gl.css';
 import workerUrl from 'maplibre-gl/dist/maplibre-gl-worker.mjs?url';
 import * as turf from '@turf/turf';
 
+// Daftarkan worker URL untuk bundler Vite agar GeoJSON source dapat di-render tanpa kendala
 maplibregl.setWorkerUrl(workerUrl);
 
 const API= import.meta.env.VITE_API_URL || "http://localhost:8080";
 
+// ===================== MODEL & KONSTANTA =====================
 export interface AoiItem {
   id: string;
   title: string;
@@ -20,9 +23,9 @@ export interface AoiItem {
   calloutLng: number;
   calloutLat: number;
   showCallout: boolean;
-  showInLegend: boolean;
-  legendLabel: string;
-  legendImageUrl: string;
+  showInLegend: boolean;   // tampilkan titik ini di legenda
+  legendLabel: string;     // nama di legenda (kosong = pakai nama titik)
+  legendImageUrl: string;  // gambar simbol legenda (kosong = pakai ikon dan warna titik)
 }
 
 const AOI_ICONS: { emoji: string; label: string }[] = [
@@ -40,6 +43,8 @@ const AOI_ICONS: { emoji: string; label: string }[] = [
   { emoji: '🔵', label: 'Titik Biru' },
 ];
 
+// Kunci API CARTO (gratis). Isi VITE_CARTO_KEY di file .env frontend untuk membuka peta Carto.
+// Tanpa kunci, peta Carto disembunyikan karena server Carto menampilkan tulisan "API key required".
 const CARTO_KEY: string = ((import.meta as any).env?.VITE_CARTO_KEY as string | undefined) || '';
 
 type BasemapTone = 'sat' | 'light' | 'dark';
@@ -49,8 +54,8 @@ interface BasemapDef {
   desc: string;
   thumb: string;
   group: string;
-  tone: BasemapTone;
-  attr: string;
+  tone: BasemapTone; // dipakai untuk menyesuaikan warna garis batas pada peta inset
+  attr: string;      // atribusi sumber peta, ditampilkan di legenda
   maxzoom?: number;
   needsKey?: 'carto';
 }
@@ -60,6 +65,7 @@ const BASEMAP_GROUPS = ['Satelit', 'Terang', 'Gelap', 'Jalan & topografi'];
 const CARTO_ATTR = '© OpenStreetMap contributors © CARTO';
 
 const BASEMAP_TILES: Record<string, BasemapDef> = {
+  // ----- Satelit -----
   citra: {
     name: 'Citra Satelit Esri',
     url: 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
@@ -69,6 +75,7 @@ const BASEMAP_TILES: Record<string, BasemapDef> = {
     tone: 'sat',
     attr: 'Esri, Maxar, Earthstar Geographics'
   },
+  // ----- Terang -----
   esri_lightgray: {
     name: 'Esri Abu-abu Terang',
     url: 'https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Light_Gray_Base/MapServer/tile/{z}/{y}/{x}',
@@ -140,6 +147,7 @@ const BASEMAP_TILES: Record<string, BasemapDef> = {
     needsKey: 'carto',
     attr: CARTO_ATTR
   },
+  // ----- Jalan & topografi -----
   osm: {
     name: 'OpenStreetMap',
     url: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
@@ -179,10 +187,12 @@ const BASEMAP_TILES: Record<string, BasemapDef> = {
   }
 };
 
+// Peta yang butuh kunci hanya tampil bila kuncinya sudah diisi
 const isBasemapAvailable = (key: string) => !!BASEMAP_TILES[key] && (!BASEMAP_TILES[key].needsKey || !!CARTO_KEY);
 const AVAILABLE_KEYS = Object.keys(BASEMAP_TILES).filter(isBasemapAvailable);
 const basemapUrl = (b: BasemapDef) => (b.needsKey === 'carto' ? `${b.url}?key=${encodeURIComponent(CARTO_KEY)}` : b.url);
 
+// Pilihan peta dasar khusus inset. 'sync' = ikut peta utama. Bawaan: peta terang polos yang lazim dipakai peta letak.
 const INSET_SYNC = 'sync';
 const DEFAULT_INSET_BASEMAP = CARTO_KEY ? 'positron_nolabels' : 'esri_lightgray';
 const INSET_CHOICES: string[] = [
@@ -213,17 +223,20 @@ const SHEET_H = 680;
 const SHEET_FONT = 'serif';
 const EMPTY_FC = { type: 'FeatureCollection' as const, features: [] as any[] };
 
+// ===================== HELPER UMUM =====================
 const escapeHtml = (s: string) =>
   s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 
 const hasCallout = (a: AoiItem) => a.showCallout && !!(a.imageUrl || a.imageCaption);
 
+// Perluas bounding box agar bentuk desa tampil dengan konteks wilayah sekitarnya
 const expandBbox = (b: number[], f: number): [number, number, number, number] => {
   const dx = (b[2] - b[0]) * f;
   const dy = (b[3] - b[1]) * f;
   return [b[0] - dx, b[1] - dy, b[2] + dx, b[3] + dy];
 };
 
+// Ganti peta dasar raster pada peta mana pun (utama maupun inset), tetap di lapisan paling bawah
 const swapBasemap = (map: maplibregl.Map | null, key: string) => {
   if (!map) return;
   const run = () => {
@@ -242,6 +255,7 @@ const swapBasemap = (map: maplibregl.Map | null, key: string) => {
   }
 };
 
+// Jalankan fungsi begitu style peta siap (addSource melempar error bila style belum selesai dimuat)
 const runWhenReady = (map: maplibregl.Map, fn: () => void) => {
   try {
     fn();
@@ -250,26 +264,32 @@ const runWhenReady = (map: maplibregl.Map, fn: () => void) => {
   }
 };
 
+// ===================== LAYER GOOGLE EARTH ENGINE =====================
+// Kunci akses GEE hanya ada di backend. Frontend cuma meminta URL tile ke /api/gee-tiles.
+// Urutan di daftar ini = urutan tumpukan (yang di bawah daftar tampil paling atas).
 const GEE_LAYERS: { key: string; label: string }[] = [
   { key: 'elevation', label: 'Elevasi (SRTM)' },
   { key: 'ndwi', label: 'NDWI (indeks air)' },
   { key: 'ndvi', label: 'NDVI (vegetasi)' },
-  { key: 'air', label: 'Aliran air' },
   { key: 'bangunan', label: 'Bangunan' },
+  { key: 'sungai', label: 'Aliran air (garis)' },
+  { key: 'jalan', label: 'Jalan (garis)' },
 ];
 
 const GEE_LEGEND: Record<string, { label: string; box: CSSProperties }> = {
   elevation: { label: 'Elevasi (SRTM)', box: { background: 'linear-gradient(90deg,#006633,#E5FFCC,#662A00,#F5F5F5)', border: '1px solid #475569' } },
   ndwi: { label: 'NDWI (indeks air)', box: { background: 'linear-gradient(90deg,#ffffff,#9ecae1,#3182bd,#08306b)', border: '1px solid #475569' } },
   ndvi: { label: 'NDVI (vegetasi)', box: { background: 'linear-gradient(90deg,#ffffff,#ffffb2,#a1d99b,#006d2c)', border: '1px solid #475569' } },
-  air: { label: 'Aliran air (MERIT Hydro, JRC)', box: { height: '0px', borderTop: '3px solid #2563eb' } },
   bangunan: { label: 'Bangunan (Google Open Buildings)', box: { backgroundColor: 'rgba(234,88,12,0.6)', border: '1px solid #7c2d12' } },
+  sungai: { label: 'Aliran air', box: { height: '0px', borderTop: '2px solid #2563eb' } },
+  jalan: { label: 'Jalan', box: { height: '0px', borderTop: '2px solid #334155' } },
 };
 
 const GEE_MASK_SRC = 'gee-mask-src';
 const GEE_MASK_LAYER = 'gee-mask-layer';
 const geeSrcId = (key: string) => `gee-src-${key}`;
 const geeLayerId = (key: string) => `gee-layer-${key}`;
+// Layer peta yang harus tetap berada DI ATAS layer GEE
 const GEE_ABOVE = [GEE_MASK_LAYER, 'wilayah-fill', 'neighbor-desa-layer', 'selected-desa-layer'];
 
 const removeGeeLayer = (map: maplibregl.Map | null, key: string) => {
@@ -278,6 +298,7 @@ const removeGeeLayer = (map: maplibregl.Map | null, key: string) => {
     if (map.getLayer(geeLayerId(key))) map.removeLayer(geeLayerId(key));
     if (map.getSource(geeSrcId(key))) map.removeSource(geeSrcId(key));
   } catch (_) {
+    /* style peta belum siap */
   }
 };
 
@@ -293,6 +314,7 @@ const addGeeLayer = (map: maplibregl.Map, key: string, tileUrl: string, opacity:
   );
 };
 
+// Penutup putih di luar batas desa terpilih, supaya layer GEE hanya terlihat di dalam desa
 const updateGeeMask = (map: maplibregl.Map | null, feature: any, on: boolean) => {
   if (!map) return;
   try {
@@ -315,140 +337,7 @@ const updateGeeMask = (map: maplibregl.Map | null, feature: any, on: boolean) =>
   }
 };
 
-type OsmKind = 'building' | 'water' | 'road';
-interface OsmSlim { id: number; k: OsmKind; hw?: string; g: [number, number][] }
-
-const OVERPASS_ENDPOINTS = ['https://overpass-api.de/api/interpreter', 'https://overpass.kumi.systems/api/interpreter'];
-const OSM_SRC = 'osm-detail-src';
-const OSM_LAYER_KIND: Record<string, OsmKind> = {
-  'osm-water': 'water',
-  'osm-buildings-fill': 'building',
-  'osm-buildings-line': 'building',
-  'osm-roads-casing': 'road',
-  'osm-roads': 'road'
-};
-const ROAD_MAJOR = ['motorway', 'trunk', 'primary', 'motorway_link', 'trunk_link', 'primary_link'];
-const ROAD_MID = ['secondary', 'tertiary', 'secondary_link', 'tertiary_link'];
-
-const overpassToSlim = (json: any): OsmSlim[] => {
-  const out: OsmSlim[] = [];
-  for (const el of json?.elements || []) {
-    if (el.type !== 'way' || !Array.isArray(el.geometry) || !el.tags) continue;
-    const g: [number, number][] = el.geometry
-      .filter((p: any) => p && typeof p.lon === 'number' && typeof p.lat === 'number')
-      .map((p: any) => [Number(p.lon.toFixed(6)), Number(p.lat.toFixed(6))]);
-    if (g.length < 2) continue;
-    const t = el.tags;
-    if (t.building) out.push({ id: el.id, k: 'building', g });
-    else if (t.waterway) out.push({ id: el.id, k: 'water', g });
-    else if (t.highway) out.push({ id: el.id, k: 'road', hw: String(t.highway), g });
-  }
-  return out;
-};
-
-const fetchOverpassSlim = async (bbox: number[]): Promise<OsmSlim[]> => {
-  const [w, s, e, n] = bbox;
-  const box = `${s},${w},${n},${e}`;
-  const q = `[out:json][timeout:60];(way["building"](${box});way["waterway"](${box});way["highway"](${box}););out geom;`;
-  let lastErr: unknown = null;
-  for (const url of OVERPASS_ENDPOINTS) {
-    const ctrl = new AbortController();
-    const timer = setTimeout(() => ctrl.abort(), 70000);
-    try {
-      const res = await fetch(url, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-        body: 'data=' + encodeURIComponent(q),
-        signal: ctrl.signal
-      });
-      if (!res.ok) throw new Error('Overpass ' + res.status);
-      return overpassToSlim(await res.json());
-    } catch (err) {
-      lastErr = err;
-    } finally {
-      clearTimeout(timer);
-    }
-  }
-  throw lastErr || new Error('Overpass tidak dapat dihubungi');
-};
-
-const slimToFc = (els: OsmSlim[], village: any) => {
-  const features: any[] = [];
-  const inside = (p: [number, number]) => {
-    try { return turf.booleanPointInPolygon(p, village); } catch (_) { return false; }
-  };
-  for (const e of els) {
-    if (e.k === 'building') {
-      let ring = e.g;
-      if (ring.length < 3) continue;
-      const f = ring[0];
-      const l = ring[ring.length - 1];
-      if (f[0] !== l[0] || f[1] !== l[1]) ring = [...ring, f];
-      if (ring.length < 4) continue;
-      let cx = 0;
-      let cy = 0;
-      for (const p of ring) { cx += p[0]; cy += p[1]; }
-      if (!inside([cx / ring.length, cy / ring.length])) continue;
-      features.push({ type: 'Feature', properties: { kind: 'building' }, geometry: { type: 'Polygon', coordinates: [ring] } });
-    } else {
-      let cur: [number, number][] = [];
-      const flush = () => {
-        if (cur.length > 1) {
-          features.push({ type: 'Feature', properties: { kind: e.k, hw: e.hw || '' }, geometry: { type: 'LineString', coordinates: cur } });
-        }
-        cur = [];
-      };
-      for (const p of e.g) {
-        if (inside(p)) cur.push(p);
-        else flush();
-      }
-      flush();
-    }
-  }
-  return { type: 'FeatureCollection' as const, features };
-};
-
-const syncOsmLayers = (map: maplibregl.Map | null, fc: any, show: Record<OsmKind, boolean>) => {
-  if (!map) return;
-  runWhenReady(map, () => {
-    Object.keys(OSM_LAYER_KIND).forEach((id) => { if (map.getLayer(id)) map.removeLayer(id); });
-    if (map.getSource(OSM_SRC)) map.removeSource(OSM_SRC);
-    if (!fc || !fc.features?.length) return;
-
-    map.addSource(OSM_SRC, { type: 'geojson', data: fc });
-    const before = map.getLayer('selected-desa-outline') ? 'selected-desa-outline' : undefined;
-    const vis = (k: OsmKind) => (show[k] ? 'visible' : 'none');
-    const kindIs = (k: OsmKind) => ['==', ['get', 'kind'], k];
-    const roadWidth = (major: number, mid: number, minor: number) => ['match', ['get', 'hw'], ROAD_MAJOR, major, ROAD_MID, mid, minor];
-
-    map.addLayer({
-      id: 'osm-water', type: 'line', source: OSM_SRC, filter: kindIs('water'),
-      layout: { visibility: vis('water'), 'line-cap': 'round', 'line-join': 'round' },
-      paint: { 'line-color': '#2563eb', 'line-width': 2.2 }
-    } as any, before);
-    map.addLayer({
-      id: 'osm-buildings-fill', type: 'fill', source: OSM_SRC, filter: kindIs('building'),
-      layout: { visibility: vis('building') },
-      paint: { 'fill-color': '#ea580c', 'fill-opacity': 0.6 }
-    } as any, before);
-    map.addLayer({
-      id: 'osm-buildings-line', type: 'line', source: OSM_SRC, filter: kindIs('building'),
-      layout: { visibility: vis('building') },
-      paint: { 'line-color': '#7c2d12', 'line-width': 0.7 }
-    } as any, before);
-    map.addLayer({
-      id: 'osm-roads-casing', type: 'line', source: OSM_SRC, filter: kindIs('road'),
-      layout: { visibility: vis('road'), 'line-cap': 'round', 'line-join': 'round' },
-      paint: { 'line-color': '#1f2937', 'line-opacity': 0.8, 'line-width': roadWidth(5, 4, 3) }
-    } as any, before);
-    map.addLayer({
-      id: 'osm-roads', type: 'line', source: OSM_SRC, filter: kindIs('road'),
-      layout: { visibility: vis('road'), 'line-cap': 'round', 'line-join': 'round' },
-      paint: { 'line-color': ['match', ['get', 'hw'], ROAD_MAJOR, '#f59e0b', ROAD_MID, '#fde047', '#ffffff'], 'line-width': roadWidth(3, 2.4, 1.6) }
-    } as any, before);
-  });
-};
-
+// ===================== HELPER EKSPOR =====================
 const ensureScript = (globalName: string, src: string): Promise<boolean> =>
   new Promise((resolve) => {
     if ((window as any)[globalName]) return resolve(true);
@@ -509,11 +398,14 @@ const overlayMapSnapshot = async (selector: string, url: string): Promise<() => 
   };
 };
 
+// ===================== MARKER AOI & KARTU FOTO =====================
 const buildPinHtml = (aoi: AoiItem) => `
   <div style="background:${aoi.color};color:#fff;font-size:18px;width:32px;height:32px;border:2.5px solid #fff;border-radius:50%;box-shadow:0 3px 10px rgba(0,0,0,.35);display:flex;align-items:center;justify-content:center;">${aoi.icon || '📍'}</div>
   <div style="width:0;height:0;border-left:5px solid transparent;border-right:5px solid transparent;border-top:7px solid ${aoi.color};margin-top:-1px;"></div>
 `;
 
+// Kartu foto: foto di atas, keterangan di kotak putih tepat di bawah foto.
+// Bila keterangan kosong, kotak putih memakai nama titik AOI.
 const buildCalloutHtml = (a: AoiItem) => {
   const caption = (a.imageCaption || '').trim() || (a.title || '').trim();
   const radius = a.imageUrl ? '0 0 5px 5px' : '5px';
@@ -534,6 +426,7 @@ const CALLOUT_FRAME_CSS = (color: string) => `
   user-select:none;
 `;
 
+// ===================== IKON UI (SVG INLINE) =====================
 const ICON_PATHS: Record<string, ReactNode> = {
   chevron: <polyline points="6 9 12 15 18 9" />,
   map: <><polygon points="3 6 9 3 15 6 21 3 21 18 15 21 9 18 3 21" /><line x1="9" y1="3" x2="9" y2="18" /><line x1="15" y1="6" x2="15" y2="21" /></>,
@@ -700,7 +593,7 @@ const STEPS = [
 
 const SPECS = [
   { k: 'Batas wilayah', v: 'Batas administrasi desa/kelurahan dari Badan Informasi Geospasial (BIG).' },
-  { k: 'Penyimpanan data', v: 'PostgreSQL/PostGIS di Aiven, diakses melalui server API. Detail OSM desa disimpan sebagai cache di sana.' },
+  { k: 'Penyimpanan data', v: 'PostgreSQL/PostGIS di Aiven, diakses melalui server API.' },
   { k: 'Peta dasar', v: 'Esri (citra, jalan, topografi, kanvas abu-abu), OpenStreetMap, OpenTopoMap, serta Carto (Positron, Voyager, Dark Matter) bila memakai API key.' },
   { k: 'Penggambaran peta', v: 'MapLibre GL JS. Luas dan batas tampilan dihitung dengan Turf.js.' },
   { k: 'Koordinat', v: 'Geografis WGS 84, ditulis dalam derajat, menit, dan detik.' },
@@ -1003,7 +896,7 @@ export default function App() {
   const [navOpen, setNavOpen] = useState<boolean>(false);
   const [navSolid, setNavSolid] = useState<boolean>(false);
   const [sidebarOpen, setSidebarOpen] = useState<boolean>(false);
-  const [openSec, setOpenSec] = useState<Record<string, boolean>>({ lokasi: true, dasar: false, simbol: false, osm: false, gee: false, aoi: false, identitas: false });
+  const [openSec, setOpenSec] = useState<Record<string, boolean>>({ lokasi: true, dasar: false, simbol: false, gee: false, aoi: false, identitas: false });
   const [exporting, setExporting] = useState<'' | 'png' | 'pdf'>('');
   const [apiError, setApiError] = useState<string>('');
   const [loadingKab, setLoadingKab] = useState<boolean>(false);
@@ -1020,15 +913,6 @@ export default function App() {
   // --- SIMBOLOGI & TAMPILAN WILAYAH ---
   const [basemapKey, setBasemapKey] = useState<string>('citra');
   const [insetBasemapKey, setInsetBasemapKey] = useState<string>(DEFAULT_INSET_BASEMAP);
-
-  // --- DETAIL OSM (desa terpilih) ---
-  const [osmShow, setOsmShow] = useState<Record<OsmKind, boolean>>({ building: false, water: false, road: false });
-  const [osmData, setOsmData] = useState<any>(null);
-  const [osmLoading, setOsmLoading] = useState<boolean>(false);
-  const [osmMsg, setOsmMsg] = useState<string>('');
-  const [osmErr, setOsmErr] = useState<boolean>(false);
-  const osmShowRef = useRef<Record<OsmKind, boolean>>(osmShow);
-  osmShowRef.current = osmShow;
 
   // --- LAYER GOOGLE EARTH ENGINE ---
   const [geeActive, setGeeActive] = useState<Record<string, boolean>>({});
@@ -1437,90 +1321,6 @@ export default function App() {
     if (!tileInfo) return;
     setBasemapKey(newKey);
     swapBasemap(mapInstance.current, newKey);
-  };
-
-  // ===================== DETAIL OSM DESA =====================
-  // Ganti desa / kabupaten -> data OSM lama dibuang
-  useEffect(() => {
-    setOsmData(null);
-    setOsmMsg('');
-    setOsmErr(false);
-  }, [selectedDesa, selectedKab]);
-
-  // Data berubah -> layer digambar ulang
-  useEffect(() => {
-    if (activePage !== 'admin-map') return;
-    syncOsmLayers(mapInstance.current, osmData, osmShowRef.current);
-  }, [osmData, activePage]);
-
-  // Centang berubah -> cukup tampil / sembunyikan layer
-  useEffect(() => {
-    const map = mapInstance.current;
-    if (!map) return;
-    Object.entries(OSM_LAYER_KIND).forEach(([id, kind]) => {
-      if (map.getLayer(id)) map.setLayoutProperty(id, 'visibility', osmShow[kind] ? 'visible' : 'none');
-    });
-  }, [osmShow, osmData]);
-
-  const loadOsmDetail = async (force = false) => {
-    const feat = selectedFeatureRef.current;
-    if (!feat || !selectedDesa) {
-      setOsmErr(true);
-      setOsmMsg('Pilih desa terlebih dahulu agar batas area render presisi.');
-      return;
-    }
-    setOsmLoading(true);
-    setOsmErr(false);
-    setOsmMsg('');
-    const areaId = `desa:${selectedProv}|${selectedKab}|${selectedDesa}`.toLowerCase();
-
-    try {
-      let slim: OsmSlim[] | null = null;
-      let source = '';
-
-      // 1. cache di database (dilewati bila diminta ambil ulang)
-      if (!force) {
-        try {
-          const res = await fetch(`${API}/api/osm-cache?area=${encodeURIComponent(areaId)}`);
-          const json = await res.json();
-          if (json?.success && Array.isArray(json.data?.elements)) {
-            slim = json.data.elements as OsmSlim[];
-            source = 'cache database';
-          }
-        } catch (_) { /* cache tidak terjangkau: lanjut ke Overpass */ }
-      }
-
-      // 2. Overpass API (OpenStreetMap), lalu simpan ke cache
-      if (!slim) {
-        slim = await fetchOverpassSlim(turf.bbox(feat));
-        source = 'Overpass API';
-        try {
-          const res = await fetch(`${API}/api/osm-cache`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ area: areaId, osm_json: { v: 2, elements: slim } })
-          });
-          const json = await res.json();
-          source += json?.success ? ' (disimpan ke cache)' : ' (cache gagal disimpan)';
-        } catch (_) {
-          source += ' (cache gagal disimpan)';
-        }
-      }
-
-      const fc = slimToFc(slim, feat);
-      const nb = fc.features.filter((f: any) => f.properties.kind === 'building').length;
-      const nr = fc.features.filter((f: any) => f.properties.kind === 'road').length;
-      const nw = fc.features.filter((f: any) => f.properties.kind === 'water').length;
-      setOsmData(fc);
-      setOsmShow((p) => (p.building || p.water || p.road ? p : { building: true, water: true, road: true }));
-      setOsmMsg(`${nb} bangunan, ${nr} ruas jalan, ${nw} aliran air. Sumber: ${source}.`);
-    } catch (err) {
-      console.error('Gagal memuat detail OSM:', err);
-      setOsmErr(true);
-      setOsmMsg('Data OSM tidak dapat dimuat. Server Overpass sedang sibuk atau tidak terjangkau, coba lagi beberapa saat.');
-    } finally {
-      setOsmLoading(false);
-    }
   };
 
   // Update Real-time Simbologi Batas Wilayah
@@ -2252,27 +2052,8 @@ export default function App() {
               <Toggle label="Tampilkan grid dan koordinat" checked={showCoordinateGrid} onChange={setShowCoordinateGrid} />
             </Section>
 
-            {/* 4. DETAIL OSM */}
-            <Section step={4} title="Detail OSM desa" open={!!openSec.osm} onToggle={() => toggleSec('osm')} badge={osmData ? <span className="gl-badge">Dimuat</span> : undefined}>
-              <div className="gl-subhead">Layer detail OSM (desa terpilih)</div>
-              <Toggle label="Bangunan" checked={osmShow.building} onChange={(v) => setOsmShow((p) => ({ ...p, building: v }))} />
-              <Toggle label="Aliran air" checked={osmShow.water} onChange={(v) => setOsmShow((p) => ({ ...p, water: v }))} />
-              <Toggle label="Jalan" checked={osmShow.road} onChange={(v) => setOsmShow((p) => ({ ...p, road: v }))} />
-              <button type="button" className="gl-btn gl-btn--primary gl-btn--block" disabled={!selectedDesa || osmLoading} onClick={() => loadOsmDetail(false)}>
-                {osmLoading ? 'Memuat data OSM...' : osmData ? 'Muat ulang detail OSM desa' : 'Muat data detail OSM desa'}
-              </button>
-              {osmData && !osmLoading && (
-                <button type="button" className="gl-btn gl-btn--sm gl-btn--block" onClick={() => loadOsmDetail(true)}>
-                  <Icon name="rotate" size={14} /> Ambil ulang dari OpenStreetMap
-                </button>
-              )}
-              {!selectedDesa && <div className="gl-note">Pastikan desa sudah dipilih agar batas area render presisi.</div>}
-              {osmMsg && <div className={`gl-note ${osmErr ? 'gl-note--err' : ''}`}>{osmMsg}</div>}
-              <div className="gl-note">Data dari OpenStreetMap lewat Overpass API, dipotong mengikuti batas desa. Hasil pertama disimpan di cache database, jadi muatan berikutnya lebih cepat.</div>
-            </Section>
-
-            {/* 5. LAYER GOOGLE EARTH ENGINE */}
-            <Section step={5} title="Layer Google Earth Engine" open={!!openSec.gee} onToggle={() => toggleSec('gee')} badge={Object.values(geeActive).some(Boolean) ? <span className="gl-badge">{Object.values(geeActive).filter(Boolean).length} aktif</span> : undefined}>
+            {/* 4. LAYER GOOGLE EARTH ENGINE */}
+            <Section step={4} title="Layer Google Earth Engine" open={!!openSec.gee} onToggle={() => toggleSec('gee')} badge={Object.values(geeActive).some(Boolean) ? <span className="gl-badge">{Object.values(geeActive).filter(Boolean).length} aktif</span> : undefined}>
               <div className="gl-subhead">Layer (boleh lebih dari satu)</div>
               {GEE_LAYERS.map((l) => (
                 <Toggle
@@ -2292,8 +2073,8 @@ export default function App() {
               <div className="gl-note">Saat dipotong ke batas desa, area di luar desa tampil putih (peta dasar disembunyikan). Matikan opsi itu untuk melihat peta dasar utuh. Kurangi "Opasitas isi" di bagian Simbologi bila warna isi desa menutupi layer.</div>
             </Section>
 
-            {/* 6. AOI */}
-            <Section step={6} title="Titik AOI dan foto" open={!!openSec.aoi} onToggle={() => toggleSec('aoi')} badge={<span className="gl-badge">{aoiList.length} titik</span>}>
+            {/* 5. AOI */}
+            <Section step={5} title="Titik AOI dan foto" open={!!openSec.aoi} onToggle={() => toggleSec('aoi')} badge={<span className="gl-badge">{aoiList.length} titik</span>}>
               <button type="button" className={`gl-btn gl-btn--block ${isAddingAoi ? 'gl-btn--danger' : 'gl-btn--primary'}`} onClick={toggleAddAoi}>
                 {isAddingAoi ? <><Icon name="x" size={16} /> Batalkan tambah titik</> : <><Icon name="plus" size={16} /> Tambah titik AOI</>}
               </button>
@@ -2458,7 +2239,7 @@ export default function App() {
             </Section>
 
             {/* 5. IDENTITAS */}
-            <Section step={7} title="Identitas dan judul peta" open={!!openSec.identitas} onToggle={() => toggleSec('identitas')}>
+            <Section step={6} title="Identitas dan judul peta" open={!!openSec.identitas} onToggle={() => toggleSec('identitas')}>
               <label className="gl-field">
                 <span className="gl-label">Judul utama</span>
                 <input type="text" className="gl-input" value={judulUtama} onChange={(e) => setJudulUtama(e.target.value)} />
@@ -2657,24 +2438,6 @@ export default function App() {
                             <span style={{ color: '#334155' }}>{legendName(aoi, i)}</span>
                           </div>
                         ))}
-                        {osmData && osmShow.building && (
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                            <div style={{ width: '18px', height: '10px', backgroundColor: 'rgba(234,88,12,0.6)', border: '1px solid #7c2d12', boxSizing: 'border-box', flexShrink: 0 }} />
-                            <span style={{ color: '#334155' }}>Bangunan</span>
-                          </div>
-                        )}
-                        {osmData && osmShow.road && (
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                            <div style={{ width: '18px', borderTop: '3px solid #f59e0b', outline: '1px solid #1f2937', flexShrink: 0 }} />
-                            <span style={{ color: '#334155' }}>Jalan</span>
-                          </div>
-                        )}
-                        {osmData && osmShow.water && (
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                            <div style={{ width: '18px', borderTop: '2px solid #2563eb', flexShrink: 0 }} />
-                            <span style={{ color: '#334155' }}>Aliran Air</span>
-                          </div>
-                        )}
                         {GEE_LAYERS.filter((l) => geeActive[l.key]).map((l) => (
                           <div key={l.key} style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                             <div style={{ width: '18px', height: '10px', boxSizing: 'border-box', flexShrink: 0, ...GEE_LEGEND[l.key].box }} />
@@ -2693,11 +2456,8 @@ export default function App() {
                             <div style={{ fontSize: '6.5px', marginTop: '1px', lineHeight: 1.3 }}>{BASEMAP_TILES[basemapKey].attr}</div>
                           </div>
                         )}
-                        {osmData && (osmShow.building || osmShow.water || osmShow.road) && (
-                          <div style={{ fontSize: '6.5px', color: '#64748b', lineHeight: 1.3 }}>Detail: © OpenStreetMap contributors (ODbL)</div>
-                        )}
                         {Object.values(geeActive).some(Boolean) && (
-                          <div style={{ fontSize: '6.5px', color: '#64748b', lineHeight: 1.3 }}>Data raster: Google Earth Engine (SRTM, Open Buildings, MERIT Hydro, JRC, Sentinel-2)</div>
+                          <div style={{ fontSize: '6.5px', color: '#64748b', lineHeight: 1.3 }}>Data: Google Earth Engine (SRTM, Sentinel-2, Open Buildings, HydroSHEDS, GRIP4)</div>
                         )}
                       </div>
                     </Panel>
