@@ -23,6 +23,9 @@ export interface AoiItem {
   calloutLng: number;
   calloutLat: number;
   showCallout: boolean;
+  showInLegend: boolean;   // tampilkan titik ini di legenda
+  legendLabel: string;     // nama di legenda (kosong = pakai nama titik)
+  legendImageUrl: string;  // gambar simbol legenda (kosong = pakai ikon dan warna titik)
 }
 
 const AOI_ICONS: { emoji: string; label: string }[] = [
@@ -359,6 +362,18 @@ const Icon = ({ name, size = 16 }: { name: string; size?: number }) => (
   </svg>
 );
 
+// Simbol AOI di legenda: gambar buatan sendiri bila ada, jika tidak memakai ikon dan warna pin
+const LegendSymbol = ({ aoi, size = 16 }: { aoi: AoiItem; size?: number }) =>
+  aoi.legendImageUrl ? (
+    <img src={aoi.legendImageUrl} alt="" style={{ width: size, height: size, objectFit: 'contain', display: 'block' }} />
+  ) : (
+    <span style={{ width: size, height: size, borderRadius: '50%', background: aoi.color, border: '1.5px solid #000', boxSizing: 'border-box', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: Math.round(size * 0.55), lineHeight: 1 }}>
+      {aoi.icon || '📍'}
+    </span>
+  );
+
+const legendName = (a: AoiItem, i: number) => (a.legendLabel || '').trim() || (a.title || '').trim() || `Titik ${i + 1}`;
+
 // ===================== KOMPONEN FORM =====================
 const Section = ({ step, title, badge, open, onToggle, children }: {
   step: number; title: string; badge?: ReactNode; open: boolean; onToggle: () => void; children: ReactNode;
@@ -594,6 +609,9 @@ const APP_CSS = `
 .gl-chip:hover{border-color:#b7c4d0}
 .gl-chip.is-on{border-color:var(--brand);background:var(--brand-soft);color:var(--brand-d);font-weight:600}
 .gl-chip__dot{width:16px;height:16px;border-radius:50%;border:1px solid rgba(15,27,45,.15);flex-shrink:0}
+.gl-legrow{display:flex;align-items:center;gap:8px}
+.gl-legrow__sym{width:36px;height:36px;display:flex;align-items:center;justify-content:center;border:1px solid var(--line);border-radius:8px;background:#fff;flex-shrink:0}
+.gl-legrow__up{height:36px;padding:0 12px;font-size:12px}
 .gl-color{position:relative;display:flex;align-items:center;gap:8px;height:38px;padding:0 10px;border:1px solid var(--line);border-radius:10px;background:#fff;cursor:pointer}
 .gl-color input{position:absolute;inset:0;width:100%;height:100%;opacity:0;cursor:pointer}
 .gl-color__sw{width:20px;height:20px;border-radius:6px;border:1px solid rgba(15,27,45,.2);flex-shrink:0}
@@ -765,21 +783,7 @@ const APP_CSS = `
 
 // ===================== APLIKASI =====================
 export default function App() {
-  // Halaman aktif disimpan di URL (#/peta) supaya refresh tetap di halaman yang sama
-  const [activePage, setActivePage] = useState<'home' | 'admin-map'>(() =>
-    window.location.hash === '#/peta' ? 'admin-map' : 'home'
-  );
-  useEffect(() => {
-    const want = activePage === 'admin-map' ? '#/peta' : '';
-    if (window.location.hash !== want) {
-      window.history.pushState(null, '', window.location.pathname + window.location.search + want);
-    }
-  }, [activePage]);
-  useEffect(() => {
-    const onPop = () => setActivePage(window.location.hash === '#/peta' ? 'admin-map' : 'home');
-    window.addEventListener('popstate', onPop);
-    return () => window.removeEventListener('popstate', onPop);
-  }, []);
+  const [activePage, setActivePage] = useState<'home' | 'admin-map'>('home');
   const [navOpen, setNavOpen] = useState<boolean>(false);
   const [navSolid, setNavSolid] = useState<boolean>(false);
   const [sidebarOpen, setSidebarOpen] = useState<boolean>(false);
@@ -1016,7 +1020,10 @@ export default function App() {
         imageCaption: '',
         calloutLng: Number((lng + 0.0035).toFixed(6)),
         calloutLat: Number((lat + 0.0025).toFixed(6)),
-        showCallout: true
+        showCallout: true,
+        showInLegend: true,
+        legendLabel: '',
+        legendImageUrl: ''
       };
       setAoiList((prev) => [...prev, newAoi]);
       setSelectedAoiId(newAoi.id);
@@ -1940,6 +1947,47 @@ export default function App() {
 
                           <div className="gl-divider" />
 
+                          <div className="gl-subhead">Legenda</div>
+                          <Toggle label="Tampilkan titik ini di legenda" checked={aoi.showInLegend} onChange={(v) => patchAoi(aoi.id, { showInLegend: v })} />
+                          {aoi.showInLegend && (
+                            <>
+                              <label className="gl-field">
+                                <span className="gl-label">Nama di legenda</span>
+                                <input type="text" className="gl-input" placeholder={aoi.title || 'Nama titik'} value={aoi.legendLabel} onChange={(e) => patchAoi(aoi.id, { legendLabel: e.target.value })} />
+                              </label>
+                              <div className="gl-field">
+                                <span className="gl-label">Gambar simbol legenda</span>
+                                <div className="gl-legrow">
+                                  <span className="gl-legrow__sym"><LegendSymbol aoi={aoi} size={22} /></span>
+                                  <label className="gl-btn gl-legrow__up">
+                                    <Icon name="upload" size={14} /> {aoi.legendImageUrl ? 'Ganti gambar' : 'Unggah gambar'}
+                                    <input
+                                      type="file"
+                                      accept="image/*"
+                                      style={{ display: 'none' }}
+                                      onChange={(e) => {
+                                        const file = e.target.files?.[0];
+                                        e.target.value = '';
+                                        if (!file) return;
+                                        const reader = new FileReader();
+                                        reader.onload = (ev) => patchAoi(aoi.id, { legendImageUrl: ev.target?.result as string });
+                                        reader.readAsDataURL(file);
+                                      }}
+                                    />
+                                  </label>
+                                  {aoi.legendImageUrl && (
+                                    <button type="button" className="gl-iconbtn gl-iconbtn--danger" aria-label="Hapus gambar legenda" title="Hapus gambar legenda" onClick={() => patchAoi(aoi.id, { legendImageUrl: '' })}>
+                                      <Icon name="trash" size={16} />
+                                    </button>
+                                  )}
+                                </div>
+                              </div>
+                              <div className="gl-note">Tanpa gambar, legenda memakai ikon dan warna titik ini. Tanpa nama khusus, legenda memakai nama titik.</div>
+                            </>
+                          )}
+
+                          <div className="gl-divider" />
+
                           {!aoi.imageUrl && (
                             <label className="gl-upload">
                               <Icon name="upload" size={20} />
@@ -2187,14 +2235,14 @@ export default function App() {
                             <span style={{ color: '#334155' }}>Batas Desa Sekitar</span>
                           </div>
                         )}
-                        {aoiList.length > 0 && (
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                            <div style={{ width: '18px', display: 'flex', justifyContent: 'center', flexShrink: 0 }}>
-                              <div style={{ width: '10px', height: '10px', borderRadius: '50%', backgroundColor: aoiList[0]?.color || '#dc2626', border: '1.5px solid #000', boxSizing: 'border-box' }} />
+                        {aoiList.map((aoi, i) => aoi.showInLegend !== false && (
+                          <div key={aoi.id} style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                            <div style={{ width: '18px', height: '16px', display: 'flex', justifyContent: 'center', alignItems: 'center', flexShrink: 0 }}>
+                              <LegendSymbol aoi={aoi} size={15} />
                             </div>
-                            <span style={{ color: '#334155' }}>Titik Area of Interest (AOI)</span>
+                            <span style={{ color: '#334155' }}>{legendName(aoi, i)}</span>
                           </div>
-                        )}
+                        ))}
                         {aoiList.some(hasCallout) && (
                           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                             <div style={{ width: '18px', borderTop: '2px dashed #0f172a', flexShrink: 0 }} />
