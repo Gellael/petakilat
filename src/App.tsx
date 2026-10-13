@@ -1,16 +1,12 @@
-// src/App.tsx
 import { useEffect, useRef, useState, type ReactNode, type CSSProperties } from 'react';
 import * as maplibregl from 'maplibre-gl';
 import 'maplibre-gl/dist/maplibre-gl.css';
 import workerUrl from 'maplibre-gl/dist/maplibre-gl-worker.mjs?url';
 import * as turf from '@turf/turf';
-
-// Daftarkan worker URL untuk bundler Vite agar GeoJSON source dapat di-render tanpa kendala
 maplibregl.setWorkerUrl(workerUrl);
 
 const API= import.meta.env.VITE_API_URL || "http://localhost:8080";
 
-// ===================== MODEL & KONSTANTA =====================
 export interface AoiItem {
   id: string;
   title: string;
@@ -23,9 +19,9 @@ export interface AoiItem {
   calloutLng: number;
   calloutLat: number;
   showCallout: boolean;
-  showInLegend: boolean;   // tampilkan titik ini di legenda
-  legendLabel: string;     // nama di legenda (kosong = pakai nama titik)
-  legendImageUrl: string;  // gambar simbol legenda (kosong = pakai ikon dan warna titik)
+  showInLegend: boolean;
+  legendLabel: string;
+  legendImageUrl: string;
 }
 
 const AOI_ICONS: { emoji: string; label: string }[] = [
@@ -43,8 +39,6 @@ const AOI_ICONS: { emoji: string; label: string }[] = [
   { emoji: '🔵', label: 'Titik Biru' },
 ];
 
-// Kunci API CARTO (gratis). Isi VITE_CARTO_KEY di file .env frontend untuk membuka peta Carto.
-// Tanpa kunci, peta Carto disembunyikan karena server Carto menampilkan tulisan "API key required".
 const CARTO_KEY: string = ((import.meta as any).env?.VITE_CARTO_KEY as string | undefined) || '';
 
 type BasemapTone = 'sat' | 'light' | 'dark';
@@ -54,8 +48,8 @@ interface BasemapDef {
   desc: string;
   thumb: string;
   group: string;
-  tone: BasemapTone; // dipakai untuk menyesuaikan warna garis batas pada peta inset
-  attr: string;      // atribusi sumber peta, ditampilkan di legenda
+  tone: BasemapTone;
+  attr: string;
   maxzoom?: number;
   needsKey?: 'carto';
 }
@@ -65,7 +59,6 @@ const BASEMAP_GROUPS = ['Satelit', 'Terang', 'Gelap', 'Jalan & topografi'];
 const CARTO_ATTR = '© OpenStreetMap contributors © CARTO';
 
 const BASEMAP_TILES: Record<string, BasemapDef> = {
-  // ----- Satelit -----
   citra: {
     name: 'Citra Satelit Esri',
     url: 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
@@ -75,7 +68,6 @@ const BASEMAP_TILES: Record<string, BasemapDef> = {
     tone: 'sat',
     attr: 'Esri, Maxar, Earthstar Geographics'
   },
-  // ----- Terang -----
   esri_lightgray: {
     name: 'Esri Abu-abu Terang',
     url: 'https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Light_Gray_Base/MapServer/tile/{z}/{y}/{x}',
@@ -116,7 +108,6 @@ const BASEMAP_TILES: Record<string, BasemapDef> = {
     needsKey: 'carto',
     attr: CARTO_ATTR
   },
-  // ----- Gelap (dark mode) -----
   esri_darkgray: {
     name: 'Esri Abu-abu Gelap',
     url: 'https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Dark_Gray_Base/MapServer/tile/{z}/{y}/{x}',
@@ -147,7 +138,6 @@ const BASEMAP_TILES: Record<string, BasemapDef> = {
     needsKey: 'carto',
     attr: CARTO_ATTR
   },
-  // ----- Jalan & topografi -----
   osm: {
     name: 'OpenStreetMap',
     url: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
@@ -187,7 +177,6 @@ const BASEMAP_TILES: Record<string, BasemapDef> = {
   }
 };
 
-// Peta yang butuh kunci hanya tampil bila kuncinya sudah diisi
 const isBasemapAvailable = (key: string) => !!BASEMAP_TILES[key] && (!BASEMAP_TILES[key].needsKey || !!CARTO_KEY);
 const AVAILABLE_KEYS = Object.keys(BASEMAP_TILES).filter(isBasemapAvailable);
 const basemapUrl = (b: BasemapDef) => (b.needsKey === 'carto' ? `${b.url}?key=${encodeURIComponent(CARTO_KEY)}` : b.url);
@@ -223,20 +212,16 @@ const SHEET_H = 680;
 const SHEET_FONT = 'serif';
 const EMPTY_FC = { type: 'FeatureCollection' as const, features: [] as any[] };
 
-// ===================== HELPER UMUM =====================
 const escapeHtml = (s: string) =>
   s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 
 const hasCallout = (a: AoiItem) => a.showCallout && !!(a.imageUrl || a.imageCaption);
-
-// Perluas bounding box agar bentuk desa tampil dengan konteks wilayah sekitarnya
 const expandBbox = (b: number[], f: number): [number, number, number, number] => {
   const dx = (b[2] - b[0]) * f;
   const dy = (b[3] - b[1]) * f;
   return [b[0] - dx, b[1] - dy, b[2] + dx, b[3] + dy];
 };
 
-// Ganti peta dasar raster pada peta mana pun (utama maupun inset), tetap di lapisan paling bawah
 const swapBasemap = (map: maplibregl.Map | null, key: string) => {
   if (!map) return;
   const run = () => {
@@ -255,7 +240,6 @@ const swapBasemap = (map: maplibregl.Map | null, key: string) => {
   }
 };
 
-// Jalankan fungsi begitu style peta siap (addSource melempar error bila style belum selesai dimuat)
 const runWhenReady = (map: maplibregl.Map, fn: () => void) => {
   try {
     fn();
@@ -264,9 +248,6 @@ const runWhenReady = (map: maplibregl.Map, fn: () => void) => {
   }
 };
 
-// ===================== LAYER GOOGLE EARTH ENGINE =====================
-// Kunci akses GEE hanya ada di backend. Frontend cuma meminta URL tile ke /api/gee-tiles.
-// Urutan di daftar ini = urutan tumpukan (yang di bawah daftar tampil paling atas).
 const GEE_LAYERS: { key: string; label: string }[] = [
   { key: 'elevation', label: 'Elevasi (SRTM)' },
   { key: 'ndwi', label: 'NDWI (indeks air)' },
