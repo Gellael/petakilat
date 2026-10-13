@@ -40,31 +40,155 @@ const AOI_ICONS: { emoji: string; label: string }[] = [
   { emoji: '🔵', label: 'Titik Biru' },
 ];
 
-const BASEMAP_TILES: Record<string, { name: string; url: string; desc: string; thumb: string }> = {
+type BasemapTone = 'sat' | 'light' | 'dark';
+interface BasemapDef {
+  name: string;
+  url: string;
+  desc: string;
+  thumb: string;
+  group: string;
+  tone: BasemapTone; // dipakai untuk menyesuaikan warna garis batas pada peta inset
+  maxzoom?: number;
+}
+
+const BASEMAP_GROUPS = ['Satelit', 'Terang', 'Gelap', 'Jalan & topografi'];
+
+const BASEMAP_TILES: Record<string, BasemapDef> = {
+  // ----- Satelit -----
   citra: {
     name: 'Citra Satelit Esri',
     url: 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
     desc: 'Citra satelit resolusi tinggi',
-    thumb: 'linear-gradient(135deg,#34502f,#6b7a4f 45%,#46586a)'
+    thumb: 'linear-gradient(135deg,#34502f,#6b7a4f 45%,#46586a)',
+    group: 'Satelit',
+    tone: 'sat'
   },
+  // ----- Terang -----
   positron: {
     name: 'Carto Positron',
     url: 'https://basemaps.cartocdn.com/light_all/{z}/{x}/{y}.png',
     desc: 'Peta terang, bersih untuk cetak',
-    thumb: 'linear-gradient(135deg,#f6f7f8,#dde2e6)'
+    thumb: 'linear-gradient(135deg,#f6f7f8,#dde2e6)',
+    group: 'Terang',
+    tone: 'light'
   },
+  positron_nolabels: {
+    name: 'Positron Tanpa Label',
+    url: 'https://basemaps.cartocdn.com/light_nolabels/{z}/{x}/{y}.png',
+    desc: 'Terang polos tanpa nama tempat',
+    thumb: 'linear-gradient(135deg,#fbfbfb,#e6e9ec)',
+    group: 'Terang',
+    tone: 'light'
+  },
+  voyager: {
+    name: 'Carto Voyager',
+    url: 'https://basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}.png',
+    desc: 'Modern, hangat, mudah dibaca',
+    thumb: 'linear-gradient(135deg,#f3efe6,#d7e6d3 55%,#bcd9e6)',
+    group: 'Terang',
+    tone: 'light'
+  },
+  esri_lightgray: {
+    name: 'Esri Abu-abu Terang',
+    url: 'https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Light_Gray_Base/MapServer/tile/{z}/{y}/{x}',
+    desc: 'Kanvas netral untuk tema data',
+    thumb: 'linear-gradient(135deg,#eceeef,#cfd4d8)',
+    group: 'Terang',
+    tone: 'light',
+    maxzoom: 16
+  },
+  // ----- Gelap (dark mode) -----
+  dark: {
+    name: 'Carto Dark Matter',
+    url: 'https://basemaps.cartocdn.com/dark_all/{z}/{x}/{y}.png',
+    desc: 'Mode gelap modern dengan label',
+    thumb: 'linear-gradient(135deg,#0b0f17,#1c2433 55%,#2c3648)',
+    group: 'Gelap',
+    tone: 'dark'
+  },
+  dark_nolabels: {
+    name: 'Dark Matter Tanpa Label',
+    url: 'https://basemaps.cartocdn.com/dark_nolabels/{z}/{x}/{y}.png',
+    desc: 'Gelap polos, batas wilayah menonjol',
+    thumb: 'linear-gradient(135deg,#05070b,#141a26 55%,#222b3b)',
+    group: 'Gelap',
+    tone: 'dark'
+  },
+  esri_darkgray: {
+    name: 'Esri Abu-abu Gelap',
+    url: 'https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Dark_Gray_Base/MapServer/tile/{z}/{y}/{x}',
+    desc: 'Kanvas gelap netral',
+    thumb: 'linear-gradient(135deg,#1f2327,#343a40 55%,#4a5159)',
+    group: 'Gelap',
+    tone: 'dark',
+    maxzoom: 16
+  },
+  // ----- Jalan & topografi -----
   osm: {
     name: 'OpenStreetMap',
     url: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
     desc: 'Jalan, pemukiman, dan toponimi',
-    thumb: 'linear-gradient(135deg,#ece6d6,#c9dfb4 55%,#aad3df)'
+    thumb: 'linear-gradient(135deg,#ece6d6,#c9dfb4 55%,#aad3df)',
+    group: 'Jalan & topografi',
+    tone: 'light'
+  },
+  esri_street: {
+    name: 'Esri Jalan',
+    url: 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}',
+    desc: 'Peta jalan klasik bergaya navigasi',
+    thumb: 'linear-gradient(135deg,#f2eee3,#d6e4c8 50%,#a9cfe6)',
+    group: 'Jalan & topografi',
+    tone: 'light'
   },
   topo: {
     name: 'Esri Topografi',
     url: 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Topo_Map/MapServer/tile/{z}/{y}/{x}',
     desc: 'Relief dan kontur medan',
-    thumb: 'linear-gradient(135deg,#e8dcc0,#b9cf9c 55%,#c9b79a)'
+    thumb: 'linear-gradient(135deg,#e8dcc0,#b9cf9c 55%,#c9b79a)',
+    group: 'Jalan & topografi',
+    tone: 'light'
+  },
+  opentopo: {
+    name: 'OpenTopoMap',
+    url: 'https://tile.opentopomap.org/{z}/{x}/{y}.png',
+    desc: 'Garis kontur dan bayangan lereng',
+    thumb: 'linear-gradient(135deg,#d9e8c4,#e3d3a8 50%,#b8a58a)',
+    group: 'Jalan & topografi',
+    tone: 'light',
+    maxzoom: 17
+  },
+  natgeo: {
+    name: 'Esri National Geographic',
+    url: 'https://server.arcgisonline.com/ArcGIS/rest/services/NatGeo_World_Map/MapServer/tile/{z}/{y}/{x}',
+    desc: 'Gaya atlas dengan warna alami',
+    thumb: 'linear-gradient(135deg,#e9dfc6,#b7c98f 50%,#8fb3b9)',
+    group: 'Jalan & topografi',
+    tone: 'light',
+    maxzoom: 16
   }
+};
+
+// Pilihan peta dasar khusus inset. 'sync' = ikut peta utama. Bawaan: peta terang polos yang lazim dipakai peta letak.
+const INSET_SYNC = 'sync';
+const DEFAULT_INSET_BASEMAP = 'positron_nolabels';
+const INSET_CHOICES: string[] = [
+  INSET_SYNC,
+  'positron_nolabels',
+  'positron',
+  'voyager',
+  'esri_lightgray',
+  'dark_nolabels',
+  'dark',
+  'osm',
+  'citra',
+  'topo'
+];
+
+const basemapThumb = (key: string) => (BASEMAP_TILES[key] || BASEMAP_TILES.citra).thumb;
+
+const rasterSource = (key: string) => {
+  const b = BASEMAP_TILES[key] || BASEMAP_TILES.citra;
+  return { type: 'raster' as const, tiles: [b.url], tileSize: 256, maxzoom: b.maxzoom ?? 19 };
 };
 
 const BASE_SRC = 'raster-tiles';
@@ -88,12 +212,12 @@ const expandBbox = (b: number[], f: number): [number, number, number, number] =>
 };
 
 // Ganti peta dasar raster pada peta mana pun (utama maupun inset), tetap di lapisan paling bawah
-const swapBasemap = (map: maplibregl.Map | null, url: string) => {
+const swapBasemap = (map: maplibregl.Map | null, key: string) => {
   if (!map) return;
   const run = () => {
     if (map.getLayer(BASE_LAYER)) map.removeLayer(BASE_LAYER);
     if (map.getSource(BASE_SRC)) map.removeSource(BASE_SRC);
-    map.addSource(BASE_SRC, { type: 'raster', tiles: [url], tileSize: 256, maxzoom: 19 });
+    map.addSource(BASE_SRC, rasterSource(key));
     const beforeId = map.getStyle().layers.find((l) => l.id !== BASE_LAYER)?.id;
     map.addLayer({ id: BASE_LAYER, type: 'raster', source: BASE_SRC }, beforeId);
   };
@@ -344,9 +468,9 @@ const Panel = ({ title, children, bodyStyle, style }: { title: string; children:
 const FEATURES = [
   { icon: 'pin', title: 'Wilayah bertingkat', text: 'Pilih provinsi, kabupaten/kota, lalu desa atau kelurahan. Batas desa di sekitarnya ikut tampil sebagai konteks.' },
   { icon: 'file', title: 'Lembar peta otomatis', text: 'Judul, arah utara, skala, legenda, dan metadata tersusun mengikuti wilayah yang Anda pilih.' },
-  { icon: 'layers', title: 'Empat peta dasar', text: 'Citra satelit Esri, Carto Positron, OpenStreetMap, dan Esri Topografi.' },
+  { icon: 'layers', title: 'Banyak pilihan peta dasar', text: 'Citra satelit, peta terang, mode gelap (dark mode), jalan, dan topografi dari Esri, Carto, OpenStreetMap, dan OpenTopoMap.' },
   { icon: 'image', title: 'Titik AOI dan foto', text: 'Tandai lokasi, tempel foto lapangan dengan keterangannya, lalu hubungkan dengan garis penunjuk yang bisa digeser.' },
-  { icon: 'compass', title: 'Peta inset', text: 'Inset menunjukkan letak desa terhadap wilayah sekitarnya, memakai peta dasar yang sama dengan peta utama.' },
+  { icon: 'compass', title: 'Peta inset', text: 'Inset menunjukkan letak desa terhadap wilayah sekitarnya. Peta dasarnya bisa dipilih sendiri, terpisah dari peta utama.' },
   { icon: 'download', title: 'Ekspor siap cetak', text: 'Unduh PNG resolusi tinggi atau PDF A4 lanskap langsung dari lembar peta.' }
 ];
 
@@ -360,7 +484,7 @@ const STEPS = [
 const SPECS = [
   { k: 'Batas wilayah', v: 'Batas administrasi desa/kelurahan dari Badan Informasi Geospasial (BIG).' },
   { k: 'Penyimpanan data', v: 'PostgreSQL/PostGIS di Aiven, diakses melalui server API.' },
-  { k: 'Peta dasar', v: 'Esri World Imagery, Carto Positron, OpenStreetMap, dan Esri World Topo.' },
+  { k: 'Peta dasar', v: 'Esri (citra, jalan, topografi, kanvas abu-abu, National Geographic), Carto (Positron, Voyager, Dark Matter), OpenStreetMap, dan OpenTopoMap.' },
   { k: 'Penggambaran peta', v: 'MapLibre GL JS. Luas dan batas tampilan dihitung dengan Turf.js.' },
   { k: 'Koordinat', v: 'Geografis WGS 84, ditulis dalam derajat, menit, dan detik.' },
   { k: 'Skala', v: 'Dihitung dari zoom dan lintang dengan asumsi layar 96 DPI. Anggap sebagai perkiraan.' },
@@ -463,6 +587,13 @@ const APP_CSS = `
 .gl-basemap__name{padding:0 4px;font-size:12px;font-weight:600;line-height:1.25;color:var(--ink)}
 .gl-basemap__desc{padding:0 4px;margin-top:-4px;font-size:11px;line-height:1.3;color:var(--muted)}
 
+.gl-bmgroup{display:flex;flex-direction:column;gap:8px}
+.gl-subhead{font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
+.gl-chips{display:flex;flex-wrap:wrap;gap:6px}
+.gl-chip{display:inline-flex;align-items:center;gap:7px;padding:5px 11px 5px 6px;border:1px solid var(--line);border-radius:999px;background:#fff;color:var(--ink-2);font-size:12px;font-weight:500;cursor:pointer;transition:border-color .15s,background .15s}
+.gl-chip:hover{border-color:#b7c4d0}
+.gl-chip.is-on{border-color:var(--brand);background:var(--brand-soft);color:var(--brand-d);font-weight:600}
+.gl-chip__dot{width:16px;height:16px;border-radius:50%;border:1px solid rgba(15,27,45,.15);flex-shrink:0}
 .gl-color{position:relative;display:flex;align-items:center;gap:8px;height:38px;padding:0 10px;border:1px solid var(--line);border-radius:10px;background:#fff;cursor:pointer}
 .gl-color input{position:absolute;inset:0;width:100%;height:100%;opacity:0;cursor:pointer}
 .gl-color__sw{width:20px;height:20px;border-radius:6px;border:1px solid rgba(15,27,45,.2);flex-shrink:0}
@@ -654,6 +785,7 @@ export default function App() {
 
   // --- SIMBOLOGI & TAMPILAN WILAYAH ---
   const [basemapKey, setBasemapKey] = useState<string>('citra');
+  const [insetBasemapKey, setInsetBasemapKey] = useState<string>(DEFAULT_INSET_BASEMAP);
   const [fillColor, setFillColor] = useState<string>('#38bdf8');
   const [opacityVal, setOpacityVal] = useState<number>(0.45);
   const [strokeColor, setStrokeColor] = useState<string>('#dc2626');
@@ -717,6 +849,9 @@ export default function App() {
   strokeColorRef.current = strokeColor;
   const basemapKeyRef = useRef<string>(basemapKey);
   basemapKeyRef.current = basemapKey;
+  const insetKey = insetBasemapKey === INSET_SYNC ? basemapKey : insetBasemapKey;
+  const insetKeyRef = useRef<string>(insetKey);
+  insetKeyRef.current = insetKey;
   const aoiListRef = useRef<AoiItem[]>([]);
   aoiListRef.current = aoiList;
   const isAddingAoiRef = useRef<boolean>(false);
@@ -832,7 +967,7 @@ export default function App() {
       style: {
         version: 8,
         sources: {
-          [BASE_SRC]: { type: 'raster', tiles: [BASEMAP_TILES[basemapKeyRef.current].url], tileSize: 256, maxzoom: 19 }
+          [BASE_SRC]: rasterSource(basemapKeyRef.current)
         },
         layers: [{ id: BASE_LAYER, type: 'raster', source: BASE_SRC, minzoom: 0, maxzoom: 22 }]
       },
@@ -923,10 +1058,11 @@ export default function App() {
     (inset.getSource('inset-context-src') as maplibregl.GeoJSONSource | undefined)?.setData(contextFc as any);
     (inset.getSource('inset-selected-src') as maplibregl.GeoJSONSource | undefined)?.setData(selectedFc as any);
 
-    // Garis batas sekitar: putih di atas citra satelit, abu-abu gelap di peta dasar terang
-    const onSat = basemapKeyRef.current === 'citra';
-    if (inset.getLayer('inset-context-line')) inset.setPaintProperty('inset-context-line', 'line-color', onSat ? '#ffffff' : '#64748b');
-    if (inset.getLayer('inset-context-fill')) inset.setPaintProperty('inset-context-fill', 'fill-color', onSat ? '#ffffff' : '#64748b');
+    // Garis batas sekitar: putih di atas citra satelit, abu-abu terang di peta gelap, abu-abu gelap di peta terang
+    const tone = (BASEMAP_TILES[insetKeyRef.current] || BASEMAP_TILES.citra).tone;
+    const ctxColor = tone === 'sat' ? '#ffffff' : tone === 'dark' ? '#94a3b8' : '#64748b';
+    if (inset.getLayer('inset-context-line')) inset.setPaintProperty('inset-context-line', 'line-color', ctxColor);
+    if (inset.getLayer('inset-context-fill')) inset.setPaintProperty('inset-context-fill', 'fill-color', ctxColor);
     if (inset.getLayer('inset-selected-fill')) inset.setPaintProperty('inset-selected-fill', 'fill-color', fillColorRef.current);
     if (inset.getLayer('inset-selected-line')) inset.setPaintProperty('inset-selected-line', 'line-color', strokeColorRef.current);
 
@@ -949,7 +1085,7 @@ export default function App() {
       style: {
         version: 8,
         sources: {
-          [BASE_SRC]: { type: 'raster', tiles: [BASEMAP_TILES[basemapKeyRef.current].url], tileSize: 256, maxzoom: 19 }
+          [BASE_SRC]: rasterSource(insetKeyRef.current)
         },
         layers: [{ id: BASE_LAYER, type: 'raster', source: BASE_SRC }]
       },
@@ -980,20 +1116,20 @@ export default function App() {
     refreshInset();
   }, [listDesa, selectedDesa, selectedKab, fillColor, strokeColor, activePage]);
 
-  // Peta dasar berubah -> inset ikut berganti
+  // Peta dasar inset berubah (pilihan inset atau peta utama bila mode ikuti utama) -> inset ikut berganti
   useEffect(() => {
     if (insetInstance.current && insetReadyRef.current) {
-      swapBasemap(insetInstance.current, BASEMAP_TILES[basemapKey].url);
+      swapBasemap(insetInstance.current, insetKey);
       refreshInset();
     }
-  }, [basemapKey]);
+  }, [insetKey]);
 
   // Ganti Peta Dasar (utama; inset disinkronkan oleh effect di atas)
   const handleBasemapChange = (newKey: string) => {
     const tileInfo = BASEMAP_TILES[newKey];
     if (!tileInfo) return;
     setBasemapKey(newKey);
-    swapBasemap(mapInstance.current, tileInfo.url);
+    swapBasemap(mapInstance.current, newKey);
   };
 
   // Update Real-time Simbologi Batas Wilayah
@@ -1663,16 +1799,40 @@ export default function App() {
 
             {/* 2. PETA DASAR */}
             <Section step={2} title="Peta dasar" open={!!openSec.dasar} onToggle={() => toggleSec('dasar')}>
-              <div className="gl-basemaps">
-                {Object.entries(BASEMAP_TILES).map(([key, item]) => (
-                  <button type="button" key={key} className={`gl-basemap ${basemapKey === key ? 'is-on' : ''}`} onClick={() => handleBasemapChange(key)} aria-pressed={basemapKey === key}>
-                    <span className="gl-basemap__thumb" style={{ background: item.thumb }} />
-                    <span className="gl-basemap__name">{item.name}</span>
-                    <span className="gl-basemap__desc">{item.desc}</span>
-                  </button>
-                ))}
+              {BASEMAP_GROUPS.map((g) => (
+                <div className="gl-bmgroup" key={g}>
+                  <div className="gl-subhead">{g}</div>
+                  <div className="gl-basemaps">
+                    {Object.entries(BASEMAP_TILES).filter(([, item]) => item.group === g).map(([key, item]) => (
+                      <button type="button" key={key} className={`gl-basemap ${basemapKey === key ? 'is-on' : ''}`} onClick={() => handleBasemapChange(key)} aria-pressed={basemapKey === key}>
+                        <span className="gl-basemap__thumb" style={{ background: item.thumb }} />
+                        <span className="gl-basemap__name">{item.name}</span>
+                        <span className="gl-basemap__desc">{item.desc}</span>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              ))}
+
+              <div className="gl-divider" />
+
+              <div className="gl-bmgroup">
+                <div className="gl-subhead">Peta dasar inset</div>
+                <div className="gl-chips" role="group" aria-label="Peta dasar inset">
+                  {INSET_CHOICES.map((key) => {
+                    const isSync = key === INSET_SYNC;
+                    const label = isSync ? 'Ikuti peta utama' : BASEMAP_TILES[key].name;
+                    const thumb = isSync ? basemapThumb(basemapKey) : BASEMAP_TILES[key].thumb;
+                    return (
+                      <button type="button" key={key} className={`gl-chip ${insetBasemapKey === key ? 'is-on' : ''}`} onClick={() => setInsetBasemapKey(key)} aria-pressed={insetBasemapKey === key}>
+                        <span className="gl-chip__dot" style={{ background: thumb }} />
+                        {label}
+                      </button>
+                    );
+                  })}
+                </div>
+                <div className="gl-note">Peta inset di lembar peta bebas dipilih terpisah dari peta utama. Bawaannya peta terang tanpa label, seperti peta letak pada umumnya.</div>
               </div>
-              <div className="gl-note">Peta inset di lembar peta ikut memakai peta dasar yang dipilih.</div>
             </Section>
 
             {/* 3. SIMBOLOGI */}
@@ -2067,12 +2227,9 @@ export default function App() {
                       </div>
                     </Panel>
 
-                    {/* PETA INSET: peta dasar + letak desa terhadap wilayah sekitar */}
+                    {/* PETA INSET: langsung peta tanpa judul, menunjukkan letak desa terhadap wilayah sekitar */}
                     <div style={{ border: '1.5px solid #000', backgroundColor: '#ffffff', flexShrink: 0, position: 'relative' }}>
                       <div data-inset-container="true" ref={insetContainer} style={{ position: 'relative', width: '100%', height: '150px' }} />
-                      <div style={{ position: 'absolute', top: '4px', left: '4px', zIndex: 5, background: 'rgba(255,255,255,0.93)', border: '1px solid #000', padding: '1px 4px', fontSize: '7.5px', fontWeight: 'bold', letterSpacing: '0.5px', fontFamily: 'sans-serif', textTransform: 'uppercase' }}>
-                        Peta Inset
-                      </div>
                     </div>
 
                   </div>
