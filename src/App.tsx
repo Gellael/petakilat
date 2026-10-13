@@ -500,8 +500,10 @@ const RangeField = ({ label, value, min, max, step, display, onChange }: {
   </label>
 );
 
-function SearchSelect({ label, value, options, placeholder, disabled, onChange }: {
+function SearchSelect({ label, value, options, placeholder, disabled, onChange, onBeforeOpen }: {
   label: string; value: string; options: string[]; placeholder: string; disabled?: boolean; onChange: (v: string) => void;
+  /** Dipanggil saat user mengklik untuk membuka daftar. Kembalikan false untuk membatalkan pembukaan. */
+  onBeforeOpen?: () => boolean | Promise<boolean>;
 }) {
   const [open, setOpen] = useState(false);
   const [q, setQ] = useState('');
@@ -524,11 +526,15 @@ function SearchSelect({ label, value, options, placeholder, disabled, onChange }
   const filtered = options.filter((o) => o.toLowerCase().includes(q.toLowerCase()));
   const shown = filtered.slice(0, 200);
   const pick = (v: string) => { onChange(v); setOpen(false); setQ(''); };
+  const toggle = async () => {
+    if (!open && onBeforeOpen && !(await onBeforeOpen())) return;
+    setOpen((o) => !o);
+  };
 
   return (
     <div className="gl-field" ref={ref}>
       <span className="gl-label">{label}</span>
-      <button type="button" className={`gl-select ${open ? 'is-open' : ''}`} disabled={disabled} onClick={() => setOpen((o) => !o)} aria-haspopup="listbox" aria-expanded={open}>
+      <button type="button" className={`gl-select ${open ? 'is-open' : ''}`} disabled={disabled} onClick={toggle} aria-haspopup="listbox" aria-expanded={open}>
         <span className={value ? 'gl-select__val' : 'gl-select__ph'}>{value || placeholder}</span>
         <Icon name="chevron" size={16} />
       </button>
@@ -551,6 +557,18 @@ function SearchSelect({ label, value, options, placeholder, disabled, onChange }
     </div>
   );
 }
+
+// Pola watermark pratinjau: teks miring berulang (ubin SVG). Memuat email user agar screenshot bisa dilacak.
+const escXml = (s: string) => s.replace(/[<>&"']/g, (c) => ({ '<': '&lt;', '>': '&gt;', '&': '&amp;', '"': '&quot;', "'": '&apos;' } as Record<string, string>)[c]);
+const previewWatermarkBg = (email: string): string => {
+  const svg =
+    `<svg xmlns="http://www.w3.org/2000/svg" width="260" height="150">` +
+    `<g transform="rotate(-25 130 75)" font-family="Arial,sans-serif" font-weight="700" text-anchor="middle" fill="#000" fill-opacity="0.16">` +
+    `<text x="130" y="68" font-size="15">PRATINJAU - BELUM DIEKSPOR</text>` +
+    `<text x="130" y="90" font-size="11">${escXml(email.slice(0, 40))}</text>` +
+    `</g></svg>`;
+  return `url("data:image/svg+xml;utf8,${encodeURIComponent(svg)}")`;
+};
 
 // Panel formal pada lembar peta cetak (tidak diubah)
 const Panel = ({ title, children, bodyStyle, style }: { title: string; children: ReactNode; bodyStyle?: CSSProperties; style?: CSSProperties }) => (
@@ -703,7 +721,7 @@ const PLANS = [
   },
   {
     id: 'kredit', name: 'Paket kredit', price: 'Mulai Rp20.000', unit: 'per kredit', hi: true,
-    blurb: 'Bayar sesuai pemakaian. Satu kredit untuk satu peta kabupaten (akses 24 jam).',
+    blurb: 'Bayar sesuai pemakaian. Satu kredit untuk satu kali ekspor PNG atau PDF. Membuka peta tidak memakai kredit.',
     feats: ['Ekspor tanpa watermark', 'Resolusi cetak penuh', 'Kredit berlaku 12 bulan'],
     packs: [{ n: '5 kredit', p: 'Rp100.000' }, { n: '20 kredit', p: 'Rp400.000' }, { n: '50 kredit', p: 'Rp1.000.000' }],
     cta: 'Pilih paket'
@@ -1696,6 +1714,25 @@ export default function App() {
   };
 
   // ===================== PILIH WILAYAH =====================
+  // Gerbang kredit: dicek setiap user mengklik dropdown provinsi. Kredit TIDAK dipotong di sini
+  // (pemotongan hanya terjadi saat ekspor). Admin selalu lolos.
+  const cekKreditProvinsi = async (): Promise<boolean> => {
+    try {
+      const res = await apiFetch('/api/me');
+      if (res.ok) {
+        const me = await res.json();
+        if (me.role === 'admin' || me.kredit > 0) { setApiError(''); return true; }
+        setApiError('Kredit Anda habis. Silakan top-up terlebih dahulu untuk mengakses peta.');
+        setShowAccount(true); // buka panel top-up
+        auth.refreshUser();
+        return false;
+      }
+      if (res.status === 401) return false; // sesi habis; apiFetch sudah memicu logout
+    } catch { /* server tidak terjangkau */ }
+    setApiError('Tidak dapat memeriksa kredit. Periksa koneksi lalu coba lagi.');
+    return false;
+  };
+
   const handleSelectProvinsi = (prov: string) => {
     setSelectedProv(prov);
     setSelectedKab('');
@@ -2035,7 +2072,7 @@ export default function App() {
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ kabupaten: selectedKab }),
   });
-  if (res.ok) return true;
+  if (res.ok) { auth.refreshUser(); return true; } // kredit -1 terjadi di server saat ekspor
   const d = await res.json().catch(() => null);
   alert(d?.error || 'Tidak dapat mengekspor.');
   if (res.status === 402) setShowAccount(true);
@@ -2313,7 +2350,7 @@ export default function App() {
                   </button>
                 </div>
               )}
-              <SearchSelect label="Provinsi" value={selectedProv} options={listProvinsi} placeholder="Pilih provinsi" onChange={handleSelectProvinsi} />
+              <SearchSelect label="Provinsi" value={selectedProv} options={listProvinsi} placeholder="Pilih provinsi" onChange={handleSelectProvinsi} onBeforeOpen={cekKreditProvinsi} />
               <SearchSelect label="Kabupaten / kota" value={selectedKab} options={listKabupaten} disabled={!selectedProv} placeholder={selectedProv ? 'Pilih kabupaten / kota' : 'Pilih provinsi dahulu'} onChange={handleSelectKabupaten} />
               <SearchSelect label="Desa / kelurahan" value={selectedDesa} options={listDesa} disabled={!selectedKab || loadingKab} placeholder={loadingKab ? 'Memuat data desa...' : selectedKab ? 'Pilih desa / kelurahan' : 'Pilih kabupaten dahulu'} onChange={handleSelectDesa} />
             </Section>
@@ -2647,6 +2684,19 @@ export default function App() {
                     fontFamily: SHEET_FONT
                   }}
                 >
+                  {/* WATERMARK PRATINJAU: hanya di layar. Atribut data-export-hide membuatnya dilepas saat ekspor (kredit sudah dipotong). Admin tanpa watermark. */}
+                  {auth.user && auth.user.role !== 'admin' && (
+                    <div
+                      data-export-hide="true"
+                      aria-hidden="true"
+                      style={{
+                        position: 'absolute', inset: 0, zIndex: 60, pointerEvents: 'none', userSelect: 'none',
+                        backgroundImage: previewWatermarkBg(auth.user.email),
+                        backgroundRepeat: 'repeat',
+                      }}
+                    />
+                  )}
+
                   {/* KOLOM KIRI: JENDELA PETA */}
                   <div style={{ display: 'flex', flexDirection: 'column', height: '100%', borderRight: '2.5px solid #000', boxSizing: 'border-box', padding: '8px', position: 'relative', backgroundColor: '#ffffff' }}>
                     <div style={{ flex: 1, display: 'flex', flexDirection: 'column', border: '1.5px solid #000', boxSizing: 'border-box', position: 'relative' }}>
