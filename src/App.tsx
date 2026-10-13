@@ -209,6 +209,9 @@ const BASE_SRC = 'raster-tiles';
 const BASE_LAYER = 'simple-tile-layer';
 const SHEET_W = 1020;
 const SHEET_H = 680;
+// Isi dengan alamat halaman checkout (Midtrans/Xendit/dll) bila pembayaran sudah siap.
+// Selama kosong, tombol paket hanya membuka aplikasi.
+const CHECKOUT_URL = '';
 const SHEET_FONT = "'Times New Roman', Times, 'Liberation Serif', serif";
 const SHEET_SANS = "Arial, Helvetica, 'Liberation Sans', sans-serif";
 const SHEET_MONO = "'Courier New', Courier, 'Liberation Mono', monospace";
@@ -431,6 +434,7 @@ const ICON_PATHS: Record<string, ReactNode> = {
   crosshair: <><circle cx="12" cy="12" r="10" /><line x1="22" y1="12" x2="18" y2="12" /><line x1="6" y1="12" x2="2" y2="12" /><line x1="12" y1="6" x2="12" y2="2" /><line x1="12" y1="22" x2="12" y2="18" /></>,
   menu: <><line x1="3" y1="12" x2="21" y2="12" /><line x1="3" y1="6" x2="21" y2="6" /><line x1="3" y1="18" x2="21" y2="18" /></>,
   upload: <><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" /><polyline points="17 8 12 3 7 8" /><line x1="12" y1="3" x2="12" y2="15" /></>,
+  check: <polyline points="20 6 9 17 4 12" />,
   compass: <><circle cx="12" cy="12" r="10" /><polygon points="16.24 7.76 14.12 14.12 7.76 16.24 9.88 9.88 16.24 7.76" /></>
 };
 
@@ -557,21 +561,158 @@ const Panel = ({ title, children, bodyStyle, style }: { title: string; children:
   </div>
 );
 
+
+// Ilustrasi lembar peta untuk hero (meniru tata letak hasil ekspor)
+const HeroSheet = () => (
+  <svg viewBox="0 0 560 380" role="img" aria-label="Contoh lembar peta administrasi Desa Betungan dengan batas desa berwarna merah, legenda, skala, dan peta inset" xmlns="http://www.w3.org/2000/svg">
+    <defs>
+      <clipPath id="glmapclip"><rect x="10" y="24" width="380" height="332" /></clipPath>
+      <pattern id="glroads" width="14" height="14" patternUnits="userSpaceOnUse"><path d="M0 0H14M0 0V14" stroke="#e8eef0" strokeOpacity=".28" strokeWidth=".6" fill="none" /></pattern>
+      <linearGradient id="glsun" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0" stopColor="#f6b26b" /><stop offset=".45" stopColor="#e98a5b" /><stop offset=".46" stopColor="#5f8fb0" /><stop offset="1" stopColor="#2c4f6e" />
+      </linearGradient>
+    </defs>
+    <rect x="2" y="2" width="556" height="376" fill="#fff" stroke="#0a1c28" strokeWidth="2" />
+    <line x1="394" y1="2" x2="394" y2="378" stroke="#0a1c28" strokeWidth="2" />
+
+    {/* jendela peta */}
+    <rect x="10" y="10" width="380" height="360" fill="#fff" stroke="#000" strokeWidth="1.2" />
+    <rect x="10" y="10" width="380" height="14" fill="#f1f5f9" stroke="#000" strokeWidth=".8" />
+    <rect x="10" y="356" width="380" height="14" fill="#f1f5f9" stroke="#000" strokeWidth=".8" />
+    <g fontFamily={SHEET_MONO} fontSize="6.5" fontWeight="bold" fill="#1e293b">
+      <text x="18" y="20">{'102° 19\' 20" BT'}</text>
+      <text x="200" y="20" textAnchor="middle">GRID GEOGRAFIS WGS 84</text>
+      <text x="382" y="20" textAnchor="end">{'102° 22\' 36" BT'}</text>
+      <text x="18" y="366">{'102° 19\' 20" BT'}</text>
+      <text x="200" y="366" textAnchor="middle">{'Titik Pusat: 102° 20\' 58" BT, 3° 52\' 13" LS'}</text>
+      <text x="382" y="366" textAnchor="end">{'102° 22\' 36" BT'}</text>
+    </g>
+
+    <g clipPath="url(#glmapclip)">
+      <rect x="10" y="24" width="380" height="332" fill="#243f38" />
+      <ellipse cx="70" cy="90" rx="90" ry="50" fill="#2f5a43" opacity=".8" />
+      <ellipse cx="340" cy="320" rx="110" ry="60" fill="#33604a" opacity=".85" />
+      <ellipse cx="330" cy="70" rx="70" ry="40" fill="#3b6b4e" opacity=".6" />
+      <rect x="30" y="250" width="140" height="100" fill="#6b6f6a" opacity=".5" />
+      <rect x="30" y="250" width="140" height="100" fill="url(#glroads)" />
+      <path d="M10 300 C90 280 130 230 190 250 S300 330 390 290" stroke="#6fbfdc" strokeWidth="5" fill="none" opacity=".8" />
+      <g fill="rgba(255,255,255,.05)" stroke="#d5dee5" strokeWidth="1" strokeDasharray="4 3">
+        <polygon points="20,60 110,40 150,95 100,150 30,140" />
+        <polygon points="300,40 385,50 385,150 330,130" />
+        <polygon points="30,260 100,250 140,300 120,350 25,350" />
+        <polygon points="290,260 385,240 385,350 270,350" />
+      </g>
+      <polygon className="gl-fillin" points="125,105 205,72 285,92 335,150 325,230 275,292 200,312 140,272 98,200" fill="rgba(76,201,224,.34)" />
+      <polygon className="gl-draw" pathLength={1} points="125,105 205,72 285,92 335,150 325,230 275,292 200,312 140,272 98,200" fill="none" stroke="#dc2626" strokeWidth="2.4" strokeLinejoin="round" />
+      <rect x="172" y="184" width="76" height="18" rx="9" fill="#fff" />
+      <text x="210" y="196.5" textAnchor="middle" fontFamily={SHEET_SANS} fontSize="8" fontWeight="bold" fill="#0f172a" letterSpacing=".5">BETUNGAN</text>
+      <line x1="64" y1="96" x2="140" y2="150" stroke="#2f9e6b" strokeWidth="1.4" strokeDasharray="4 3" />
+      <circle cx="140" cy="150" r="7" fill="#0e7490" stroke="#fff" strokeWidth="2" />
+      <rect x="26" y="34" width="76" height="62" rx="4" fill="#2f9e6b" />
+      <rect x="29" y="37" width="70" height="40" fill="url(#glsun)" />
+      <rect x="29" y="77" width="70" height="16" fill="#fff" />
+      <text x="64" y="88.5" textAnchor="middle" fontFamily={SHEET_SANS} fontSize="6.5" fontWeight="bold" fill="#0f172a">AOI 1</text>
+      <rect x="14" y="336" width="60" height="14" fill="#fff" fillOpacity=".85" stroke="#000" strokeWidth=".6" />
+      <text x="18" y="346" fontFamily={SHEET_MONO} fontSize="6" fontWeight="bold" fill="#0f172a">500 m</text>
+    </g>
+
+    {/* kolom informasi */}
+    <g fontFamily={SHEET_FONT} fill="#000">
+      <rect x="404" y="16" width="140" height="50" fill="#fff" stroke="#000" strokeWidth="1.2" />
+      <text x="474" y="29" textAnchor="middle" fontSize="6.6" fontWeight="bold">PETA ADMINISTRASI DESA</text>
+      <text x="474" y="46" textAnchor="middle" fontSize="11" fontWeight="bold">BETUNGAN</text>
+      <line x1="410" y1="50" x2="538" y2="50" stroke="#000" strokeWidth="1" />
+      <text x="474" y="59" textAnchor="middle" fontSize="4.3" fill="#333">KECAMATAN SELEBAR - KABUPATEN KOTA BENGKULU</text>
+
+      <rect x="404" y="72" width="38" height="46" fill="#fff" stroke="#000" strokeWidth="1.2" />
+      <text x="423" y="82" textAnchor="middle" fontSize="5" fontWeight="bold">UTARA</text>
+      <circle cx="423" cy="101" r="12" fill="none" stroke="#000" strokeWidth="1" />
+      <polygon points="423,90 420,101 423,99" fill="#000" /><polygon points="423,90 426,101 423,99" fill="#fff" stroke="#000" strokeWidth=".5" />
+      <polygon points="423,112 426,101 423,103" fill="#000" /><polygon points="423,112 420,101 423,103" fill="#fff" stroke="#000" strokeWidth=".5" />
+
+      <rect x="448" y="72" width="96" height="46" fill="#fff" stroke="#000" strokeWidth="1.2" />
+      <text x="496" y="82" textAnchor="middle" fontSize="5" fontWeight="bold">SKALA PETA</text>
+      <text x="496" y="94" textAnchor="middle" fontSize="7" fontWeight="bold" fontFamily={SHEET_MONO}>1 : 63.179</text>
+      <rect x="462" y="99" width="68" height="3.5" fill="#fff" stroke="#000" strokeWidth=".7" />
+      <rect x="462" y="99" width="17" height="3.5" fill="#000" /><rect x="496" y="99" width="17" height="3.5" fill="#000" />
+      <g fontFamily={SHEET_SANS} fontSize="4.5" fontWeight="bold">
+        <text x="462" y="110">0</text><text x="496" y="110" textAnchor="middle">2 km</text><text x="530" y="110" textAnchor="end">4 km</text>
+      </g>
+
+      <rect x="404" y="124" width="140" height="94" fill="#fff" stroke="#000" strokeWidth="1.2" />
+      <text x="474" y="135" textAnchor="middle" fontSize="6" fontWeight="bold">LEGENDA</text>
+      <line x1="410" y1="138" x2="538" y2="138" stroke="#ccc" strokeWidth=".8" />
+      <g fontFamily={SHEET_SANS} fontSize="5.6">
+        <rect x="410" y="145" width="14" height="9" fill="#4cc9e0" fillOpacity=".6" stroke="#dc2626" strokeWidth="1.5" />
+        <text x="430" y="152.5" fontWeight="bold">Batas Desa Betungan</text>
+        <rect x="410" y="161" width="14" height="9" fill="rgba(100,116,139,.1)" stroke="#475569" strokeWidth="1" strokeDasharray="2 1.5" />
+        <text x="430" y="168.5" fill="#334155">Batas Desa Sekitar</text>
+        <circle cx="417" cy="181" r="5" fill="#0e7490" stroke="#000" strokeWidth=".8" />
+        <text x="430" y="183" fill="#334155">AOI 1</text>
+        <text x="410" y="203" fontSize="4.6" fill="#64748b">Peta Dasar: Citra Satelit</text>
+      </g>
+
+      <rect x="404" y="224" width="140" height="66" fill="#fff" stroke="#000" strokeWidth="1.2" />
+      <text x="474" y="235" textAnchor="middle" fontSize="5.2" fontWeight="bold">KETERANGAN &amp; METADATA</text>
+      <g fontFamily={SHEET_SANS} fontSize="5">
+        <text x="410" y="248" fill="#64748b">Wilayah:</text><text x="452" y="248" fontWeight="bold">Betungan</text>
+        <text x="410" y="257" fill="#64748b">Luas Est.:</text><text x="452" y="257">10,89 km²</text>
+        <text x="410" y="266" fill="#64748b">Proyeksi:</text><text x="452" y="266">Geografis (WGS 84)</text>
+        <text x="410" y="275" fill="#64748b">Sumber:</text><text x="452" y="275">BIG &amp; WebGIS PostGIS</text>
+      </g>
+
+      <rect x="404" y="296" width="140" height="68" fill="#eef2f5" stroke="#000" strokeWidth="1.2" />
+      <g fill="#fff" stroke="#94a3b8" strokeWidth=".8">
+        <polygon points="410,302 450,300 462,330 430,358 410,350" />
+        <polygon points="450,300 500,304 504,340 462,330" />
+        <polygon points="500,304 538,302 538,352 504,340" />
+        <polygon points="430,358 462,330 504,340 490,360" />
+      </g>
+      <polygon points="466,318 484,314 496,328 488,344 470,346 460,332" fill="#7dd3e8" stroke="#dc2626" strokeWidth="1.6" />
+    </g>
+  </svg>
+);
+
 // ===================== KONTEN HALAMAN UTAMA =====================
 const FEATURES = [
   { icon: 'pin', title: 'Wilayah bertingkat', text: 'Pilih provinsi, kabupaten/kota, lalu desa atau kelurahan. Batas desa di sekitarnya ikut tampil sebagai konteks.' },
   { icon: 'file', title: 'Lembar peta otomatis', text: 'Judul, arah utara, skala, legenda, dan metadata tersusun mengikuti wilayah yang Anda pilih.' },
-  { icon: 'layers', title: 'Banyak pilihan peta dasar', text: 'Citra satelit, peta terang, mode gelap (dark mode), jalan, dan topografi. Peta Carto tersedia bila API key gratisnya diisi.' },
+  { icon: 'layers', title: 'Banyak peta dasar', text: 'Citra satelit, peta terang, mode gelap, jalan, dan topografi. Carto tersedia bila API key gratisnya diisi.' },
   { icon: 'image', title: 'Titik AOI dan foto', text: 'Tandai lokasi, tempel foto lapangan dengan keterangannya, lalu hubungkan dengan garis penunjuk yang bisa digeser.' },
-  { icon: 'compass', title: 'Peta inset', text: 'Inset menunjukkan letak desa terhadap wilayah sekitarnya. Peta dasarnya bisa dipilih sendiri, terpisah dari peta utama.' },
+  { icon: 'compass', title: 'Peta inset', text: 'Inset menunjukkan letak desa terhadap wilayah sekitarnya, dengan peta dasar yang bisa dipilih sendiri.' },
   { icon: 'download', title: 'Ekspor siap cetak', text: 'Unduh PNG resolusi tinggi atau PDF A4 lanskap langsung dari lembar peta.' }
 ];
+const FEAT_CLASS = ['gl-tile--w4 gl-tile--dark gl-tile--split', '', '', '', '', 'gl-tile--w6 gl-tile--tint gl-tile--split'];
+const FEAT_TONE = ['red', 'teal', 'blue', 'green', 'teal', 'ink'];
 
 const STEPS = [
   { title: 'Pilih wilayah', text: 'Tentukan provinsi, kabupaten/kota, dan desa yang ingin dipetakan.' },
   { title: 'Atur tampilan', text: 'Pilih peta dasar, warna isi, garis batas, dan label.' },
   { title: 'Tambah titik dan foto', text: 'Tandai lokasi penting dan lampirkan foto beserta keterangannya.' },
   { title: 'Unduh hasil', text: 'Periksa lembar peta, lalu ekspor sebagai PNG atau PDF.' }
+];
+
+// Contoh harga. Sesuaikan sebelum diluncurkan.
+const PLANS = [
+  {
+    id: 'gratis', name: 'Coba gratis', price: 'Rp0', unit: 'tanpa batas waktu', hi: false,
+    blurb: 'Kenali alurnya dan susun peta sepuasnya sebelum membayar.',
+    feats: ['Editor peta lengkap', 'Pratinjau lembar peta tanpa batas', 'Ekspor PNG ber-watermark, 3 kali per bulan'],
+    packs: [] as { n: string; p: string }[], cta: 'Mulai gratis'
+  },
+  {
+    id: 'kredit', name: 'Paket kredit', price: 'Mulai Rp4.000', unit: 'per ekspor', hi: true,
+    blurb: 'Bayar sesuai pemakaian. Satu kredit untuk satu ekspor PNG atau PDF A4.',
+    feats: ['Ekspor tanpa watermark', 'Resolusi cetak penuh', 'Kredit berlaku 12 bulan'],
+    packs: [{ n: '5 kredit', p: 'Rp35.000' }, { n: '20 kredit', p: 'Rp100.000' }, { n: '50 kredit', p: 'Rp200.000' }],
+    cta: 'Pilih paket'
+  },
+  {
+    id: 'institusi', name: 'Institusi', price: 'Rp250.000', unit: 'per bulan', hi: false,
+    blurb: 'Untuk kantor desa, kecamatan, dan lembaga yang rutin mencetak peta.',
+    feats: ['60 ekspor per bulan', 'Beberapa akun anggota tim', 'Faktur resmi untuk instansi'],
+    packs: [] as { n: string; p: string }[], cta: 'Pilih paket'
+  }
 ];
 
 const SPECS = [
@@ -582,7 +723,7 @@ const SPECS = [
   { k: 'Koordinat', v: 'Geografis WGS 84, ditulis dalam derajat, menit, dan detik.' },
   { k: 'Skala', v: 'Dihitung dari zoom dan lintang dengan asumsi layar 96 DPI. Anggap sebagai perkiraan.' },
   { k: 'Luas wilayah', v: 'Memakai atribut LUAS bila tersedia. Jika tidak, dihitung dari geometri.' },
-  { k: 'Ekspor', v: 'PNG lewat html2canvas, PDF A4 lanskap lewat jsPDF.' }
+  { k: 'Ekspor', v: 'PNG lewat html-to-image (cadangan html2canvas), PDF A4 lanskap lewat jsPDF.' }
 ];
 
 const FAQS = [
@@ -590,12 +731,15 @@ const FAQS = [
   { q: 'Seberapa akurat skala pada peta?', a: 'Skala dihitung dari zoom dan lintang peta dengan asumsi layar 96 DPI, jadi bersifat perkiraan. Ukuran akhir di kertas bergantung pada hasil ekspor dan pengaturan cetak.' },
   { q: 'Dari mana data batas desa berasal?', a: 'Dari Badan Informasi Geospasial (BIG), disimpan di basis data PostGIS dan disajikan lewat server API.' },
   { q: 'Daftar provinsi tidak muncul. Apa yang harus dilakukan?', a: 'Aplikasi mengambil data wilayah dari server API. Pastikan server berjalan, lalu tekan Coba lagi di panel pengaturan.' },
-  { q: 'Format apa saja yang bisa diunduh?', a: 'PNG resolusi tinggi dan PDF A4 lanskap.' }
+  { q: 'Format apa saja yang bisa diunduh?', a: 'PNG resolusi tinggi dan PDF A4 lanskap.' },
+  { q: 'Apa yang dihitung sebagai satu kredit?', a: 'Satu kali ekspor PNG atau PDF A4 dari satu lembar peta. Menyusun peta dan melihat pratinjau tidak memakai kredit.' },
+  { q: 'Apakah saya harus membayar untuk mencoba?', a: 'Tidak. Editor bisa dipakai gratis. Pembayaran hanya diperlukan saat Anda ingin mengunduh hasil tanpa watermark.' },
+  { q: 'Apakah kredit bisa kedaluwarsa?', a: 'Kredit berlaku 12 bulan sejak tanggal pembelian.' }
 ];
 
 // ===================== STYLESHEET =====================
 const APP_CSS = `
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Poppins:wght@500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Poppins:wght@500;600;700&family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,700&display=swap');
 
 .gl-root{
   --ink:#0f1b2d; --ink-2:#334155; --muted:#64748b; --line:#dde4ea; --line-2:#eef2f5;
@@ -755,106 +899,167 @@ const APP_CSS = `
 }
 
 /* ---------- halaman utama ---------- */
-.gl-home{position:absolute;inset:0;overflow-x:hidden;overflow-y:auto;background:var(--surface);scroll-behavior:smooth}
+.gl-home{
+  --h-ink:#0a1c28; --h-sea:#0c3447; --h-sea2:#124a5e; --h-teal:#0e7490; --h-aqua:#4cc9e0;
+  --h-paper:#f3f6f8; --h-line:#d9e2e8; --h-text:#17303f; --h-mute:#586d7c; --h-red:#dc2626; --h-green:#2f9e6b;
+  position:absolute;inset:0;overflow-x:hidden;overflow-y:auto;background:#fff;color:var(--h-text);scroll-behavior:smooth
+}
+.gl-home h1,.gl-home h2,.gl-home h3,.gl-brand__name{font-family:'Bricolage Grotesque',Poppins,Inter,sans-serif}
 .gl-nav{position:sticky;top:0;z-index:40;height:72px;display:flex;align-items:center;justify-content:space-between;gap:24px;padding:0 clamp(16px,5vw,64px);color:#fff;transition:background .2s,box-shadow .2s}
-.gl-nav.is-solid{background:rgba(7,32,47,.94);backdrop-filter:blur(10px);box-shadow:0 1px 0 rgba(255,255,255,.08)}
+.gl-nav.is-solid{background:rgba(8,26,38,.94);backdrop-filter:blur(10px);box-shadow:0 1px 0 rgba(255,255,255,.08)}
 .gl-brand{display:flex;align-items:center;gap:10px;padding:0;border:0;background:none;color:inherit;text-align:left;cursor:pointer}
-.gl-brand__mark{display:grid;place-items:center;width:38px;height:38px;border-radius:10px;background:linear-gradient(135deg,#2cc3df,#0e7490);color:#fff}
-.gl-brand__name{font-family:Poppins,Inter,sans-serif;font-size:17px;font-weight:600;line-height:1.1}
+.gl-brand__mark{display:grid;place-items:center;width:38px;height:38px;border-radius:10px;background:linear-gradient(135deg,#4cc9e0,#0e7490);color:#fff}
+.gl-brand__name{font-size:18px;font-weight:700;line-height:1.1;letter-spacing:-.01em}
 .gl-brand__sub{margin-top:2px;font-size:11px;opacity:.72}
 .gl-nav__links{display:flex;align-items:center;gap:28px}
-.gl-link{padding:6px 0;border:0;border-bottom:2px solid transparent;background:none;color:inherit;font:inherit;font-size:15px;font-weight:500;cursor:pointer;opacity:.92}
-.gl-link:hover{border-bottom-color:rgba(255,255,255,.8);opacity:1}
-.gl-btn--light{height:40px;border:1px solid rgba(255,255,255,.75);background:transparent;color:#fff}
-.gl-btn--light:hover{background:#fff;color:var(--sea)}
+.gl-link{padding:6px 0;border:0;border-bottom:2px solid transparent;background:none;color:inherit;font:inherit;font-size:15px;font-weight:500;cursor:pointer;opacity:.9}
+.gl-link:hover{border-bottom-color:var(--h-aqua);opacity:1}
+.gl-btn--light{height:40px;border:1px solid rgba(255,255,255,.7);background:transparent;color:#fff}
+.gl-btn--light:hover{background:#fff;color:var(--h-ink)}
+.gl-btn--white{background:#fff;border-color:#fff;color:var(--h-ink)}
+.gl-btn--white:hover{background:#e3f4f8}
+.gl-btn--outline{background:transparent;border-color:rgba(255,255,255,.5);color:#fff}
+.gl-btn--outline:hover{background:rgba(255,255,255,.1)}
 .gl-nav__toggle{display:none;border-color:rgba(255,255,255,.4);background:transparent;color:#fff}
 .gl-nav__toggle:hover{background:rgba(255,255,255,.12)}
 
-.gl-hero{position:relative;margin-top:-72px;min-height:100vh;min-height:100svh;padding:96px clamp(16px,5vw,64px) clamp(20px,4vh,48px);display:flex;flex-direction:column;justify-content:flex-end;gap:clamp(24px,6vh,64px);color:#fff;
+.gl-hero{position:relative;margin-top:-72px;min-height:100vh;min-height:100svh;padding:112px clamp(16px,5vw,64px) 56px;display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.12fr);gap:clamp(28px,5vw,72px);align-items:center;color:#fff;
   background:
-    linear-gradient(180deg,rgba(5,22,33,.5) 0%,rgba(5,22,33,.1) 45%,rgba(5,22,33,.5) 100%),
+    linear-gradient(rgba(255,255,255,.035) 1px,transparent 1px) 0 0/64px 64px,
+    linear-gradient(90deg,rgba(255,255,255,.035) 1px,transparent 1px) 0 0/64px 64px,
+    radial-gradient(60% 70% at 85% 40%,rgba(76,201,224,.2),transparent 70%),
+    linear-gradient(rgba(8,26,38,.88),rgba(8,26,38,.88)),
     url('/hero.jpg') center/cover no-repeat,
-    radial-gradient(circle at 78% 22%,rgba(44,195,223,.3),transparent 42%),
-    repeating-radial-gradient(circle at 20% 36%,transparent 0 26px,rgba(255,255,255,.07) 27px 28px),
-    repeating-radial-gradient(circle at 84% 72%,transparent 0 34px,rgba(255,255,255,.05) 35px 36px),
-    linear-gradient(rgba(255,255,255,.04) 1px,transparent 1px) 0 0/72px 72px,
-    linear-gradient(90deg,rgba(255,255,255,.04) 1px,transparent 1px) 0 0/72px 72px,
-    linear-gradient(160deg,#07202f 0%,#0b3a4a 55%,#0f4f5e 100%)}
-.gl-hero__copy{max-width:760px}
-.gl-hero h1{margin:0 0 16px;font-family:Poppins,Inter,sans-serif;font-size:clamp(32px,5.2vw,62px);font-weight:600;line-height:1.08;letter-spacing:-.015em}
-.gl-hero p{margin:0;max-width:56ch;font-size:clamp(16px,1.6vw,19px);line-height:1.55;color:rgba(255,255,255,.86)}
-.gl-split{display:grid;grid-template-columns:1fr 1fr;border-radius:16px;overflow:hidden;box-shadow:0 20px 50px rgba(0,0,0,.35)}
-.gl-card{display:flex;flex-direction:column;gap:18px;min-height:300px;padding:clamp(24px,3.2vw,48px)}
-.gl-card--light{background:rgba(236,242,245,.93);color:var(--ink);backdrop-filter:blur(6px)}
-.gl-card--dark{background:rgba(8,50,64,.93);color:#fff}
-.gl-card h2{margin:0;font-family:Poppins,Inter,sans-serif;font-size:clamp(28px,3.6vw,48px);font-weight:600;line-height:1.05;letter-spacing:-.01em}
-.gl-card--light h2{color:var(--brand)}
-.gl-card p{margin:0;max-width:34ch;font-size:clamp(16px,1.6vw,21px);line-height:1.4}
-.gl-card__actions{margin-top:auto;display:grid;grid-template-columns:1fr 1fr;gap:14px}
-.gl-ghost{height:52px;padding:0 12px;border:1px solid currentColor;border-radius:4px;background:transparent;color:inherit;font:inherit;font-size:16px;cursor:pointer;transition:background .15s,color .15s}
-.gl-card--light .gl-ghost{border-color:var(--brand)}
-.gl-card--light .gl-ghost:hover{background:var(--brand);color:#fff}
-.gl-card--light .gl-ghost--fill{background:var(--brand);color:#fff}
-.gl-card--light .gl-ghost--fill:hover{background:var(--brand-d)}
-.gl-card--dark .gl-ghost{border-color:rgba(255,255,255,.85)}
-.gl-card--dark .gl-ghost:hover{background:#fff;color:var(--sea)}
+    linear-gradient(160deg,#081a26 0%,#0c3447 60%,#0f4558 100%)}
+.gl-hero__copy{max-width:560px}
+.gl-hero h1{margin:0 0 18px;font-size:clamp(34px,4.6vw,58px);font-weight:700;line-height:1.06;letter-spacing:-.02em}
+.gl-hero p{margin:0;max-width:50ch;font-size:clamp(16px,1.5vw,18px);line-height:1.6;color:rgba(255,255,255,.84)}
+.gl-cta{display:flex;flex-wrap:wrap;gap:12px;margin-top:28px}
+.gl-cta .gl-btn{height:48px;padding:0 22px;font-size:15px;border-radius:12px}
+.gl-hero__facts{display:flex;flex-wrap:wrap;gap:10px 26px;margin:34px 0 0;padding:0;list-style:none;font-size:14px;color:rgba(255,255,255,.78)}
+.gl-hero__facts li{display:inline-flex;align-items:center;gap:8px}
+.gl-hero__facts svg{color:var(--h-aqua)}
+.gl-sheet{width:100%;max-width:660px;justify-self:end;border-radius:6px;background:#fff;box-shadow:0 30px 70px rgba(0,0,0,.45),0 0 0 1px rgba(255,255,255,.14);overflow:hidden}
+.gl-sheet svg{display:block;width:100%;height:auto}
+@keyframes gl-draw{from{stroke-dashoffset:1}to{stroke-dashoffset:0}}
+@keyframes gl-fillin{from{opacity:0}to{opacity:1}}
+.gl-draw{stroke-dasharray:1;stroke-dashoffset:0;animation:gl-draw 1.8s .4s cubic-bezier(.4,0,.2,1) both}
+.gl-fillin{animation:gl-fillin .9s 1.5s ease both}
 
-.gl-sect{scroll-margin-top:72px;padding:clamp(48px,8vw,96px) clamp(16px,5vw,64px)}
-.gl-sect--tint{background:var(--paper)}
+.gl-sect{scroll-margin-top:72px;padding:clamp(56px,8vw,104px) clamp(16px,5vw,64px)}
+.gl-sect--tint{background:var(--h-paper)}
 .gl-wrap{max-width:1120px;margin:0 auto}
-.gl-sect h2{margin:0 0 14px;font-family:Poppins,Inter,sans-serif;font-size:clamp(26px,3.2vw,40px);font-weight:600;line-height:1.12;letter-spacing:-.01em}
-.gl-lead{max-width:62ch;margin:0 0 14px;font-size:17px;line-height:1.65;color:var(--ink-2)}
+.gl-sect h2{margin:0 0 14px;font-size:clamp(28px,3.4vw,42px);font-weight:700;line-height:1.1;letter-spacing:-.02em;color:var(--h-ink)}
+.gl-head{max-width:640px;margin-bottom:36px}
+.gl-lead{max-width:62ch;margin:0 0 14px;font-size:17px;line-height:1.65;color:var(--h-mute)}
+.gl-head .gl-lead{margin-bottom:0}
 .gl-about{display:grid;grid-template-columns:1.15fr .85fr;gap:clamp(28px,6vw,80px);align-items:start}
 .gl-facts{margin:0;padding:0}
-.gl-facts div{display:flex;justify-content:space-between;gap:16px;padding:15px 0;border-top:1px solid var(--line)}
-.gl-facts div:last-child{border-bottom:1px solid var(--line)}
-.gl-facts dt{color:var(--muted);font-size:15px}
-.gl-facts dd{margin:0;font-size:15px;font-weight:600;text-align:right}
-.gl-feats{display:grid;grid-template-columns:repeat(3,1fr);gap:0 clamp(24px,4vw,56px);margin-top:32px}
-.gl-feat{padding:24px 0 28px;border-top:1px solid var(--line)}
-.gl-feat__ic{display:inline-grid;place-items:center;width:42px;height:42px;margin-bottom:14px;border-radius:12px;background:var(--brand-soft);color:var(--brand-d)}
-.gl-feat h3{margin:0 0 6px;font-size:17px;font-weight:600}
-.gl-feat p{margin:0;font-size:15px;line-height:1.6;color:var(--ink-2)}
-.gl-steps{display:grid;grid-template-columns:repeat(4,1fr);gap:clamp(20px,3vw,40px);margin:36px 0 0;padding:0;list-style:none}
-.gl-step{padding-top:18px;border-top:2px solid var(--brand)}
-.gl-step__n{display:grid;place-items:center;width:30px;height:30px;margin-bottom:12px;border-radius:50%;background:var(--brand);color:#fff;font-size:14px;font-weight:700}
-.gl-step h3{margin:0 0 6px;font-size:17px;font-weight:600}
-.gl-step p{margin:0;font-size:15px;line-height:1.6;color:var(--ink-2)}
-.gl-spec{margin:28px 0 0;padding:0}
-.gl-spec div{display:grid;grid-template-columns:220px 1fr;gap:16px;padding:16px 0;border-top:1px solid var(--line)}
-.gl-spec div:last-child{border-bottom:1px solid var(--line)}
-.gl-spec dt{font-size:15px;font-weight:600}
-.gl-spec dd{margin:0;font-size:15px;line-height:1.6;color:var(--ink-2)}
-.gl-faq{max-width:780px;margin-top:24px}
-.gl-faq details{padding:18px 0;border-top:1px solid var(--line)}
-.gl-faq details:last-child{border-bottom:1px solid var(--line)}
-.gl-faq summary{display:flex;justify-content:space-between;gap:16px;font-size:17px;font-weight:600;cursor:pointer;list-style:none}
+.gl-facts div{display:flex;justify-content:space-between;gap:16px;padding:15px 0;border-top:1px solid var(--h-line)}
+.gl-facts div:last-child{border-bottom:1px solid var(--h-line)}
+.gl-facts dt{color:var(--h-mute);font-size:15px}
+.gl-facts dd{margin:0;font-size:15px;font-weight:600;text-align:right;color:var(--h-ink)}
+
+.gl-bento{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:16px}
+.gl-tile{grid-column:span 2;display:flex;flex-direction:column;gap:6px;padding:26px;border:1px solid var(--h-line);border-radius:18px;background:#fff}
+.gl-tile--w4{grid-column:span 4}
+.gl-tile--w6{grid-column:span 6}
+.gl-tile--split{flex-direction:row;align-items:center;justify-content:space-between;gap:28px}
+.gl-tile--dark{background:var(--h-sea);border-color:var(--h-sea);color:#fff}
+.gl-tile--tint{background:#e6f4f8;border-color:#cde6ed}
+.gl-tile__txt{max-width:46ch}
+.gl-tile h3{margin:0 0 6px;font-size:19px;font-weight:700;letter-spacing:-.01em;color:var(--h-ink)}
+.gl-tile--dark h3{color:#fff}
+.gl-tile p{margin:0;font-size:15px;line-height:1.6;color:var(--h-mute)}
+.gl-tile--dark p{color:rgba(255,255,255,.8)}
+.gl-ic{display:inline-grid;place-items:center;width:42px;height:42px;margin-bottom:12px;border-radius:12px}
+.gl-ic--red{background:#fde8e8;color:#b91c1c}
+.gl-ic--teal{background:#d9f1f6;color:#0b5f74}
+.gl-ic--blue{background:#e1ecf8;color:#1d4f91}
+.gl-ic--green{background:#dcf3e7;color:#17714a}
+.gl-ic--ink{background:#dde6ec;color:var(--h-ink)}
+.gl-tile--dark .gl-ic{background:rgba(255,255,255,.12);color:#fff}
+.gl-cascade{display:flex;flex-direction:column;gap:8px;min-width:200px}
+.gl-cascade div{display:flex;flex-direction:column;padding:9px 14px;border-radius:10px;background:rgba(255,255,255,.08);border-left:3px solid rgba(255,255,255,.25)}
+.gl-cascade div:last-child{background:rgba(255,255,255,.16);border-left-color:#ef4444}
+.gl-cascade small{font-size:11px;color:rgba(255,255,255,.62)}
+.gl-cascade b{font-size:14px;font-weight:600}
+.gl-chips{display:flex;gap:10px}
+.gl-chips span{display:inline-flex;align-items:center;height:40px;padding:0 18px;border-radius:10px;background:#fff;border:1px solid #bfdde6;font-size:14px;font-weight:700;color:var(--h-ink)}
+
+.gl-flow{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:24px;margin:0;padding:0;list-style:none}
+.gl-flow li{position:relative;padding-top:46px}
+.gl-flow li::before{content:'';position:absolute;top:14px;left:38px;right:-14px;height:2px;background:repeating-linear-gradient(90deg,var(--h-teal) 0 6px,transparent 6px 11px)}
+.gl-flow li:last-child::before{display:none}
+.gl-step__n{position:absolute;top:0;left:0;display:grid;place-items:center;width:30px;height:30px;border-radius:50%;background:var(--h-teal);color:#fff;font-size:14px;font-weight:700}
+.gl-flow h3{margin:0 0 6px;font-size:18px;font-weight:700;color:var(--h-ink)}
+.gl-flow p{margin:0;font-size:15px;line-height:1.6;color:var(--h-mute)}
+
+.gl-plans{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px;align-items:stretch}
+.gl-plan{display:flex;flex-direction:column;gap:14px;padding:28px;border:1px solid var(--h-line);border-radius:18px;background:#fff}
+.gl-plan--hi{background:var(--h-sea);border-color:var(--h-sea);color:#fff;box-shadow:0 24px 50px rgba(12,52,71,.28)}
+.gl-plan h3{margin:0;font-size:18px;font-weight:700;color:var(--h-ink)}
+.gl-plan--hi h3{color:#fff}
+.gl-plan__price{font-family:'Bricolage Grotesque',Poppins,Inter,sans-serif;font-size:34px;font-weight:700;letter-spacing:-.02em;line-height:1.1;color:var(--h-ink)}
+.gl-plan--hi .gl-plan__price{color:#fff}
+.gl-plan__unit{font-size:14px;font-weight:500;color:var(--h-mute);font-family:Inter,system-ui,sans-serif;letter-spacing:0}
+.gl-plan--hi .gl-plan__unit{color:rgba(255,255,255,.7)}
+.gl-plan__blurb{margin:0;font-size:15px;line-height:1.55;color:var(--h-mute)}
+.gl-plan--hi .gl-plan__blurb{color:rgba(255,255,255,.8)}
+.gl-plan ul{margin:0;padding:0;list-style:none;display:flex;flex-direction:column;gap:10px;font-size:15px}
+.gl-plan li{display:flex;gap:10px;align-items:flex-start;line-height:1.45}
+.gl-plan li svg{flex-shrink:0;margin-top:2px;color:var(--h-green)}
+.gl-plan--hi li svg{color:var(--h-aqua)}
+.gl-packs{display:flex;flex-direction:column;border-top:1px solid rgba(255,255,255,.18)}
+.gl-packs div{display:flex;justify-content:space-between;padding:9px 0;border-bottom:1px solid rgba(255,255,255,.18);font-size:14px}
+.gl-packs b{font-weight:600}
+.gl-plan .gl-btn{margin-top:auto;height:46px;border-radius:12px}
+
+.gl-faq{max-width:780px}
+.gl-faq details{padding:18px 0;border-top:1px solid var(--h-line)}
+.gl-faq details:last-child{border-bottom:1px solid var(--h-line)}
+.gl-faq summary{display:flex;justify-content:space-between;gap:16px;font-size:17px;font-weight:600;color:var(--h-ink);cursor:pointer;list-style:none}
 .gl-faq summary::-webkit-details-marker{display:none}
-.gl-faq summary::after{content:'+';color:var(--brand);font-size:22px;line-height:1}
+.gl-faq summary::after{content:'+';color:var(--h-teal);font-size:22px;line-height:1}
 .gl-faq details[open] summary::after{content:'\\2212'}
-.gl-faq details p{margin:10px 0 0;max-width:62ch;font-size:15px;line-height:1.65;color:var(--ink-2)}
-.gl-foot{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:20px;padding:36px clamp(16px,5vw,64px);background:#07202f;color:#cfe3ea}
-.gl-foot b{display:block;color:#fff;font-family:Poppins,Inter,sans-serif;font-weight:600;font-size:16px}
+.gl-faq details p{margin:10px 0 0;max-width:62ch;font-size:15px;line-height:1.65;color:var(--h-mute)}
+.gl-spec{margin:0;padding:0}
+.gl-spec div{display:grid;grid-template-columns:220px 1fr;gap:16px;padding:16px 0;border-top:1px solid var(--h-line)}
+.gl-spec div:last-child{border-bottom:1px solid var(--h-line)}
+.gl-spec dt{font-size:15px;font-weight:600;color:var(--h-ink)}
+.gl-spec dd{margin:0;font-size:15px;line-height:1.6;color:var(--h-mute)}
+
+.gl-foot{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:20px;padding:40px clamp(16px,5vw,64px);background:#081a26;color:#bcd3dc}
+.gl-foot b{display:block;color:#fff;font-family:'Bricolage Grotesque',Poppins,Inter,sans-serif;font-weight:700;font-size:18px}
 .gl-foot span{font-size:14px}
+.gl-foot__links{display:flex;flex-wrap:wrap;gap:6px 22px}
+.gl-foot__links .gl-link{font-size:14px;color:#bcd3dc}
 
 @media (max-width:1000px){
-  .gl-feats{grid-template-columns:repeat(2,1fr)}
-  .gl-steps{grid-template-columns:repeat(2,1fr)}
+  .gl-hero{grid-template-columns:1fr;min-height:0;padding-top:104px}
+  .gl-sheet{justify-self:stretch;max-width:none}
+  .gl-bento{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .gl-tile,.gl-tile--w4,.gl-tile--w6{grid-column:span 1}
+  .gl-tile--w4,.gl-tile--w6{grid-column:span 2}
+  .gl-flow{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .gl-flow li::before{display:none}
 }
 @media (max-width:860px){
   .gl-nav__toggle{display:inline-grid}
-  .gl-nav__links{display:none;position:absolute;top:72px;left:12px;right:12px;flex-direction:column;align-items:stretch;gap:0;padding:8px;border-radius:14px;background:rgba(7,32,47,.97);box-shadow:var(--shadow)}
+  .gl-nav__links{display:none;position:absolute;top:72px;left:12px;right:12px;flex-direction:column;align-items:stretch;gap:0;padding:8px;border-radius:14px;background:rgba(8,26,38,.97);box-shadow:var(--shadow)}
   .gl-nav__links.is-open{display:flex}
   .gl-nav__links .gl-link{padding:13px 14px;border:0;text-align:left}
   .gl-nav__links .gl-btn--light{margin:6px}
-  .gl-split{grid-template-columns:1fr}
-  .gl-card{min-height:0}
   .gl-about{grid-template-columns:1fr}
+  .gl-plans{grid-template-columns:1fr}
   .gl-spec div{grid-template-columns:1fr;gap:4px}
 }
 @media (max-width:600px){
-  .gl-feats,.gl-steps{grid-template-columns:1fr}
-  .gl-card__actions{grid-template-columns:1fr}
+  .gl-bento{grid-template-columns:1fr}
+  .gl-tile,.gl-tile--w4,.gl-tile--w6{grid-column:span 1}
+  .gl-tile--split{flex-direction:column;align-items:stretch}
+  .gl-flow{grid-template-columns:1fr}
+  .gl-cta .gl-btn{flex:1 1 100%}
   .gl-side__foot{grid-template-columns:1fr}
 }
 `;
@@ -1042,6 +1247,15 @@ export default function App() {
   const openApp = () => {
     setNavOpen(false);
     setActivePage('admin-map');
+  };
+
+  // Pilih paket: arahkan ke checkout bila sudah ada, kalau belum buka aplikasi
+  const choosePlan = (planId: string) => {
+    if (CHECKOUT_URL) {
+      window.location.href = `${CHECKOUT_URL}?paket=${encodeURIComponent(planId)}`;
+      return;
+    }
+    openApp();
   };
 
   // Konversi Derajat Desimal ke Format DMS
@@ -1865,9 +2079,9 @@ export default function App() {
             </button>
 
             <nav className={`gl-nav__links ${navOpen ? 'is-open' : ''}`} aria-label="Navigasi utama">
-              <button type="button" className="gl-link" onClick={() => goTo('tentang')}>Tentang</button>
               <button type="button" className="gl-link" onClick={() => goTo('fitur')}>Fitur</button>
               <button type="button" className="gl-link" onClick={() => goTo('cara-kerja')}>Cara kerja</button>
+              <button type="button" className="gl-link" onClick={() => goTo('harga')}>Harga</button>
               <button type="button" className="gl-link" onClick={() => goTo('metodologi')}>Metodologi</button>
               <button type="button" className="gl-link" onClick={() => goTo('faq')}>FAQ</button>
               <button type="button" className="gl-btn gl-btn--light" onClick={openApp}>Buka aplikasi</button>
@@ -1878,26 +2092,17 @@ export default function App() {
             <div className="gl-hero__copy">
               <h1>Susun peta administrasi desa yang siap cetak</h1>
               <p>GeoLayout menyusun lembar peta desa atau kelurahan lengkap dengan judul, arah utara, skala, legenda, dan metadata. Pilih wilayah, atur tampilan, lalu unduh sebagai PNG atau PDF A4.</p>
+              <div className="gl-cta">
+                <button type="button" className="gl-btn gl-btn--white" onClick={openApp}>Buat peta sekarang</button>
+                <button type="button" className="gl-btn gl-btn--outline" onClick={() => goTo('harga')}>Lihat harga</button>
+              </div>
+              <ul className="gl-hero__facts">
+                <li><Icon name="check" size={16} /> Koordinat WGS 84</li>
+                <li><Icon name="check" size={16} /> {AVAILABLE_KEYS.length} pilihan peta dasar</li>
+                <li><Icon name="check" size={16} /> PNG dan PDF A4</li>
+              </ul>
             </div>
-
-            <div className="gl-split">
-              <article className="gl-card gl-card--light">
-                <h2>Peta administrasi</h2>
-                <p>Buat lembar peta desa atau kelurahan, lengkap dengan titik AOI dan foto lapangan.</p>
-                <div className="gl-card__actions">
-                  <button type="button" className="gl-ghost" onClick={() => goTo('fitur')}>Fitur</button>
-                  <button type="button" className="gl-ghost gl-ghost--fill" onClick={openApp}>Buka aplikasi</button>
-                </div>
-              </article>
-              <article className="gl-card gl-card--dark">
-                <h2>Data dan metodologi</h2>
-                <p>Batas wilayah dari BIG, disimpan di PostGIS, digambar dengan MapLibre.</p>
-                <div className="gl-card__actions">
-                  <button type="button" className="gl-ghost" onClick={() => goTo('metodologi')}>Metodologi</button>
-                  <button type="button" className="gl-ghost" onClick={() => goTo('faq')}>Tanya jawab</button>
-                </div>
-              </article>
-            </div>
+            <div className="gl-sheet"><HeroSheet /></div>
           </section>
 
           <section id="tentang" className="gl-sect">
@@ -1918,14 +2123,28 @@ export default function App() {
 
           <section id="fitur" className="gl-sect gl-sect--tint">
             <div className="gl-wrap">
-              <h2>Fitur</h2>
-              <p className="gl-lead">Semua yang dibutuhkan untuk satu lembar peta administrasi, tanpa perangkat lunak tambahan.</p>
-              <div className="gl-feats">
-                {FEATURES.map((f) => (
-                  <div className="gl-feat" key={f.title}>
-                    <span className="gl-feat__ic"><Icon name={f.icon} size={22} /></span>
-                    <h3>{f.title}</h3>
-                    <p>{f.text}</p>
+              <div className="gl-head">
+                <h2>Semua yang dibutuhkan satu lembar peta</h2>
+                <p className="gl-lead">Dari pemilihan wilayah sampai berkas siap cetak, tanpa perangkat lunak tambahan.</p>
+              </div>
+              <div className="gl-bento">
+                {FEATURES.map((f, i) => (
+                  <div className={`gl-tile ${FEAT_CLASS[i]}`} key={f.title}>
+                    <div className="gl-tile__txt">
+                      <span className={`gl-ic gl-ic--${FEAT_TONE[i]}`}><Icon name={f.icon} size={22} /></span>
+                      <h3>{f.title}</h3>
+                      <p>{f.text}</p>
+                    </div>
+                    {i === 0 && (
+                      <div className="gl-cascade" aria-hidden="true">
+                        <div><small>Provinsi</small><b>Bengkulu</b></div>
+                        <div><small>Kabupaten/kota</small><b>Kota Bengkulu</b></div>
+                        <div><small>Desa/kelurahan</small><b>Betungan</b></div>
+                      </div>
+                    )}
+                    {i === 5 && (
+                      <div className="gl-chips" aria-hidden="true"><span>PNG</span><span>PDF A4</span></div>
+                    )}
                   </div>
                 ))}
               </div>
@@ -1934,35 +2153,66 @@ export default function App() {
 
           <section id="cara-kerja" className="gl-sect">
             <div className="gl-wrap">
-              <h2>Cara kerja</h2>
-              <p className="gl-lead">Empat langkah dari wilayah kosong sampai peta siap cetak.</p>
-              <ol className="gl-steps">
-                {STEPS.map((s, i) => (
-                  <li className="gl-step" key={s.title}>
+              <div className="gl-head">
+                <h2>Cara kerja</h2>
+                <p className="gl-lead">Empat langkah dari wilayah kosong sampai peta siap cetak.</p>
+              </div>
+              <ol className="gl-flow">
+                {STEPS.map((st, i) => (
+                  <li key={st.title}>
                     <span className="gl-step__n">{i + 1}</span>
-                    <h3>{s.title}</h3>
-                    <p>{s.text}</p>
+                    <h3>{st.title}</h3>
+                    <p>{st.text}</p>
                   </li>
                 ))}
               </ol>
             </div>
           </section>
 
-          <section id="metodologi" className="gl-sect gl-sect--tint">
+          <section id="harga" className="gl-sect gl-sect--tint">
             <div className="gl-wrap">
-              <h2>Data dan metodologi</h2>
-              <p className="gl-lead">Dari mana data berasal dan bagaimana hasilnya dihitung.</p>
+              <div className="gl-head">
+                <h2>Menyusun gratis, bayar saat mengunduh</h2>
+                <p className="gl-lead">Coba editornya dulu. Kredit hanya terpakai ketika Anda mengekspor peta tanpa watermark.</p>
+              </div>
+              <div className="gl-plans">
+                {PLANS.map((pl) => (
+                  <article className={`gl-plan ${pl.hi ? 'gl-plan--hi' : ''}`} key={pl.id}>
+                    <h3>{pl.name}</h3>
+                    <div className="gl-plan__price">{pl.price} <span className="gl-plan__unit">{pl.unit}</span></div>
+                    <p className="gl-plan__blurb">{pl.blurb}</p>
+                    <ul>
+                      {pl.feats.map((ft) => (<li key={ft}><Icon name="check" size={16} /> <span>{ft}</span></li>))}
+                    </ul>
+                    {pl.packs.length > 0 && (
+                      <div className="gl-packs">
+                        {pl.packs.map((pk) => (<div key={pk.n}><span>{pk.n}</span><b>{pk.p}</b></div>))}
+                      </div>
+                    )}
+                    <button type="button" className={`gl-btn ${pl.hi ? 'gl-btn--white' : 'gl-btn--primary'}`} onClick={() => choosePlan(pl.id)}>{pl.cta}</button>
+                  </article>
+                ))}
+              </div>
+            </div>
+          </section>
+
+          <section id="metodologi" className="gl-sect">
+            <div className="gl-wrap">
+              <div className="gl-head">
+                <h2>Data dan metodologi</h2>
+                <p className="gl-lead">Dari mana data berasal dan bagaimana hasilnya dihitung.</p>
+              </div>
               <dl className="gl-spec">
-                {SPECS.map((s) => (
-                  <div key={s.k}><dt>{s.k}</dt><dd>{s.v}</dd></div>
+                {SPECS.map((sp) => (
+                  <div key={sp.k}><dt>{sp.k}</dt><dd>{sp.v}</dd></div>
                 ))}
               </dl>
             </div>
           </section>
 
-          <section id="faq" className="gl-sect">
+          <section id="faq" className="gl-sect gl-sect--tint">
             <div className="gl-wrap">
-              <h2>Pertanyaan yang sering diajukan</h2>
+              <div className="gl-head"><h2>Pertanyaan yang sering diajukan</h2></div>
               <div className="gl-faq">
                 {FAQS.map((f) => (
                   <details key={f.q}>
@@ -1978,6 +2228,11 @@ export default function App() {
             <div>
               <b>GeoLayout</b>
               <span>Informatika, Universitas Bengkulu</span>
+            </div>
+            <div className="gl-foot__links">
+              <button type="button" className="gl-link" onClick={() => goTo('fitur')}>Fitur</button>
+              <button type="button" className="gl-link" onClick={() => goTo('harga')}>Harga</button>
+              <button type="button" className="gl-link" onClick={() => goTo('faq')}>FAQ</button>
             </div>
             <button type="button" className="gl-btn gl-btn--light" onClick={openApp}>Buka aplikasi</button>
           </footer>
