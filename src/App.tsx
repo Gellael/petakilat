@@ -2474,12 +2474,6 @@ export default function App() {
                             <span style={{ color: '#334155' }}>{GEE_LEGEND[l.key].label}</span>
                           </div>
                         ))}
-                        {aoiList.some(hasCallout) && (
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                            <div style={{ width: '18px', borderTop: '2px dashed #0f172a', flexShrink: 0 }} />
-                            <span style={{ color: '#334155' }}>Foto Dokumentasi & Garis Penunjuk</span>
-                          </div>
-                        )}
                         {showLegendBasemap && (
                           <div style={{ marginTop: '2px', paddingTop: '4px', borderTop: '1px dashed #e2e8f0', fontSize: '8px', color: '#64748b' }}>
                             Peta Dasar: <b>{BASEMAP_TILES[basemapKey].name}</b>
