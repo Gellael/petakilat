@@ -264,6 +264,38 @@ const runWhenReady = (map: maplibregl.Map, fn: () => void) => {
   }
 };
 
+// ===================== LAYER GOOGLE EARTH ENGINE =====================
+// Kunci akses GEE hanya ada di backend. Frontend cuma meminta URL tile ke /api/gee-tiles.
+const GEE_SRC = 'gee-src';
+const GEE_LAYER = 'gee-layer';
+const GEE_LAYERS: { key: string; label: string }[] = [
+     { key: 'elevation', label: 'Elevasi (SRTM)' },
+     { key: 'ndwi', label: 'NDWI (indeks air)' },
+     { key: 'ndvi', label: 'NDVI (vegetasi)' },
+  // { key: 'ndvi', label: 'NDVI' },  // aktifkan setelah file gee/ndvi.json dibuat di backend
+];
+
+const removeGeeLayer = (map: maplibregl.Map | null) => {
+  if (!map) return;
+  try {
+    if (map.getLayer(GEE_LAYER)) map.removeLayer(GEE_LAYER);
+    if (map.getSource(GEE_SRC)) map.removeSource(GEE_SRC);
+  } catch (_) {
+    /* style peta belum siap */
+  }
+};
+
+const addGeeLayer = (map: maplibregl.Map, tileUrl: string, opacity: number) => {
+  removeGeeLayer(map);
+  map.addSource(GEE_SRC, { type: 'raster', tiles: [tileUrl], tileSize: 256 });
+  // taruh di bawah polygon desa supaya batas wilayah tetap terlihat
+  const before = ['wilayah-fill', 'selected-desa-layer'].find((id) => map.getLayer(id));
+  map.addLayer(
+    { id: GEE_LAYER, type: 'raster', source: GEE_SRC, paint: { 'raster-opacity': opacity } },
+    before
+  );
+};
+
 // ===================== DETAIL OSM (OVERPASS) =====================
 type OsmKind = 'building' | 'water' | 'road';
 interface OsmSlim { id: number; k: OsmKind; hw?: string; g: [number, number][] }
@@ -961,7 +993,7 @@ export default function App() {
   const [navOpen, setNavOpen] = useState<boolean>(false);
   const [navSolid, setNavSolid] = useState<boolean>(false);
   const [sidebarOpen, setSidebarOpen] = useState<boolean>(false);
-  const [openSec, setOpenSec] = useState<Record<string, boolean>>({ lokasi: true, dasar: false, simbol: false, osm: false, aoi: false, identitas: false });
+  const [openSec, setOpenSec] = useState<Record<string, boolean>>({ lokasi: true, dasar: false, simbol: false, osm: false, gee: false, aoi: false, identitas: false });
   const [exporting, setExporting] = useState<'' | 'png' | 'pdf'>('');
   const [apiError, setApiError] = useState<string>('');
   const [loadingKab, setLoadingKab] = useState<boolean>(false);
@@ -987,6 +1019,61 @@ export default function App() {
   const [osmErr, setOsmErr] = useState<boolean>(false);
   const osmShowRef = useRef<Record<OsmKind, boolean>>(osmShow);
   osmShowRef.current = osmShow;
+
+  // --- LAYER GOOGLE EARTH ENGINE ---
+  const [geeOn, setGeeOn] = useState<boolean>(false);
+  const [geeKey, setGeeKey] = useState<string>(GEE_LAYERS[0].key);
+  const [geeOpacity, setGeeOpacity] = useState<number>(0.7);
+  const [geeLoading, setGeeLoading] = useState<boolean>(false);
+  const [geeMsg, setGeeMsg] = useState<string>('');
+  const [geeErr, setGeeErr] = useState<boolean>(false);
+
+  const loadGee = async (key: string, opacity: number) => {
+    const map = mapInstance.current;
+    if (!map) {
+      setGeeOn(false);
+      setGeeErr(true);
+      setGeeMsg('Peta belum siap. Coba lagi sebentar.');
+      return;
+    }
+    setGeeLoading(true);
+    setGeeMsg('');
+    setGeeErr(false);
+    try {
+      const res = await fetch(`${API}/api/gee-tiles?layer=${encodeURIComponent(key)}`);
+      if (!res.ok) throw new Error(String(res.status));
+      const data = await res.json();
+      if (!data.tileUrl) throw new Error('tileUrl kosong');
+      runWhenReady(map, () => addGeeLayer(map, data.tileUrl, opacity));
+    } catch (e) {
+      console.error('Gagal memuat layer Earth Engine:', e);
+      setGeeOn(false);
+      setGeeErr(true);
+      setGeeMsg('Gagal memuat layer Earth Engine. Periksa server API dan Vercel Logs.');
+    } finally {
+      setGeeLoading(false);
+    }
+  };
+
+  const toggleGee = (on: boolean) => {
+    setGeeOn(on);
+    if (on) loadGee(geeKey, geeOpacity);
+    else {
+      removeGeeLayer(mapInstance.current);
+      setGeeMsg('');
+      setGeeErr(false);
+    }
+  };
+
+  const changeGeeLayer = (key: string) => {
+    setGeeKey(key);
+    if (geeOn) loadGee(key, geeOpacity);
+  };
+
+  useEffect(() => {
+    const map = mapInstance.current;
+    if (map && map.getLayer(GEE_LAYER)) map.setPaintProperty(GEE_LAYER, 'raster-opacity', geeOpacity);
+  }, [geeOpacity]);
   const [fillColor, setFillColor] = useState<string>('#38bdf8');
   const [opacityVal, setOpacityVal] = useState<number>(0.45);
   const [strokeColor, setStrokeColor] = useState<string>('#dc2626');
@@ -2168,8 +2255,27 @@ export default function App() {
               <div className="gl-note">Data dari OpenStreetMap lewat Overpass API, dipotong mengikuti batas desa. Hasil pertama disimpan di cache database, jadi muatan berikutnya lebih cepat.</div>
             </Section>
 
-            {/* 4. AOI */}
-            <Section step={5} title="Titik AOI dan foto" open={!!openSec.aoi} onToggle={() => toggleSec('aoi')} badge={<span className="gl-badge">{aoiList.length} titik</span>}>
+            {/* 5. LAYER GOOGLE EARTH ENGINE */}
+            <Section step={5} title="Layer Google Earth Engine" open={!!openSec.gee} onToggle={() => toggleSec('gee')} badge={geeOn ? <span className="gl-badge">Aktif</span> : undefined}>
+              <Toggle label="Tampilkan layer Earth Engine" checked={geeOn} onChange={toggleGee} />
+              <select
+                value={geeKey}
+                onChange={(e) => changeGeeLayer(e.target.value)}
+                disabled={geeLoading}
+                style={{ width: '100%', padding: '6px 8px', borderRadius: 6 }}
+              >
+                {GEE_LAYERS.map((l) => (
+                  <option key={l.key} value={l.key}>{l.label}</option>
+                ))}
+              </select>
+              <RangeField label="Opasitas layer" value={geeOpacity} min={0.1} max={1} step={0.05} display={`${Math.round(geeOpacity * 100)}%`} onChange={setGeeOpacity} />
+              {geeLoading && <div className="gl-note">Memuat layer dari Earth Engine...</div>}
+              {geeMsg && <div className={`gl-note ${geeErr ? 'gl-note--err' : ''}`}>{geeMsg}</div>}
+              <div className="gl-note">Data dari Google Earth Engine lewat server API. Kunci akses tidak pernah dikirim ke browser.</div>
+            </Section>
+
+            {/* 6. AOI */}
+            <Section step={6} title="Titik AOI dan foto" open={!!openSec.aoi} onToggle={() => toggleSec('aoi')} badge={<span className="gl-badge">{aoiList.length} titik</span>}>
               <button type="button" className={`gl-btn gl-btn--block ${isAddingAoi ? 'gl-btn--danger' : 'gl-btn--primary'}`} onClick={toggleAddAoi}>
                 {isAddingAoi ? <><Icon name="x" size={16} /> Batalkan tambah titik</> : <><Icon name="plus" size={16} /> Tambah titik AOI</>}
               </button>
@@ -2334,7 +2440,7 @@ export default function App() {
             </Section>
 
             {/* 5. IDENTITAS */}
-            <Section step={6} title="Identitas dan judul peta" open={!!openSec.identitas} onToggle={() => toggleSec('identitas')}>
+            <Section step={7} title="Identitas dan judul peta" open={!!openSec.identitas} onToggle={() => toggleSec('identitas')}>
               <label className="gl-field">
                 <span className="gl-label">Judul utama</span>
                 <input type="text" className="gl-input" value={judulUtama} onChange={(e) => setJudulUtama(e.target.value)} />
