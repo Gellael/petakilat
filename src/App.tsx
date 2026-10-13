@@ -429,6 +429,7 @@ const ICON_PATHS: Record<string, ReactNode> = {
   rotate: <><polyline points="1 4 1 10 7 10" /><path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10" /></>,
   search: <><circle cx="11" cy="11" r="8" /><line x1="21" y1="21" x2="16.65" y2="16.65" /></>,
   database: <><ellipse cx="12" cy="5" rx="9" ry="3" /><path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3" /><path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5" /></>,
+  bolt: <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" />,
   globe: <><circle cx="12" cy="12" r="10" /><line x1="2" y1="12" x2="22" y2="12" /><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z" /></>,
   download: <><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" /><polyline points="7 10 12 15 17 10" /><line x1="12" y1="15" x2="12" y2="3" /></>,
   printer: <><polyline points="6 9 6 2 18 2 18 9" /><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2" /><rect x="6" y="14" width="12" height="8" /></>,
@@ -577,8 +578,9 @@ const previewWatermarkBg = (email: string): string => {
   const svg =
     `<svg xmlns="http://www.w3.org/2000/svg" width="260" height="150">` +
     `<g transform="rotate(-25 130 75)" font-family="Arial,sans-serif" font-weight="700" text-anchor="middle" fill="#000" fill-opacity="0.16">` +
-    `<text x="130" y="68" font-size="15">PRATINJAU - BELUM DIEKSPOR</text>` +
-    `<text x="130" y="90" font-size="11">${escXml(email.slice(0, 40))}</text>` +
+    `<text x="130" y="58" font-size="16">PETAKILAT - PRATINJAU</text>` +
+    `<text x="130" y="76" font-size="11">BELUM DIEKSPOR</text>` +
+    `<text x="130" y="92" font-size="10">${escXml(email.slice(0, 40))}</text>` +
     `</g></svg>`;
   return `url("data:image/svg+xml;utf8,${encodeURIComponent(svg)}")`;
 };
@@ -775,7 +777,7 @@ const APP_CSS = `
 .gl-root{
   --ink:#0f1b2d; --ink-2:#334155; --muted:#64748b; --line:#dde4ea; --line-2:#eef2f5;
   --paper:#f3f6f8; --surface:#ffffff; --brand:#0e7490; --brand-d:#155e75; --brand-soft:#e0f4f8;
-  --sea:#0b3445; --danger:#dc2626; --danger-soft:#fee2e2;
+  --sea:#0b3445; --bolt:#facc15; --bolt-d:#f59e0b; --bolt-soft:#fef9c3; --danger:#dc2626; --danger-soft:#fee2e2;
   --shadow:0 1px 2px rgba(15,27,45,.06),0 10px 28px rgba(15,27,45,.12);
   position:fixed; inset:0; overflow:hidden; color:var(--ink); background:var(--paper);
   font-family:Inter,system-ui,-apple-system,'Segoe UI',sans-serif; -webkit-font-smoothing:antialiased;
@@ -939,7 +941,9 @@ const APP_CSS = `
 .gl-nav{position:sticky;top:0;z-index:40;height:72px;display:flex;align-items:center;justify-content:space-between;gap:24px;padding:0 clamp(16px,5vw,64px);color:#fff;transition:background .2s,box-shadow .2s}
 .gl-nav.is-solid{background:rgba(8,26,38,.94);backdrop-filter:blur(10px);box-shadow:0 1px 0 rgba(255,255,255,.08)}
 .gl-brand{display:flex;align-items:center;gap:10px;padding:0;border:0;background:none;color:inherit;text-align:left;cursor:pointer}
-.gl-brand__mark{display:grid;place-items:center;width:38px;height:38px;border-radius:10px;background:linear-gradient(135deg,#4cc9e0,#0e7490);color:#fff}
+.gl-brand__mark{display:grid;place-items:center;width:38px;height:38px;border-radius:10px;background:linear-gradient(135deg,#fde047,#f59e0b);color:#0b3445;box-shadow:0 0 0 1px rgba(250,204,21,.45),0 0 18px rgba(250,204,21,.45)}
+.gl-brand__mark svg{fill:#0b3445}
+.gl-brand__acc{font-style:normal;color:#facc15}
 .gl-brand__name{font-size:18px;font-weight:700;line-height:1.1;letter-spacing:-.01em}
 .gl-brand__sub{margin-top:2px;font-size:11px;opacity:.72}
 .gl-nav__links{display:flex;align-items:center;gap:28px}
@@ -965,6 +969,24 @@ const APP_CSS = `
 .gl-hero__copy{max-width:560px}
 .gl-hero h1{margin:0 0 18px;font-size:clamp(34px,4.6vw,58px);font-weight:700;line-height:1.06;letter-spacing:-.02em}
 .gl-hero p{margin:0;max-width:50ch;font-size:clamp(16px,1.5vw,18px);line-height:1.6;color:rgba(255,255,255,.84)}
+.gl-hero{overflow:hidden}
+.gl-hero__copy,.gl-hero .gl-sheet{position:relative;z-index:2}
+.gl-hero__bolt{position:absolute;z-index:1;right:5%;top:6%;height:72%;opacity:.13;pointer-events:none;filter:drop-shadow(0 0 30px rgba(250,204,21,.75));animation:gl-flash 7s infinite}
+.gl-hero__bolt--2{right:auto;left:1%;top:auto;bottom:3%;height:38%;transform:rotate(-14deg) scaleX(-1);animation-delay:2.6s}
+.gl-hero__tag{display:inline-flex;align-items:center;gap:6px;margin-bottom:16px;padding:5px 12px;border-radius:999px;border:1px solid rgba(250,204,21,.45);background:rgba(250,204,21,.12);color:#fde047;font-size:12px;font-weight:600;letter-spacing:.02em}
+.gl-hero__tag svg{fill:#facc15;stroke:#facc15}
+@keyframes gl-flash{0%,84%,100%{opacity:.12}86%{opacity:.55}88%{opacity:.14}90%{opacity:.4}93%{opacity:.12}}
+@keyframes gl-glow{0%,100%{box-shadow:0 0 0 1px rgba(250,204,21,.45),0 0 14px rgba(250,204,21,.35)}50%{box-shadow:0 0 0 1px rgba(250,204,21,.7),0 0 24px rgba(250,204,21,.7)}}
+.gl-bolt-anim{animation:gl-glow 3.2s ease-in-out infinite}
+.gl-side__head{position:relative}
+.gl-side__head::after{content:'';position:absolute;left:0;right:0;bottom:-1px;height:2px;background:linear-gradient(90deg,transparent,#facc15 25%,#f59e0b 75%,transparent)}
+.gl-side__title{display:flex;align-items:center;gap:6px}
+.gl-side__title svg{fill:#facc15;stroke:#f59e0b}
+.gl-sec.is-open .gl-sec__step{background:linear-gradient(135deg,#fde047,#f59e0b);color:#0b3445}
+.gl-credit{display:inline-flex;align-items:center;gap:6px;white-space:nowrap}
+.gl-credit svg{fill:#facc15;stroke:#f59e0b}
+@media (max-width:860px){.gl-hero__bolt{height:46%;right:-3%}.gl-hero__bolt--2{display:none}}
+@media (prefers-reduced-motion:reduce){.gl-hero__bolt,.gl-bolt-anim{animation:none}}
 .gl-cta{display:flex;flex-wrap:wrap;gap:12px;margin-top:28px}
 .gl-cta .gl-btn{height:48px;padding:0 22px;font-size:15px;border-radius:12px}
 .gl-hero__facts{display:flex;flex-wrap:wrap;gap:10px 26px;margin:34px 0 0;padding:0;list-style:none;font-size:14px;color:rgba(255,255,255,.78)}
@@ -1116,6 +1138,16 @@ export default function App() {
   const auth = useAuth();
   const [showAuth, setShowAuth] = useState<boolean>(false);
   const [showAccount, setShowAccount] = useState<boolean>(false);
+
+  // Judul tab dan favicon petir (tidak perlu mengubah index.html)
+  useEffect(() => {
+    document.title = 'Petakilat | Pembuat Peta Administrasi Desa';
+    const svg = "<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'><rect width='64' height='64' rx='14' fill='#0b3445'/><path d='M36 6 14 36h14l-4 22 26-33H35z' fill='#facc15'/></svg>";
+    let link = document.querySelector<HTMLLinkElement>("link[rel~='icon']");
+    if (!link) { link = document.createElement('link'); link.rel = 'icon'; document.head.appendChild(link); }
+    link.type = 'image/svg+xml';
+    link.href = 'data:image/svg+xml,' + encodeURIComponent(svg);
+  }, []);
 
   // Kalau belum login tapi membuka #/peta langsung, kembalikan ke beranda + tampilkan form login
   useEffect(() => {
@@ -2079,7 +2111,7 @@ export default function App() {
     }
   };
 
-  const exportFileBase = () => `Peta-Administrasi-${(selectedDesa || selectedKab || 'Wilayah').replace(/\s+/g, '-')}`;
+  const exportFileBase = () => `Petakilat-${(selectedDesa || selectedKab || 'Wilayah').replace(/\s+/g, '-')}`;
 
   const izinEkspor = async (): Promise<boolean> => {
   if (!wilayahSiap) { alert('Pilih provinsi dan kabupaten/kota terlebih dahulu sebelum mengekspor.'); return false; }
@@ -2154,10 +2186,10 @@ export default function App() {
       {activePage === 'home' && (
         <div className="gl-home" onScroll={(e) => setNavSolid(e.currentTarget.scrollTop > 24)}>
           <header className={`gl-nav ${navSolid || navOpen ? 'is-solid' : ''}`}>
-            <button type="button" className="gl-brand" onClick={() => document.querySelector('.gl-home')?.scrollTo({ top: 0, behavior: 'smooth' })} aria-label="GeoLayout, kembali ke atas">
-              <span className="gl-brand__mark"><Icon name="globe" size={20} /></span>
+            <button type="button" className="gl-brand" onClick={() => document.querySelector('.gl-home')?.scrollTo({ top: 0, behavior: 'smooth' })} aria-label="Petakilat, kembali ke atas">
+              <span className="gl-brand__mark gl-bolt-anim"><Icon name="bolt" size={20} /></span>
               <span>
-                <span className="gl-brand__name" style={{ display: 'block' }}>GeoLayout</span>
+                <span className="gl-brand__name" style={{ display: 'block' }}>Peta<em className="gl-brand__acc">kilat</em></span>
                 <span className="gl-brand__sub" style={{ display: 'block' }}>Modern WebGIS Cartographic Suite</span>
               </span>
             </button>
@@ -2173,8 +2205,8 @@ export default function App() {
               <button type="button" className="gl-link" onClick={() => goTo('metodologi')}>Metodologi</button>
               <button type="button" className="gl-link" onClick={() => goTo('faq')}>FAQ</button>
               {auth.user ? (
-                <button type="button" className="gl-link" onClick={() => setShowAccount(true)}>
-                  {auth.user.nama} · {auth.user.role === 'admin' ? '∞' : auth.user.kredit} kredit
+                <button type="button" className="gl-link gl-credit" onClick={() => setShowAccount(true)}>
+                  <Icon name="bolt" size={14} /> {auth.user.nama} · {auth.user.role === 'admin' ? '∞' : auth.user.kredit} kredit
                 </button>
               ) : (
                 <button type="button" className="gl-link" onClick={() => setShowAuth(true)}>Masuk</button>
@@ -2184,9 +2216,17 @@ export default function App() {
           </header>
 
           <section className="gl-hero">
+            <svg className="gl-hero__bolt" viewBox="0 0 200 320" aria-hidden="true" focusable="false">
+              <defs><linearGradient id="gl-bolt-g" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stopColor="#fef08a" /><stop offset="1" stopColor="#f59e0b" /></linearGradient></defs>
+              <polygon points="125,0 20,170 95,170 70,320 185,120 108,120" fill="url(#gl-bolt-g)" />
+            </svg>
+            <svg className="gl-hero__bolt gl-hero__bolt--2" viewBox="0 0 200 320" aria-hidden="true" focusable="false">
+              <polygon points="125,0 20,170 95,170 70,320 185,120 108,120" fill="url(#gl-bolt-g)" />
+            </svg>
             <div className="gl-hero__copy">
+              <span className="gl-hero__tag"><Icon name="bolt" size={13} /> Sekilat petir, siap cetak</span>
               <h1>Susun peta administrasi desa yang siap cetak</h1>
-              <p>GeoLayout menyusun lembar peta desa atau kelurahan lengkap dengan judul, arah utara, skala, legenda, dan metadata. Pilih wilayah, atur tampilan, lalu unduh sebagai PNG atau PDF A4.</p>
+              <p>Petakilat menyusun lembar peta desa atau kelurahan lengkap dengan judul, arah utara, skala, legenda, dan metadata. Pilih wilayah, atur tampilan, lalu unduh sebagai PNG atau PDF A4.</p>
               <div className="gl-cta">
                 <button type="button" className="gl-btn gl-btn--white" onClick={openApp}>Buat peta sekarang</button>
                 <button type="button" className="gl-btn gl-btn--outline" onClick={() => goTo('harga')}>Lihat harga</button>
@@ -2203,8 +2243,8 @@ export default function App() {
           <section id="tentang" className="gl-sect">
             <div className="gl-wrap gl-about">
               <div>
-                <h2>Tentang GeoLayout</h2>
-                <p className="gl-lead">GeoLayout adalah aplikasi web untuk membuat peta administrasi desa dan kelurahan dengan tata letak kartografi, mengikuti gaya lembar peta cetak seperti pada QGIS Print Composer.</p>
+                <h2>Tentang Petakilat</h2>
+                <p className="gl-lead">Petakilat adalah aplikasi web untuk membuat peta administrasi desa dan kelurahan dengan tata letak kartografi, mengikuti gaya lembar peta cetak seperti pada QGIS Print Composer.</p>
                 <p className="gl-lead">Seluruh proses berjalan di browser: dari memilih wilayah, mengatur simbologi, menambahkan foto lapangan, sampai mengunduh hasilnya. Proyek S1 Informatika, Universitas Bengkulu.</p>
               </div>
               <dl className="gl-facts">
@@ -2321,7 +2361,7 @@ export default function App() {
 
           <footer className="gl-foot">
             <div>
-              <b>GeoLayout</b>
+              <b>Peta<span className="gl-brand__acc">kilat</span></b>
               <span>Informatika, Universitas Bengkulu</span>
             </div>
             <div className="gl-foot__links">
@@ -2344,11 +2384,11 @@ export default function App() {
               <Icon name="arrow-left" size={18} />
             </button>
             <div className="gl-side__titles">
-              <div className="gl-side__title">Pembuat peta administrasi</div>
-              <div className="gl-side__sub">Hasil tampil langsung di lembar peta</div>
+              <div className="gl-side__title"><Icon name="bolt" size={15} /> Peta<span className="gl-brand__acc" style={{ color: 'var(--bolt-d)' }}>kilat</span></div>
+              <div className="gl-side__sub">Pembuat peta administrasi, hasil tampil langsung</div>
             </div>
-            <button type="button" className="gl-btn gl-btn--sm" onClick={() => setShowAccount(true)}>
-              {auth.user?.role === 'admin' ? '∞' : auth.user?.kredit ?? 0} kredit
+            <button type="button" className="gl-btn gl-btn--sm gl-credit" onClick={() => setShowAccount(true)}>
+              <Icon name="bolt" size={13} /> {auth.user?.role === 'admin' ? '∞' : auth.user?.kredit ?? 0} kredit
             </button>
             <button type="button" className="gl-iconbtn gl-side__close" onClick={() => setSidebarOpen(false)} aria-label="Tutup panel">
               <Icon name="x" size={18} />

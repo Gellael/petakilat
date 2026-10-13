@@ -5,7 +5,7 @@ const TOKEN_KEY = 'gl_token';
 
 // ====== ISI SESUAI KEBUTUHAN ANDA ======
 const PAYMENT_INFO = 'Transfer ke: BANK/E-WALLET ... a.n. ... (isi rekening Anda di sini)';
-const HARGA_PER_KREDIT = 20000; // dipakai admin sebagai saran jumlah kredit (nominal / harga)
+const HARGA_PER_KREDIT = 25000; // dipakai admin sebagai saran jumlah kredit (nominal / harga)
 
 export interface AuthUser {
   id: number;
@@ -112,10 +112,17 @@ const overlay: CSSProperties = {
 };
 const card: CSSProperties = {
   background: '#fff', borderRadius: 14, width: '100%', maxWidth: 520, maxHeight: '90vh',
-  overflowY: 'auto', padding: 20, boxShadow: '0 20px 50px rgba(0,0,0,.3)', color: '#0f172a',
+  overflowY: 'auto', padding: 20, boxShadow: '0 20px 50px rgba(0,0,0,.3)', color: '#0f172a', borderTop: '4px solid #facc15',
 };
 const row: CSSProperties = { display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' };
 const rupiah = (n: number) => 'Rp' + n.toLocaleString('id-ID');
+
+/** Ikon petir kuning khas Petakilat. */
+const Bolt = ({ size = 18 }: { size?: number }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="#facc15" stroke="#f59e0b" strokeWidth={1.5} strokeLinejoin="round" aria-hidden="true" focusable="false" style={{ flexShrink: 0 }}>
+    <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" />
+  </svg>
+);
 
 export function AuthModal({ auth, onClose, onSuccess }: { auth: Auth; onClose: () => void; onSuccess: () => void }) {
   const [mode, setMode] = useState<'login' | 'daftar'>('login');
@@ -141,7 +148,7 @@ export function AuthModal({ auth, onClose, onSuccess }: { auth: Auth; onClose: (
     <div style={overlay} onClick={onClose}>
       <form style={card} onClick={(e) => e.stopPropagation()} onSubmit={submit}>
         <div style={{ ...row, justifyContent: 'space-between', marginBottom: 12 }}>
-          <h3 style={{ margin: 0 }}>{mode === 'login' ? 'Masuk' : 'Daftar akun'}</h3>
+          <h3 style={{ margin: 0, display: 'flex', alignItems: 'center', gap: 8 }}><Bolt size={20} />{mode === 'login' ? 'Masuk ke Petakilat' : 'Daftar di Petakilat'}</h3>
           <button type="button" className="gl-btn gl-btn--sm" onClick={onClose}>Tutup</button>
         </div>
         {mode === 'daftar' && (
@@ -227,8 +234,8 @@ export function AccountModal({ auth, onClose }: { auth: Auth; onClose: () => voi
           </div>
         </div>
 
-        <div style={{ margin: '14px 0', padding: 14, borderRadius: 10, background: '#eff6ff', textAlign: 'center' }}>
-          <div style={{ fontSize: 12, color: '#475569' }}>Saldo kredit</div>
+        <div style={{ margin: '14px 0', padding: 14, borderRadius: 10, background: 'linear-gradient(135deg,#fffbeb,#fef3c7)', border: '1px solid #fde68a', textAlign: 'center' }}>
+          <div style={{ fontSize: 12, color: '#475569', display: 'flex', justifyContent: 'center', alignItems: 'center', gap: 6 }}><Bolt size={14} /> Saldo kredit</div>
           <div style={{ fontSize: 32, fontWeight: 800 }}>{user.role === 'admin' ? '∞' : user.kredit}</div>
         </div>
 

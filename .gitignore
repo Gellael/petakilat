@@ -23,6 +23,3 @@ dist-ssr
 *.sw?
 
 .env
-
-
-gee-key.json
