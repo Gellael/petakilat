@@ -3,6 +3,7 @@ import * as maplibregl from 'maplibre-gl';
 import 'maplibre-gl/dist/maplibre-gl.css';
 import workerUrl from 'maplibre-gl/dist/maplibre-gl-worker.mjs?url';
 import * as turf from '@turf/turf';
+import { useAuth, AuthModal, AccountModal, apiFetch } from './auth';
 maplibregl.setWorkerUrl(workerUrl);
 
 const API= import.meta.env.VITE_API_URL || "http://localhost:8080";
@@ -1082,6 +1083,17 @@ export default function App() {
     return () => window.removeEventListener('popstate', onPop);
   }, []);
   const [navOpen, setNavOpen] = useState<boolean>(false);
+  const auth = useAuth();
+  const [showAuth, setShowAuth] = useState<boolean>(false);
+  const [showAccount, setShowAccount] = useState<boolean>(false);
+
+  // Kalau belum login tapi membuka #/peta langsung, kembalikan ke beranda + tampilkan form login
+  useEffect(() => {
+  if (!auth.loading && !auth.user && activePage === 'admin-map') {
+    setActivePage('home');
+    setShowAuth(true);
+  }
+  }, [auth.loading, auth.user, activePage]);
   const [navSolid, setNavSolid] = useState<boolean>(false);
   const [sidebarOpen, setSidebarOpen] = useState<boolean>(false);
   const [openSec, setOpenSec] = useState<Record<string, boolean>>({ lokasi: true, dasar: false, simbol: false, gee: false, aoi: false, identitas: false });
@@ -1131,7 +1143,7 @@ export default function App() {
     setGeeMsg('');
     setGeeErr(false);
     try {
-      const res = await fetch(`${API}/api/gee-tiles?layer=${encodeURIComponent(key)}`);
+      const res = await apiFetch(`/api/gee-tiles?layer=${encodeURIComponent(key)}`);
       if (!res.ok) throw new Error(String(res.status));
       const data = await res.json();
       if (!data.tileUrl) throw new Error('tileUrl kosong');
@@ -1246,6 +1258,7 @@ export default function App() {
 
   const openApp = () => {
     setNavOpen(false);
+    if (!auth.user) { setShowAuth(true); return; }
     setActivePage('admin-map');
   };
 
@@ -1711,10 +1724,19 @@ export default function App() {
 
     setApiError('');
     setLoadingKab(true);
-    fetch(`${API}/api/get-desa?kabupaten=${encodeURIComponent(kab)}`)
-      .then((res) => res.json())
-      .then((geoJsonData) => {
-        if (!geoJsonData || !geoJsonData.features) return;
+    apiFetch(`/api/get-desa?kabupaten=${encodeURIComponent(kab)}`)
+    .then(async (res) => {
+    const data = await res.json().catch(() => null);
+    if (!res.ok) {
+      setApiError(data?.error || 'Gagal memuat data desa.');
+      if (res.status === 402) setShowAccount(true); // kredit habis -> buka panel top-up
+      return null;
+    }
+    return data;
+  })
+  .then((geoJsonData) => {
+    if (!geoJsonData || !geoJsonData.features) return;
+    auth.refreshUser();
         currentGeoJsonRef.current = JSON.parse(JSON.stringify(geoJsonData));
 
         const desaSet = new Set<string>();
@@ -2084,6 +2106,13 @@ export default function App() {
               <button type="button" className="gl-link" onClick={() => goTo('harga')}>Harga</button>
               <button type="button" className="gl-link" onClick={() => goTo('metodologi')}>Metodologi</button>
               <button type="button" className="gl-link" onClick={() => goTo('faq')}>FAQ</button>
+              {auth.user ? (
+                <button type="button" className="gl-link" onClick={() => setShowAccount(true)}>
+                  {auth.user.nama} · {auth.user.role === 'admin' ? '∞' : auth.user.kredit} kredit
+                </button>
+              ) : (
+                <button type="button" className="gl-link" onClick={() => setShowAuth(true)}>Masuk</button>
+              )}
               <button type="button" className="gl-btn gl-btn--light" onClick={openApp}>Buka aplikasi</button>
             </nav>
           </header>
@@ -2252,6 +2281,9 @@ export default function App() {
               <div className="gl-side__title">Pembuat peta administrasi</div>
               <div className="gl-side__sub">Hasil tampil langsung di lembar peta</div>
             </div>
+            <button type="button" className="gl-btn gl-btn--sm" onClick={() => setShowAccount(true)}>
+              {auth.user?.role === 'admin' ? '∞' : auth.user?.kredit ?? 0} kredit
+            </button>
             <button type="button" className="gl-iconbtn gl-side__close" onClick={() => setSidebarOpen(false)} aria-label="Tutup panel">
               <Icon name="x" size={18} />
             </button>
@@ -2786,6 +2818,14 @@ export default function App() {
           </div>
         </main>
       </div>
+      {showAuth && (
+        <AuthModal
+          auth={auth}
+          onClose={() => setShowAuth(false)}
+          onSuccess={() => { setShowAuth(false); setActivePage('admin-map'); }}
+        />
+      )}
+      {showAccount && auth.user && <AccountModal auth={auth} onClose={() => setShowAccount(false)} />}
     </div>
   );
 }
