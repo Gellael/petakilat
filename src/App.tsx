@@ -1,16 +1,13 @@
-// src/App.tsx
 import { useEffect, useRef, useState, type ReactNode, type CSSProperties } from 'react';
 import * as maplibregl from 'maplibre-gl';
 import 'maplibre-gl/dist/maplibre-gl.css';
 import workerUrl from 'maplibre-gl/dist/maplibre-gl-worker.mjs?url';
 import * as turf from '@turf/turf';
 
-// Daftarkan worker URL untuk bundler Vite agar GeoJSON source dapat di-render tanpa kendala
 maplibregl.setWorkerUrl(workerUrl);
 
 const API= import.meta.env.VITE_API_URL || "http://localhost:8080";
 
-// ===================== MODEL & KONSTANTA =====================
 export interface AoiItem {
   id: string;
   title: string;
@@ -23,9 +20,9 @@ export interface AoiItem {
   calloutLng: number;
   calloutLat: number;
   showCallout: boolean;
-  showInLegend: boolean;   // tampilkan titik ini di legenda
-  legendLabel: string;     // nama di legenda (kosong = pakai nama titik)
-  legendImageUrl: string;  // gambar simbol legenda (kosong = pakai ikon dan warna titik)
+  showInLegend: boolean;
+  legendLabel: string;
+  legendImageUrl: string;
 }
 
 const AOI_ICONS: { emoji: string; label: string }[] = [
@@ -43,8 +40,6 @@ const AOI_ICONS: { emoji: string; label: string }[] = [
   { emoji: '🔵', label: 'Titik Biru' },
 ];
 
-// Kunci API CARTO (gratis). Isi VITE_CARTO_KEY di file .env frontend untuk membuka peta Carto.
-// Tanpa kunci, peta Carto disembunyikan karena server Carto menampilkan tulisan "API key required".
 const CARTO_KEY: string = ((import.meta as any).env?.VITE_CARTO_KEY as string | undefined) || '';
 
 type BasemapTone = 'sat' | 'light' | 'dark';
@@ -54,8 +49,8 @@ interface BasemapDef {
   desc: string;
   thumb: string;
   group: string;
-  tone: BasemapTone; // dipakai untuk menyesuaikan warna garis batas pada peta inset
-  attr: string;      // atribusi sumber peta, ditampilkan di legenda
+  tone: BasemapTone;
+  attr: string;
   maxzoom?: number;
   needsKey?: 'carto';
 }
@@ -65,7 +60,6 @@ const BASEMAP_GROUPS = ['Satelit', 'Terang', 'Gelap', 'Jalan & topografi'];
 const CARTO_ATTR = '© OpenStreetMap contributors © CARTO';
 
 const BASEMAP_TILES: Record<string, BasemapDef> = {
-  // ----- Satelit -----
   citra: {
     name: 'Citra Satelit Esri',
     url: 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
@@ -75,7 +69,6 @@ const BASEMAP_TILES: Record<string, BasemapDef> = {
     tone: 'sat',
     attr: 'Esri, Maxar, Earthstar Geographics'
   },
-  // ----- Terang -----
   esri_lightgray: {
     name: 'Esri Abu-abu Terang',
     url: 'https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Light_Gray_Base/MapServer/tile/{z}/{y}/{x}',
@@ -147,7 +140,6 @@ const BASEMAP_TILES: Record<string, BasemapDef> = {
     needsKey: 'carto',
     attr: CARTO_ATTR
   },
-  // ----- Jalan & topografi -----
   osm: {
     name: 'OpenStreetMap',
     url: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
@@ -187,12 +179,10 @@ const BASEMAP_TILES: Record<string, BasemapDef> = {
   }
 };
 
-// Peta yang butuh kunci hanya tampil bila kuncinya sudah diisi
 const isBasemapAvailable = (key: string) => !!BASEMAP_TILES[key] && (!BASEMAP_TILES[key].needsKey || !!CARTO_KEY);
 const AVAILABLE_KEYS = Object.keys(BASEMAP_TILES).filter(isBasemapAvailable);
 const basemapUrl = (b: BasemapDef) => (b.needsKey === 'carto' ? `${b.url}?key=${encodeURIComponent(CARTO_KEY)}` : b.url);
 
-// Pilihan peta dasar khusus inset. 'sync' = ikut peta utama. Bawaan: peta terang polos yang lazim dipakai peta letak.
 const INSET_SYNC = 'sync';
 const DEFAULT_INSET_BASEMAP = CARTO_KEY ? 'positron_nolabels' : 'esri_lightgray';
 const INSET_CHOICES: string[] = [
@@ -223,20 +213,17 @@ const SHEET_H = 680;
 const SHEET_FONT = 'serif';
 const EMPTY_FC = { type: 'FeatureCollection' as const, features: [] as any[] };
 
-// ===================== HELPER UMUM =====================
 const escapeHtml = (s: string) =>
   s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 
 const hasCallout = (a: AoiItem) => a.showCallout && !!(a.imageUrl || a.imageCaption);
 
-// Perluas bounding box agar bentuk desa tampil dengan konteks wilayah sekitarnya
 const expandBbox = (b: number[], f: number): [number, number, number, number] => {
   const dx = (b[2] - b[0]) * f;
   const dy = (b[3] - b[1]) * f;
   return [b[0] - dx, b[1] - dy, b[2] + dx, b[3] + dy];
 };
 
-// Ganti peta dasar raster pada peta mana pun (utama maupun inset), tetap di lapisan paling bawah
 const swapBasemap = (map: maplibregl.Map | null, key: string) => {
   if (!map) return;
   const run = () => {
@@ -255,7 +242,6 @@ const swapBasemap = (map: maplibregl.Map | null, key: string) => {
   }
 };
 
-// Jalankan fungsi begitu style peta siap (addSource melempar error bila style belum selesai dimuat)
 const runWhenReady = (map: maplibregl.Map, fn: () => void) => {
   try {
     fn();
@@ -264,39 +250,71 @@ const runWhenReady = (map: maplibregl.Map, fn: () => void) => {
   }
 };
 
-// ===================== LAYER GOOGLE EARTH ENGINE =====================
-// Kunci akses GEE hanya ada di backend. Frontend cuma meminta URL tile ke /api/gee-tiles.
-const GEE_SRC = 'gee-src';
-const GEE_LAYER = 'gee-layer';
 const GEE_LAYERS: { key: string; label: string }[] = [
-     { key: 'elevation', label: 'Elevasi (SRTM)' },
-     { key: 'ndwi', label: 'NDWI (indeks air)' },
-     { key: 'ndvi', label: 'NDVI (vegetasi)' },
-  // { key: 'ndvi', label: 'NDVI' },  // aktifkan setelah file gee/ndvi.json dibuat di backend
+  { key: 'elevation', label: 'Elevasi (SRTM)' },
+  { key: 'ndwi', label: 'NDWI (indeks air)' },
+  { key: 'ndvi', label: 'NDVI (vegetasi)' },
+  { key: 'air', label: 'Aliran air' },
+  { key: 'bangunan', label: 'Bangunan' },
 ];
 
-const removeGeeLayer = (map: maplibregl.Map | null) => {
+const GEE_LEGEND: Record<string, { label: string; box: CSSProperties }> = {
+  elevation: { label: 'Elevasi (SRTM)', box: { background: 'linear-gradient(90deg,#006633,#E5FFCC,#662A00,#F5F5F5)', border: '1px solid #475569' } },
+  ndwi: { label: 'NDWI (indeks air)', box: { background: 'linear-gradient(90deg,#ffffff,#9ecae1,#3182bd,#08306b)', border: '1px solid #475569' } },
+  ndvi: { label: 'NDVI (vegetasi)', box: { background: 'linear-gradient(90deg,#ffffff,#ffffb2,#a1d99b,#006d2c)', border: '1px solid #475569' } },
+  air: { label: 'Aliran air (MERIT Hydro, JRC)', box: { height: '0px', borderTop: '3px solid #2563eb' } },
+  bangunan: { label: 'Bangunan (Google Open Buildings)', box: { backgroundColor: 'rgba(234,88,12,0.6)', border: '1px solid #7c2d12' } },
+};
+
+const GEE_MASK_SRC = 'gee-mask-src';
+const GEE_MASK_LAYER = 'gee-mask-layer';
+const geeSrcId = (key: string) => `gee-src-${key}`;
+const geeLayerId = (key: string) => `gee-layer-${key}`;
+const GEE_ABOVE = [GEE_MASK_LAYER, 'wilayah-fill', 'neighbor-desa-layer', 'selected-desa-layer'];
+
+const removeGeeLayer = (map: maplibregl.Map | null, key: string) => {
   if (!map) return;
   try {
-    if (map.getLayer(GEE_LAYER)) map.removeLayer(GEE_LAYER);
-    if (map.getSource(GEE_SRC)) map.removeSource(GEE_SRC);
+    if (map.getLayer(geeLayerId(key))) map.removeLayer(geeLayerId(key));
+    if (map.getSource(geeSrcId(key))) map.removeSource(geeSrcId(key));
   } catch (_) {
-    /* style peta belum siap */
   }
 };
 
-const addGeeLayer = (map: maplibregl.Map, tileUrl: string, opacity: number) => {
-  removeGeeLayer(map);
-  map.addSource(GEE_SRC, { type: 'raster', tiles: [tileUrl], tileSize: 256 });
-  // taruh di bawah polygon desa supaya batas wilayah tetap terlihat
-  const before = ['wilayah-fill', 'selected-desa-layer'].find((id) => map.getLayer(id));
+const addGeeLayer = (map: maplibregl.Map, key: string, tileUrl: string, opacity: number) => {
+  removeGeeLayer(map, key);
+  map.addSource(geeSrcId(key), { type: 'raster', tiles: [tileUrl], tileSize: 256 });
+  const idx = GEE_LAYERS.findIndex((l) => l.key === key);
+  const nextGee = GEE_LAYERS.slice(idx + 1).map((l) => geeLayerId(l.key)).find((id) => map.getLayer(id));
+  const before = nextGee || GEE_ABOVE.find((id) => map.getLayer(id));
   map.addLayer(
-    { id: GEE_LAYER, type: 'raster', source: GEE_SRC, paint: { 'raster-opacity': opacity } },
+    { id: geeLayerId(key), type: 'raster', source: geeSrcId(key), paint: { 'raster-opacity': opacity } },
     before
   );
 };
 
-// ===================== DETAIL OSM (OVERPASS) =====================
+const updateGeeMask = (map: maplibregl.Map | null, feature: any, on: boolean) => {
+  if (!map) return;
+  try {
+    if (map.getLayer(GEE_MASK_LAYER)) map.removeLayer(GEE_MASK_LAYER);
+    if (!on || !feature) {
+      if (map.getSource(GEE_MASK_SRC)) map.removeSource(GEE_MASK_SRC);
+      return;
+    }
+    const masked = turf.mask(feature, turf.bboxPolygon([-180, -85, 180, 85]) as any);
+    const src = map.getSource(GEE_MASK_SRC) as maplibregl.GeoJSONSource | undefined;
+    if (src) src.setData(masked as any);
+    else map.addSource(GEE_MASK_SRC, { type: 'geojson', data: masked as any });
+    const before = ['wilayah-fill', 'neighbor-desa-layer', 'selected-desa-layer'].find((id) => map.getLayer(id));
+    map.addLayer(
+      { id: GEE_MASK_LAYER, type: 'fill', source: GEE_MASK_SRC, paint: { 'fill-color': '#ffffff', 'fill-opacity': 1 } },
+      before
+    );
+  } catch (e) {
+    console.warn('Gagal membuat penutup di luar desa:', e);
+  }
+};
+
 type OsmKind = 'building' | 'water' | 'road';
 interface OsmSlim { id: number; k: OsmKind; hw?: string; g: [number, number][] }
 
@@ -312,7 +330,6 @@ const OSM_LAYER_KIND: Record<string, OsmKind> = {
 const ROAD_MAJOR = ['motorway', 'trunk', 'primary', 'motorway_link', 'trunk_link', 'primary_link'];
 const ROAD_MID = ['secondary', 'tertiary', 'secondary_link', 'tertiary_link'];
 
-// Ringkas respons Overpass: hanya garis/poligon, tanpa daftar node, koordinat 6 desimal
 const overpassToSlim = (json: any): OsmSlim[] => {
   const out: OsmSlim[] = [];
   for (const el of json?.elements || []) {
@@ -355,7 +372,6 @@ const fetchOverpassSlim = async (bbox: number[]): Promise<OsmSlim[]> => {
   throw lastErr || new Error('Overpass tidak dapat dihubungi');
 };
 
-// Potong ke batas desa: bangunan dipilih lewat titik pusatnya, garis dipotong pada simpul yang berada di dalam desa
 const slimToFc = (els: OsmSlim[], village: any) => {
   const features: any[] = [];
   const inside = (p: [number, number]) => {
@@ -392,7 +408,6 @@ const slimToFc = (els: OsmSlim[], village: any) => {
   return { type: 'FeatureCollection' as const, features };
 };
 
-// Gambar ulang layer OSM. Disisipkan di atas isi desa dan di bawah garis batas desa terpilih
 const syncOsmLayers = (map: maplibregl.Map | null, fc: any, show: Record<OsmKind, boolean>) => {
   if (!map) return;
   runWhenReady(map, () => {
@@ -434,7 +449,6 @@ const syncOsmLayers = (map: maplibregl.Map | null, fc: any, show: Record<OsmKind
   });
 };
 
-// ===================== HELPER EKSPOR =====================
 const ensureScript = (globalName: string, src: string): Promise<boolean> =>
   new Promise((resolve) => {
     if ((window as any)[globalName]) return resolve(true);
@@ -495,14 +509,11 @@ const overlayMapSnapshot = async (selector: string, url: string): Promise<() => 
   };
 };
 
-// ===================== MARKER AOI & KARTU FOTO =====================
 const buildPinHtml = (aoi: AoiItem) => `
   <div style="background:${aoi.color};color:#fff;font-size:18px;width:32px;height:32px;border:2.5px solid #fff;border-radius:50%;box-shadow:0 3px 10px rgba(0,0,0,.35);display:flex;align-items:center;justify-content:center;">${aoi.icon || '📍'}</div>
   <div style="width:0;height:0;border-left:5px solid transparent;border-right:5px solid transparent;border-top:7px solid ${aoi.color};margin-top:-1px;"></div>
 `;
 
-// Kartu foto: foto di atas, keterangan di kotak putih tepat di bawah foto.
-// Bila keterangan kosong, kotak putih memakai nama titik AOI.
 const buildCalloutHtml = (a: AoiItem) => {
   const caption = (a.imageCaption || '').trim() || (a.title || '').trim();
   const radius = a.imageUrl ? '0 0 5px 5px' : '5px';
@@ -523,7 +534,6 @@ const CALLOUT_FRAME_CSS = (color: string) => `
   user-select:none;
 `;
 
-// ===================== IKON UI (SVG INLINE) =====================
 const ICON_PATHS: Record<string, ReactNode> = {
   chevron: <polyline points="6 9 12 15 18 9" />,
   map: <><polygon points="3 6 9 3 15 6 21 3 21 18 15 21 9 18 3 21" /><line x1="9" y1="3" x2="9" y2="18" /><line x1="15" y1="6" x2="15" y2="21" /></>,
@@ -1021,22 +1031,31 @@ export default function App() {
   osmShowRef.current = osmShow;
 
   // --- LAYER GOOGLE EARTH ENGINE ---
-  const [geeOn, setGeeOn] = useState<boolean>(false);
-  const [geeKey, setGeeKey] = useState<string>(GEE_LAYERS[0].key);
-  const [geeOpacity, setGeeOpacity] = useState<number>(0.7);
-  const [geeLoading, setGeeLoading] = useState<boolean>(false);
+  const [geeActive, setGeeActive] = useState<Record<string, boolean>>({});
+  const [geeLoading, setGeeLoading] = useState<Record<string, boolean>>({});
+  const [geeOpacity, setGeeOpacity] = useState<number>(0.8);
+  const [geeMask, setGeeMask] = useState<boolean>(true);
   const [geeMsg, setGeeMsg] = useState<string>('');
   const [geeErr, setGeeErr] = useState<boolean>(false);
+  const geeActiveRef = useRef<Record<string, boolean>>({});
+  geeActiveRef.current = geeActive;
+  const geeOpacityRef = useRef<number>(geeOpacity);
+  geeOpacityRef.current = geeOpacity;
 
-  const loadGee = async (key: string, opacity: number) => {
+  const toggleGeeLayer = async (key: string, on: boolean) => {
     const map = mapInstance.current;
+    if (!on) {
+      setGeeActive((p) => ({ ...p, [key]: false }));
+      removeGeeLayer(map, key);
+      return;
+    }
     if (!map) {
-      setGeeOn(false);
       setGeeErr(true);
       setGeeMsg('Peta belum siap. Coba lagi sebentar.');
       return;
     }
-    setGeeLoading(true);
+    setGeeActive((p) => ({ ...p, [key]: true }));
+    setGeeLoading((p) => ({ ...p, [key]: true }));
     setGeeMsg('');
     setGeeErr(false);
     try {
@@ -1044,35 +1063,24 @@ export default function App() {
       if (!res.ok) throw new Error(String(res.status));
       const data = await res.json();
       if (!data.tileUrl) throw new Error('tileUrl kosong');
-      runWhenReady(map, () => addGeeLayer(map, data.tileUrl, opacity));
+      if (!geeActiveRef.current[key]) return; // sempat dimatikan saat memuat
+      runWhenReady(map, () => addGeeLayer(map, key, data.tileUrl, geeOpacityRef.current));
     } catch (e) {
-      console.error('Gagal memuat layer Earth Engine:', e);
-      setGeeOn(false);
+      console.error('Gagal memuat layer Earth Engine:', key, e);
+      setGeeActive((p) => ({ ...p, [key]: false }));
       setGeeErr(true);
-      setGeeMsg('Gagal memuat layer Earth Engine. Periksa server API dan Vercel Logs.');
+      setGeeMsg(`Gagal memuat layer "${GEE_LAYERS.find((l) => l.key === key)?.label || key}". Periksa server API dan Vercel Logs.`);
     } finally {
-      setGeeLoading(false);
+      setGeeLoading((p) => ({ ...p, [key]: false }));
     }
-  };
-
-  const toggleGee = (on: boolean) => {
-    setGeeOn(on);
-    if (on) loadGee(geeKey, geeOpacity);
-    else {
-      removeGeeLayer(mapInstance.current);
-      setGeeMsg('');
-      setGeeErr(false);
-    }
-  };
-
-  const changeGeeLayer = (key: string) => {
-    setGeeKey(key);
-    if (geeOn) loadGee(key, geeOpacity);
   };
 
   useEffect(() => {
     const map = mapInstance.current;
-    if (map && map.getLayer(GEE_LAYER)) map.setPaintProperty(GEE_LAYER, 'raster-opacity', geeOpacity);
+    if (!map) return;
+    GEE_LAYERS.forEach((l) => {
+      if (map.getLayer(geeLayerId(l.key))) map.setPaintProperty(geeLayerId(l.key), 'raster-opacity', geeOpacity);
+    });
   }, [geeOpacity]);
   const [fillColor, setFillColor] = useState<string>('#38bdf8');
   const [opacityVal, setOpacityVal] = useState<number>(0.45);
@@ -1112,6 +1120,14 @@ export default function App() {
   const paperRef = useRef<HTMLDivElement>(null);
   const currentGeoJsonRef = useRef<any>(null);
   const selectedFeatureRef = useRef<any>(null);
+
+  // Penutup di luar batas desa untuk layer GEE (ikut berubah saat desa dipilih ulang)
+  useEffect(() => {
+    const map = mapInstance.current;
+    if (!map) return;
+    const anyOn = Object.values(geeActive).some(Boolean);
+    updateGeeMask(map, selectedFeatureRef.current, geeMask && anyOn);
+  }, [geeMask, geeActive, selectedDesa]);
   const labelMarkerRef = useRef<maplibregl.Marker | null>(null);
 
   // --- TITIK AOI & FOTO DOKUMENTASI ---
@@ -2256,22 +2272,24 @@ export default function App() {
             </Section>
 
             {/* 5. LAYER GOOGLE EARTH ENGINE */}
-            <Section step={5} title="Layer Google Earth Engine" open={!!openSec.gee} onToggle={() => toggleSec('gee')} badge={geeOn ? <span className="gl-badge">Aktif</span> : undefined}>
-              <Toggle label="Tampilkan layer Earth Engine" checked={geeOn} onChange={toggleGee} />
-              <select
-                value={geeKey}
-                onChange={(e) => changeGeeLayer(e.target.value)}
-                disabled={geeLoading}
-                style={{ width: '100%', padding: '6px 8px', borderRadius: 6 }}
-              >
-                {GEE_LAYERS.map((l) => (
-                  <option key={l.key} value={l.key}>{l.label}</option>
-                ))}
-              </select>
+            <Section step={5} title="Layer Google Earth Engine" open={!!openSec.gee} onToggle={() => toggleSec('gee')} badge={Object.values(geeActive).some(Boolean) ? <span className="gl-badge">{Object.values(geeActive).filter(Boolean).length} aktif</span> : undefined}>
+              <div className="gl-subhead">Layer (boleh lebih dari satu)</div>
+              {GEE_LAYERS.map((l) => (
+                <Toggle
+                  key={l.key}
+                  label={geeLoading[l.key] ? `${l.label} (memuat...)` : l.label}
+                  checked={!!geeActive[l.key]}
+                  onChange={(v) => toggleGeeLayer(l.key, v)}
+                />
+              ))}
+              <div className="gl-divider" />
+              <Toggle label="Tampilkan hanya di dalam batas desa" checked={geeMask} onChange={setGeeMask} />
               <RangeField label="Opasitas layer" value={geeOpacity} min={0.1} max={1} step={0.05} display={`${Math.round(geeOpacity * 100)}%`} onChange={setGeeOpacity} />
-              {geeLoading && <div className="gl-note">Memuat layer dari Earth Engine...</div>}
+              {geeMask && Object.values(geeActive).some(Boolean) && !selectedDesa && (
+                <div className="gl-note">Pilih desa dulu agar layer dipotong mengikuti batas desa.</div>
+              )}
               {geeMsg && <div className={`gl-note ${geeErr ? 'gl-note--err' : ''}`}>{geeMsg}</div>}
-              <div className="gl-note">Data dari Google Earth Engine lewat server API. Kunci akses tidak pernah dikirim ke browser.</div>
+              <div className="gl-note">Saat dipotong ke batas desa, area di luar desa tampil putih (peta dasar disembunyikan). Matikan opsi itu untuk melihat peta dasar utuh. Kurangi "Opasitas isi" di bagian Simbologi bila warna isi desa menutupi layer.</div>
             </Section>
 
             {/* 6. AOI */}
@@ -2657,6 +2675,12 @@ export default function App() {
                             <span style={{ color: '#334155' }}>Aliran Air</span>
                           </div>
                         )}
+                        {GEE_LAYERS.filter((l) => geeActive[l.key]).map((l) => (
+                          <div key={l.key} style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                            <div style={{ width: '18px', height: '10px', boxSizing: 'border-box', flexShrink: 0, ...GEE_LEGEND[l.key].box }} />
+                            <span style={{ color: '#334155' }}>{GEE_LEGEND[l.key].label}</span>
+                          </div>
+                        ))}
                         {aoiList.some(hasCallout) && (
                           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                             <div style={{ width: '18px', borderTop: '2px dashed #0f172a', flexShrink: 0 }} />
@@ -2671,6 +2695,9 @@ export default function App() {
                         )}
                         {osmData && (osmShow.building || osmShow.water || osmShow.road) && (
                           <div style={{ fontSize: '6.5px', color: '#64748b', lineHeight: 1.3 }}>Detail: © OpenStreetMap contributors (ODbL)</div>
+                        )}
+                        {Object.values(geeActive).some(Boolean) && (
+                          <div style={{ fontSize: '6.5px', color: '#64748b', lineHeight: 1.3 }}>Data raster: Google Earth Engine (SRTM, Open Buildings, MERIT Hydro, JRC, Sentinel-2)</div>
                         )}
                       </div>
                     </Panel>
