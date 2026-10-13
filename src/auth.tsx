@@ -5,7 +5,7 @@ const TOKEN_KEY = 'gl_token';
 
 // ====== ISI SESUAI KEBUTUHAN ANDA ======
 const PAYMENT_INFO = 'Transfer ke: BANK/E-WALLET ... a.n. ... (isi rekening Anda di sini)';
-const HARGA_PER_KREDIT = 25000; // dipakai admin sebagai saran jumlah kredit (nominal / harga)
+const HARGA_PER_KREDIT = 20000; // dipakai admin sebagai saran jumlah kredit (nominal / harga)
 
 export interface AuthUser {
   id: number;
