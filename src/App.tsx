@@ -209,7 +209,9 @@ const BASE_SRC = 'raster-tiles';
 const BASE_LAYER = 'simple-tile-layer';
 const SHEET_W = 1020;
 const SHEET_H = 680;
-const SHEET_FONT = 'serif';
+const SHEET_FONT = "'Times New Roman', Times, 'Liberation Serif', serif";
+const SHEET_SANS = "Arial, Helvetica, 'Liberation Sans', sans-serif";
+const SHEET_MONO = "'Courier New', Courier, 'Liberation Mono', monospace";
 const EMPTY_FC = { type: 'FeatureCollection' as const, features: [] as any[] };
 
 const escapeHtml = (s: string) =>
@@ -548,7 +550,7 @@ function SearchSelect({ label, value, options, placeholder, disabled, onChange }
 // Panel formal pada lembar peta cetak (tidak diubah)
 const Panel = ({ title, children, bodyStyle, style }: { title: string; children: ReactNode; bodyStyle?: CSSProperties; style?: CSSProperties }) => (
   <div style={{ border: '1.5px solid #000', backgroundColor: '#ffffff', display: 'flex', flexDirection: 'column', minWidth: 0, ...style }}>
-    <div style={{ fontSize: '8.5px', fontWeight: 'bold', letterSpacing: '1px', textAlign: 'center', textTransform: 'uppercase', borderBottom: '1px solid #ccc', margin: '6px 6px 0', paddingBottom: '2px' }}>
+    <div style={{ fontSize: '9px', fontWeight: 'bold', letterSpacing: '1px', textAlign: 'center', textTransform: 'uppercase', borderBottom: '1px solid #ccc', margin: '6px 6px 0', paddingBottom: '2px' }}>
       {title}
     </div>
     <div style={{ padding: '5px 6px 6px', flex: 1, minHeight: 0, ...bodyStyle }}>{children}</div>
@@ -1730,13 +1732,60 @@ export default function App() {
       cleanups.push(await overlayMapSnapshot('[data-inset-container="true"]', insetUrl));
       await new Promise((r) => requestAnimationFrame(() => r(null)));
 
-      const canvas: HTMLCanvasElement = await (window as any).html2canvas(sheetRef.current, {
-        useCORS: true,
-        allowTaint: false,
-        scale: 2,
-        logging: false,
-        backgroundColor: '#ffffff'
-      });
+      // Pastikan semua font sudah termuat sebelum diukur
+      try { await (document as any).fonts?.ready; } catch (_) {}
+      await new Promise((r) => setTimeout(r, 80));
+
+      const node = sheetRef.current as HTMLElement;
+      let canvas: HTMLCanvasElement | null = null;
+
+      // Jalur utama: html-to-image memakai mesin teks browser sendiri, jadi posisi teks presisi
+      const h2iOk = await ensureScript('htmlToImage', 'https://cdnjs.cloudflare.com/ajax/libs/html-to-image/1.11.11/html-to-image.min.js');
+      if (h2iOk) {
+        try {
+          const opts = {
+            pixelRatio: 2,
+            backgroundColor: '#ffffff',
+            cacheBust: false,
+            skipFonts: true,
+            width: SHEET_W,
+            height: SHEET_H,
+            style: { transform: 'none', margin: '0' }
+          };
+          await (window as any).htmlToImage.toCanvas(node, opts); // pemanasan (wajib untuk Safari)
+          canvas = await (window as any).htmlToImage.toCanvas(node, opts);
+        } catch (err) {
+          console.warn('html-to-image gagal, beralih ke html2canvas:', err);
+          canvas = null;
+        }
+      }
+
+      // Cadangan: html2canvas dengan perbaikan rendering teks
+      if (!canvas) {
+        canvas = await (window as any).html2canvas(node, {
+          useCORS: true,
+          allowTaint: false,
+          scale: 2,
+          logging: false,
+          backgroundColor: '#ffffff',
+          width: SHEET_W,
+          height: SHEET_H,
+          windowWidth: Math.max(SHEET_W, window.innerWidth),
+          windowHeight: Math.max(SHEET_H, window.innerHeight),
+          scrollX: 0,
+          scrollY: 0,
+          onclone: (doc: Document) => {
+            const st = doc.createElement('style');
+            st.textContent = `
+              * { -webkit-font-smoothing: auto !important; font-kerning: none !important;
+                  font-variant-ligatures: none !important; text-rendering: geometricPrecision !important;
+                  font-synthesis: none !important; }
+            `;
+            doc.head.appendChild(st);
+          }
+        });
+      }
+      if (!canvas) return null;
       return canvas;
     } finally {
       cleanups.reverse().forEach((fn) => fn());
@@ -2303,7 +2352,7 @@ export default function App() {
                     <div style={{ flex: 1, display: 'flex', flexDirection: 'column', border: '1.5px solid #000', boxSizing: 'border-box', position: 'relative' }}>
 
                       {showCoordinateGrid && (
-                        <div style={{ height: '16px', borderBottom: '1px solid #000', display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0 12px', fontSize: '8px', fontFamily: 'monospace', fontWeight: 'bold', backgroundColor: '#f8fafc', color: '#1e293b' }}>
+                        <div style={{ height: '16px', borderBottom: '1px solid #000', display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0 12px', fontSize: '8px', fontFamily: SHEET_MONO, fontWeight: 'bold', backgroundColor: '#f8fafc', color: '#1e293b' }}>
                           <span>{coordsDMS.west}</span>
                           <span>▲ GRID GEOGRAFIS WGS 84 ▲</span>
                           <span>{coordsDMS.east}</span>
@@ -2324,10 +2373,10 @@ export default function App() {
 
                         {showCoordinateGrid && (
                           <>
-                            <div style={{ position: 'absolute', top: '12px', left: '4px', zIndex: 10, fontSize: '8px', fontFamily: 'monospace', fontWeight: 'bold', background: 'rgba(255,255,255,0.85)', padding: '1px 3px', border: '1px solid #000' }}>
+                            <div style={{ position: 'absolute', top: '12px', left: '4px', zIndex: 10, fontSize: '8px', fontFamily: SHEET_MONO, fontWeight: 'bold', background: 'rgba(255,255,255,0.85)', padding: '1px 3px', border: '1px solid #000' }}>
                               {coordsDMS.north}
                             </div>
-                            <div style={{ position: 'absolute', bottom: '28px', left: '4px', zIndex: 10, fontSize: '8px', fontFamily: 'monospace', fontWeight: 'bold', background: 'rgba(255,255,255,0.85)', padding: '1px 3px', border: '1px solid #000' }}>
+                            <div style={{ position: 'absolute', bottom: '28px', left: '4px', zIndex: 10, fontSize: '8px', fontFamily: SHEET_MONO, fontWeight: 'bold', background: 'rgba(255,255,255,0.85)', padding: '1px 3px', border: '1px solid #000' }}>
                               {coordsDMS.south}
                             </div>
                           </>
@@ -2335,7 +2384,7 @@ export default function App() {
                       </div>
 
                       {showCoordinateGrid && (
-                        <div style={{ height: '16px', borderTop: '1px solid #000', display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0 12px', fontSize: '8px', fontFamily: 'monospace', fontWeight: 'bold', backgroundColor: '#f8fafc', color: '#1e293b' }}>
+                        <div style={{ height: '16px', borderTop: '1px solid #000', display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0 12px', fontSize: '8px', fontFamily: SHEET_MONO, fontWeight: 'bold', backgroundColor: '#f8fafc', color: '#1e293b' }}>
                           <span>{coordsDMS.west}</span>
                           <span>Titik Pusat: {coordsDMS.centerLng}, {coordsDMS.centerLat}</span>
                           <span>{coordsDMS.east}</span>
@@ -2352,7 +2401,7 @@ export default function App() {
                       <div style={{ fontSize: '14px', fontWeight: 900, color: '#000', textTransform: 'uppercase', margin: '3px 0', borderBottom: '1.5px solid #000', paddingBottom: '3px', letterSpacing: '0.5px' }}>
                         {namaWilayahJudul || selectedDesa || 'WILAYAH INDONESIA'}
                       </div>
-                      <div style={{ fontSize: '8.5px', color: '#333', textTransform: 'uppercase', lineHeight: 1.2 }}>{subJudul}</div>
+                      <div style={{ fontSize: '9px', color: '#333', textTransform: 'uppercase', lineHeight: 1.2 }}>{subJudul}</div>
                     </div>
 
                     <div style={{ display: 'grid', gridTemplateColumns: '62px 1fr', gap: '7px' }}>
@@ -2368,12 +2417,12 @@ export default function App() {
                           <polygon points="86,50 50,45 55,50" fill="#fff" stroke="#000" strokeWidth="0.5" />
                           <polygon points="14,50 50,45 45,50" fill="#000" />
                           <polygon points="14,50 50,55 45,50" fill="#fff" stroke="#000" strokeWidth="0.5" />
-                          <text x="50" y="10" fontSize="14" fontWeight="bold" textAnchor="middle" fill="#000" fontFamily="sans-serif">U</text>
+                          <text x="50" y="10" fontSize="14" fontWeight="bold" textAnchor="middle" fill="#000" fontFamily="Arial, Helvetica, sans-serif">U</text>
                         </svg>
                       </Panel>
 
                       <Panel title="Skala Peta" bodyStyle={{ display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', gap: '4px' }}>
-                        <div style={{ fontSize: '11px', fontWeight: 'bold', fontFamily: 'monospace' }}>1 : {mapScale.toLocaleString('id-ID')}</div>
+                        <div style={{ fontSize: '11px', fontWeight: 'bold', fontFamily: SHEET_MONO }}>1 : {mapScale.toLocaleString('id-ID')}</div>
                         <div style={{ width: '128px' }}>
                           <div style={{ display: 'flex', height: '5px', border: '1px solid #000' }}>
                             <div style={{ flex: 1, backgroundColor: '#000' }} />
@@ -2381,7 +2430,7 @@ export default function App() {
                             <div style={{ flex: 1, backgroundColor: '#000' }} />
                             <div style={{ flex: 1, backgroundColor: '#fff' }} />
                           </div>
-                          <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '7px', fontWeight: 'bold', marginTop: '2px', fontFamily: 'sans-serif' }}>
+                          <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '7px', fontWeight: 'bold', marginTop: '2px', fontFamily: SHEET_SANS }}>
                             <span>0</span>
                             <span>{scaleBarMeters >= 1000 ? `${(scaleBarMeters / 2000).toFixed(1)} km` : `${scaleBarMeters / 2} m`}</span>
                             <span>{scaleBarMeters >= 1000 ? `${scaleBarMeters / 1000} km` : `${scaleBarMeters} m`}</span>
@@ -2392,7 +2441,7 @@ export default function App() {
                     </div>
 
                     <Panel title="Legenda" style={{ flex: 1, minHeight: 0, overflow: 'hidden' }}>
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: '5px', fontSize: '9px', fontFamily: 'sans-serif' }}>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '5px', fontSize: '9px', fontFamily: SHEET_SANS }}>
                         {selectedDesa && (
                           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                             <div style={{ width: '18px', height: '12px', backgroundColor: fillColor, border: `2px solid ${strokeColor}`, opacity: 0.9, boxSizing: 'border-box', flexShrink: 0 }} />
@@ -2434,17 +2483,17 @@ export default function App() {
                         {showLegendBasemap && (
                           <div style={{ marginTop: '2px', paddingTop: '4px', borderTop: '1px dashed #e2e8f0', fontSize: '8px', color: '#64748b' }}>
                             Peta Dasar: <b>{BASEMAP_TILES[basemapKey].name}</b>
-                            <div style={{ fontSize: '6.5px', marginTop: '1px', lineHeight: 1.3 }}>{BASEMAP_TILES[basemapKey].attr}</div>
+                            <div style={{ fontSize: '7px', marginTop: '1px', lineHeight: 1.3 }}>{BASEMAP_TILES[basemapKey].attr}</div>
                           </div>
                         )}
                         {Object.values(geeActive).some(Boolean) && (
-                          <div style={{ fontSize: '6.5px', color: '#64748b', lineHeight: 1.3 }}>Data: Google Earth Engine (SRTM, Sentinel-2, Open Buildings, HydroSHEDS, GRIP4)</div>
+                          <div style={{ fontSize: '7px', color: '#64748b', lineHeight: 1.3 }}>Data: Google Earth Engine (SRTM, Sentinel-2, Open Buildings, HydroSHEDS, GRIP4)</div>
                         )}
                       </div>
                     </Panel>
 
                     <Panel title="Keterangan & Metadata">
-                      <table style={{ width: '100%', fontSize: '8px', borderCollapse: 'collapse', lineHeight: 1.4, fontFamily: 'sans-serif' }}>
+                      <table style={{ width: '100%', fontSize: '8px', borderCollapse: 'collapse', lineHeight: 1.4, fontFamily: SHEET_SANS }}>
                         <tbody>
                           <tr>
                             <td style={{ color: '#64748b', width: '58px' }}>Wilayah:</td>
@@ -2466,11 +2515,11 @@ export default function App() {
                           </tr>
                           <tr>
                             <td style={{ color: '#64748b' }}>Sumber:</td>
-                            <td style={{ fontSize: '7.5px' }}>{sumberData}</td>
+                            <td style={{ fontSize: '8px' }}>{sumberData}</td>
                           </tr>
                         </tbody>
                       </table>
-                      <div style={{ marginTop: '4px', paddingTop: '3px', borderTop: '1px solid #ccc', textAlign: 'center', fontSize: '7.5px', color: '#444', fontFamily: 'sans-serif' }}>
+                      <div style={{ marginTop: '4px', paddingTop: '3px', borderTop: '1px solid #ccc', textAlign: 'center', fontSize: '8px', color: '#444', fontFamily: SHEET_SANS }}>
                         Disusun oleh <b>{pembuatPeta}</b> · {tahunPeta}
                       </div>
                     </Panel>
