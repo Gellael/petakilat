@@ -81,16 +81,20 @@ export function useAuth() {
     return () => window.removeEventListener('gl-logout', onOut);
   }, [refreshUser]);
 
-  const authenticate = async (path: string, body: unknown) => {
+  /** Mengembalikan alamat email jika akun masih perlu verifikasi, atau null jika sudah masuk. */
+  const authenticate = async (path: string, body: unknown): Promise<string | null> => {
     const res = await fetch(`${API}${path}`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(body),
     });
     const data = await res.json().catch(() => ({}));
+    if (res.status === 403 && data.code === 'email_not_verified') return data.email as string;
     if (!res.ok) throw new Error(data.error || 'Permintaan gagal.');
+    if (data.needs_verification) return data.email as string;
     setToken(data.token);
     setUser(data.user);
+    return null;
   };
 
   return {
@@ -100,6 +104,8 @@ export function useAuth() {
     login: (email: string, password: string) => authenticate('/api/auth/login', { email, password }),
     register: (nama: string, email: string, password: string) =>
       authenticate('/api/auth/register', { nama, email, password }),
+    verifyEmail: (email: string, code: string) => authenticate('/api/auth/verify', { email, code }),
+    resendCode: (email: string) => postJson('/api/auth/resend', { email }),
     logout: () => { setToken(''); setUser(null); },
   };
 }
@@ -130,27 +136,110 @@ export function AuthModal({ auth, onClose, onSuccess }: { auth: Auth; onClose: (
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [err, setErr] = useState('');
+  const [info, setInfo] = useState('');
   const [busy, setBusy] = useState(false);
+  // Langkah verifikasi email: berisi alamat email yang sedang menunggu kode
+  const [verifyEmail, setVerifyEmail] = useState<string | null>(null);
+  const [code, setCode] = useState('');
+  const [cooldown, setCooldown] = useState(0);
+
+  useEffect(() => {
+    if (cooldown <= 0) return;
+    const t = setTimeout(() => setCooldown((c) => c - 1), 1000);
+    return () => clearTimeout(t);
+  }, [cooldown]);
 
   const submit = async (e: FormEvent) => {
     e.preventDefault();
-    setErr(''); setBusy(true);
+    setErr(''); setInfo(''); setBusy(true);
     try {
-      if (mode === 'login') await auth.login(email, password);
-      else await auth.register(nama, email, password);
+      const pending = mode === 'login'
+        ? await auth.login(email, password)
+        : await auth.register(nama, email, password);
+      if (pending) {
+        setVerifyEmail(pending);
+        setCode('');
+        setCooldown(60);
+        setInfo(`Kami mengirim kode 6 digit ke ${pending}. Kode berlaku 15 menit.`);
+        return;
+      }
       onSuccess();
     } catch (ex: any) {
       setErr(ex?.message || 'Gagal terhubung ke server.');
     } finally { setBusy(false); }
   };
 
+  const submitCode = async (e: FormEvent) => {
+    e.preventDefault();
+    if (!verifyEmail) return;
+    setErr(''); setInfo(''); setBusy(true);
+    try {
+      await auth.verifyEmail(verifyEmail, code.trim());
+      onSuccess();
+    } catch (ex: any) {
+      setErr(ex?.message || 'Gagal terhubung ke server.');
+    } finally { setBusy(false); }
+  };
+
+  const resend = async () => {
+    if (!verifyEmail || cooldown > 0) return;
+    setErr(''); setInfo('');
+    try {
+      await auth.resendCode(verifyEmail);
+      setInfo('Kode baru sudah dikirim. Cek folder spam jika belum masuk.');
+      setCooldown(60);
+    } catch (ex: any) {
+      setErr(ex?.message || 'Gagal terhubung ke server.');
+    }
+  };
+
+  const header = (title: string) => (
+    <div style={{ ...row, justifyContent: 'space-between', marginBottom: 12 }}>
+      <h3 style={{ margin: 0, display: 'flex', alignItems: 'center', gap: 8 }}><Bolt size={20} />{title}</h3>
+      <button type="button" className="gl-btn gl-btn--sm" onClick={onClose}>Tutup</button>
+    </div>
+  );
+
+  // ---------- Langkah 2: masukkan kode verifikasi ----------
+  if (verifyEmail) {
+    return (
+      <div style={overlay} onClick={onClose}>
+        <form style={card} onClick={(e) => e.stopPropagation()} onSubmit={submitCode}>
+          {header('Verifikasi email')}
+          {info && <div className="gl-note" style={{ marginBottom: 10 }}><span>{info}</span></div>}
+          <label className="gl-field">
+            <span className="gl-label">Kode verifikasi</span>
+            <input
+              className="gl-input" value={code} required autoFocus
+              inputMode="numeric" autoComplete="one-time-code" pattern="[0-9]{6}" maxLength={6}
+              placeholder="123456"
+              style={{ letterSpacing: 6, fontSize: 20, textAlign: 'center' }}
+              onChange={(e) => setCode(e.target.value.replace(/\D/g, ''))}
+            />
+          </label>
+          {err && <div className="gl-note gl-note--err" style={{ marginTop: 10 }}><span>{err}</span></div>}
+          <button className="gl-btn gl-btn--primary" type="submit" disabled={busy || code.length !== 6} style={{ width: '100%', marginTop: 12 }}>
+            {busy ? 'Memverifikasi...' : 'Verifikasi & masuk'}
+          </button>
+          <div style={{ textAlign: 'center', marginTop: 10, fontSize: 13 }}>
+            {cooldown > 0 ? (
+              <span style={{ color: '#64748b' }}>Kirim ulang kode dalam {cooldown} dtk</span>
+            ) : (
+              <a href="#" onClick={(e) => { e.preventDefault(); resend(); }}>Kirim ulang kode</a>
+            )}
+            {' · '}
+            <a href="#" onClick={(e) => { e.preventDefault(); setVerifyEmail(null); setErr(''); setInfo(''); }}>Ganti email</a>
+          </div>
+        </form>
+      </div>
+    );
+  }
+
+  // ---------- Langkah 1: masuk / daftar ----------
   return (
     <div style={overlay} onClick={onClose}>
       <form style={card} onClick={(e) => e.stopPropagation()} onSubmit={submit}>
-        <div style={{ ...row, justifyContent: 'space-between', marginBottom: 12 }}>
-          <h3 style={{ margin: 0, display: 'flex', alignItems: 'center', gap: 8 }}><Bolt size={20} />{mode === 'login' ? 'Masuk ke Petakilat' : 'Daftar di Petakilat'}</h3>
-          <button type="button" className="gl-btn gl-btn--sm" onClick={onClose}>Tutup</button>
-        </div>
+        {header(mode === 'login' ? 'Masuk ke Petakilat' : 'Daftar di Petakilat')}
         {mode === 'daftar' && (
           <label className="gl-field">
             <span className="gl-label">Nama</span>
