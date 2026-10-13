@@ -765,7 +765,21 @@ const APP_CSS = `
 
 // ===================== APLIKASI =====================
 export default function App() {
-  const [activePage, setActivePage] = useState<'home' | 'admin-map'>('home');
+  // Halaman aktif disimpan di URL (#/peta) supaya refresh tetap di halaman yang sama
+  const [activePage, setActivePage] = useState<'home' | 'admin-map'>(() =>
+    window.location.hash === '#/peta' ? 'admin-map' : 'home'
+  );
+  useEffect(() => {
+    const want = activePage === 'admin-map' ? '#/peta' : '';
+    if (window.location.hash !== want) {
+      window.history.pushState(null, '', window.location.pathname + window.location.search + want);
+    }
+  }, [activePage]);
+  useEffect(() => {
+    const onPop = () => setActivePage(window.location.hash === '#/peta' ? 'admin-map' : 'home');
+    window.addEventListener('popstate', onPop);
+    return () => window.removeEventListener('popstate', onPop);
+  }, []);
   const [navOpen, setNavOpen] = useState<boolean>(false);
   const [navSolid, setNavSolid] = useState<boolean>(false);
   const [sidebarOpen, setSidebarOpen] = useState<boolean>(false);
