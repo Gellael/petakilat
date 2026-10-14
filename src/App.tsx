@@ -28,6 +28,13 @@ export interface AoiItem {
   bendLat: number | null;
 }
 
+export interface Penandatangan {
+  id: string;
+  jabatan: string; // contoh: "Dosen Pembimbing", "Kepala Desa"
+  nama: string;
+  nip: string;     // NIP / NIM / keterangan lain (opsional)
+}
+
 const AOI_ICONS: { emoji: string; label: string }[] = [
   { emoji: '📍', label: 'Pin Lokasi' },
   { emoji: '📷', label: 'Kamera / Foto' },
@@ -203,9 +210,14 @@ const INSET_CHOICES: string[] = [
 ].filter((k) => k === INSET_SYNC || isBasemapAvailable(k));
 
 
-const rasterSource = (key: string) => {
+const rasterSource = (key: string, tileSize: number = 256, maxzoomCap?: number) => {
   const b = BASEMAP_TILES[key] && isBasemapAvailable(key) ? BASEMAP_TILES[key] : BASEMAP_TILES.citra;
-  return { type: 'raster' as const, tiles: [basemapUrl(b)], tileSize: 256, maxzoom: b.maxzoom ?? 19 };
+  return {
+    type: 'raster' as const,
+    tiles: [basemapUrl(b)],
+    tileSize,
+    maxzoom: Math.min(b.maxzoom ?? 19, maxzoomCap ?? 99)
+  };
 };
 
 const BASE_SRC = 'raster-tiles';
@@ -240,7 +252,7 @@ const leaderCoords = (a: AoiItem): number[][] =>
     : [[a.lng, a.lat], [a.calloutLng, a.calloutLat]];
 
 // Baca gambar ikon, kecilkan (maks 160 px) agar ringan
-const readIconFile = (file: File, done: (dataUrl: string) => void) => {
+const readIconFile = (file: File, done: (dataUrl: string) => void, maxPx: number = 160) => {
   const reader = new FileReader();
   reader.onload = (ev) => {
     const src = ev.target?.result as string;
@@ -249,7 +261,7 @@ const readIconFile = (file: File, done: (dataUrl: string) => void) => {
       try {
         const w0 = img.naturalWidth || 128;
         const h0 = img.naturalHeight || 128;
-        const k = Math.min(1, 160 / Math.max(w0, h0));
+        const k = Math.min(1, maxPx / Math.max(w0, h0));
         const c = document.createElement('canvas');
         c.width = Math.max(1, Math.round(w0 * k));
         c.height = Math.max(1, Math.round(h0 * k));
@@ -270,14 +282,17 @@ const expandBbox = (b: number[], f: number): [number, number, number, number] =>
   return [b[0] - dx, b[1] - dy, b[2] + dx, b[3] + dy];
 };
 
-const swapBasemap = (map: maplibregl.Map | null, key: string) => {
+const swapBasemap = (map: maplibregl.Map | null, key: string, tileSize: number = 256, maxzoomCap?: number) => {
   if (!map) return;
   const run = () => {
     if (map.getLayer(BASE_LAYER)) map.removeLayer(BASE_LAYER);
     if (map.getSource(BASE_SRC)) map.removeSource(BASE_SRC);
-    map.addSource(BASE_SRC, rasterSource(key));
+    map.addSource(BASE_SRC, rasterSource(key, tileSize, maxzoomCap));
     const beforeId = map.getStyle().layers.find((l) => l.id !== BASE_LAYER)?.id;
-    map.addLayer({ id: BASE_LAYER, type: 'raster', source: BASE_SRC }, beforeId);
+    map.addLayer(
+      { id: BASE_LAYER, type: 'raster', source: BASE_SRC, paint: { 'raster-fade-duration': 0 } },
+      beforeId
+    );
   };
   try {
     run();
@@ -331,14 +346,19 @@ const removeGeeLayer = (map: maplibregl.Map | null, key: string) => {
   }
 };
 
-const addGeeLayer = (map: maplibregl.Map, key: string, tileUrl: string, opacity: number) => {
+const addGeeLayer = (map: maplibregl.Map, key: string, tileUrl: string, opacity: number, tileSize: number = 256) => {
   removeGeeLayer(map, key);
-  map.addSource(geeSrcId(key), { type: 'raster', tiles: [tileUrl], tileSize: 256 });
+  map.addSource(geeSrcId(key), { type: 'raster', tiles: [tileUrl], tileSize });
   const idx = GEE_LAYERS.findIndex((l) => l.key === key);
   const nextGee = GEE_LAYERS.slice(idx + 1).map((l) => geeLayerId(l.key)).find((id) => map.getLayer(id));
   const before = nextGee || GEE_ABOVE.find((id) => map.getLayer(id));
   map.addLayer(
-    { id: geeLayerId(key), type: 'raster', source: geeSrcId(key), paint: { 'raster-opacity': opacity } },
+    {
+      id: geeLayerId(key),
+      type: 'raster',
+      source: geeSrcId(key),
+      paint: { 'raster-opacity': opacity, 'raster-fade-duration': 0 }
+    },
     before
   );
 };
@@ -378,16 +398,145 @@ const ensureScript = (globalName: string, src: string): Promise<boolean> =>
     document.head.appendChild(el);
   });
 
-const waitMapIdle = (map: maplibregl.Map | null): Promise<void> =>
+// Pilihan resolusi ekspor (seperti dialog ekspor layout QGIS). Lembar peta = 1020 px lebar = A4 lanskap 297 mm
+const EXPORT_DPI_OPTIONS: { dpi: number; label: string }[] = [
+  { dpi: 150, label: '150 dpi - ringan, untuk layar / WhatsApp' },
+  { dpi: 300, label: '300 dpi - standar cetak (disarankan)' },
+  { dpi: 600, label: '600 dpi - sangat tajam (berat)' }
+];
+const A4_LANDSCAPE_INCH = 297 / 25.4;
+const dpiToPixelRatio = (dpi: number) => Math.min(8, dpi / (SHEET_W / A4_LANDSCAPE_INCH));
+
+// Tanam metadata DPI (chunk pHYs) ke PNG agar Word / Photoshop / printer membaca ukuran cetak yang benar
+const CRC_TABLE = (() => {
+  const t = new Uint32Array(256);
+  for (let n = 0; n < 256; n++) {
+    let c = n;
+    for (let k = 0; k < 8; k++) c = c & 1 ? 0xedb88320 ^ (c >>> 1) : c >>> 1;
+    t[n] = c >>> 0;
+  }
+  return t;
+})();
+const crc32 = (buf: Uint8Array) => {
+  let c = 0xffffffff;
+  for (let i = 0; i < buf.length; i++) c = CRC_TABLE[(c ^ buf[i]) & 0xff] ^ (c >>> 8);
+  return (c ^ 0xffffffff) >>> 0;
+};
+const canvasToPngBlob = (canvas: HTMLCanvasElement, dpi: number): Promise<Blob> =>
+  new Promise((resolve, reject) => {
+    canvas.toBlob(async (b) => {
+      if (!b) return reject(new Error('Gagal membuat berkas PNG (gambar terlalu besar untuk browser).'));
+      try {
+        const buf = new Uint8Array(await b.arrayBuffer());
+        const ppm = Math.round(dpi / 0.0254);
+        const chunk = new Uint8Array(21);
+        const dv = new DataView(chunk.buffer);
+        dv.setUint32(0, 9);
+        chunk.set([0x70, 0x48, 0x59, 0x73], 4); // "pHYs"
+        dv.setUint32(8, ppm);
+        dv.setUint32(12, ppm);
+        chunk[16] = 1; // satuan: meter
+        dv.setUint32(17, crc32(chunk.subarray(4, 17)));
+        const out = new Uint8Array(buf.length + 21);
+        out.set(buf.subarray(0, 33), 0); // signature (8) + IHDR (25)
+        out.set(chunk, 33);
+        out.set(buf.subarray(33), 54);
+        resolve(new Blob([out], { type: 'image/png' }));
+      } catch (_) {
+        resolve(b);
+      }
+    }, 'image/png');
+  });
+
+const sleep = (ms: number) => new Promise<void>((r) => setTimeout(r, ms));
+
+// Tunggu sampai semua tile selesai dimuat dan peta stabil beberapa kali berturut-turut
+const waitMapIdle = (map: maplibregl.Map | null, timeoutMs: number = 25000): Promise<void> =>
   new Promise((resolve) => {
     if (!map) return resolve();
-    if (map.loaded() && !map.isMoving()) return resolve();
-    const t = setTimeout(() => resolve(), 4000);
-    map.once('idle', () => {
-      clearTimeout(t);
+    let finished = false;
+    let stable = 0;
+    const finish = () => {
+      if (finished) return;
+      finished = true;
+      clearTimeout(timer);
+      clearInterval(poll);
       resolve();
-    });
+    };
+    const timer = setTimeout(finish, timeoutMs);
+    const poll = setInterval(() => {
+      const ready = map.loaded() && map.areTilesLoaded() && !map.isMoving();
+      stable = ready ? stable + 1 : 0;
+      if (stable >= 3) finish(); // 3 x 200 ms stabil
+    }, 200);
+    map.triggerRepaint();
   });
+
+// ===== Ekspor resolusi tinggi: tile detail asli + pixelRatio tinggi =====
+const MAP_EXPORT_MAX_RATIO = 4;      // batas pixel ratio kanvas peta
+const EXPORT_MAX_TILE_ZOOM = 18;     // turunkan ke 17 bila muncul tile "Map data not yet available"
+const EXPORT_MAX_CANVAS_PX = 8192;   // batas aman ukuran kanvas WebGL
+
+interface ExportMapJob {
+  map: maplibregl.Map | null;
+  basemapKey: string;
+  geeUrls?: Record<string, string>;
+  geeOpacity?: number;
+}
+
+// Mengecilkan tileSize membuat MapLibre mengambil tile 1-2 level zoom lebih tinggi;
+// pixelRatio dinaikkan setara agar tile detail itu terpetakan 1:1 ke piksel kanvas.
+const prepareMapsForExport = async (
+  jobs: ExportMapJob[],
+  sheetPr: number
+): Promise<{ ratio: number; factor: number; restore: () => void }> => {
+  const live = jobs.filter((j): j is ExportMapJob & { map: maplibregl.Map } => !!j.map);
+
+  const maxCss = Math.max(
+    1,
+    ...live.map((j) => {
+      const c = j.map.getContainer();
+      return Math.max(c.clientWidth, c.clientHeight);
+    })
+  );
+  const ratio = Math.max(1, Math.min(MAP_EXPORT_MAX_RATIO, sheetPr, EXPORT_MAX_CANVAS_PX / maxCss));
+
+  // Kelipatan detail tile: 1x, 2x, atau 4x (tileSize 256, 128, 64)
+  const factor = ratio > 2 ? 4 : ratio > 1 ? 2 : 1;
+  const tileSize = 256 / factor;
+  const cap = factor > 1 ? EXPORT_MAX_TILE_ZOOM : undefined;
+
+  const restores: Array<() => void> = [];
+
+  for (const j of live) {
+    const map = j.map;
+    const mm = map as any;
+    const prev = typeof mm.getPixelRatio === 'function' ? mm.getPixelRatio() : window.devicePixelRatio || 1;
+    try {
+      mm.setPixelRatio(ratio);
+      restores.push(() => { try { mm.setPixelRatio(prev); } catch (_) {} });
+    } catch (_) {}
+
+    if (factor > 1) {
+      swapBasemap(map, j.basemapKey, tileSize, cap);
+
+      const activeGee = GEE_LAYERS.filter((l) => j.geeUrls?.[l.key] && map.getLayer(geeLayerId(l.key)));
+      activeGee.forEach((l) => addGeeLayer(map, l.key, j.geeUrls![l.key], j.geeOpacity ?? 0.8, tileSize));
+
+      restores.push(() => {
+        swapBasemap(map, j.basemapKey);
+        activeGee.forEach((l) => {
+          try { addGeeLayer(map, l.key, j.geeUrls![l.key], j.geeOpacity ?? 0.8, 256); } catch (_) {}
+        });
+      });
+    }
+  }
+
+  await sleep(400); // beri waktu MapLibre mulai meminta tile baru
+  await Promise.all(live.map((j) => waitMapIdle(j.map)));
+
+  return { ratio, factor, restore: () => restores.reverse().forEach((fn) => fn()) };
+};
 
 const captureMapCanvas = (map: maplibregl.Map | null): Promise<string> =>
   new Promise((resolve) => {
@@ -1250,8 +1399,9 @@ export default function App() {
   }, [auth.loading, auth.user, activePage]);
   const [navSolid, setNavSolid] = useState<boolean>(false);
   const [sidebarOpen, setSidebarOpen] = useState<boolean>(false);
-  const [openSec, setOpenSec] = useState<Record<string, boolean>>({ lokasi: true, dasar: false, simbol: false, gee: false, aoi: false, identitas: false });
+  const [openSec, setOpenSec] = useState<Record<string, boolean>>({ lokasi: true, dasar: false, simbol: false, gee: false, aoi: false, identitas: false, layout: false });
   const [exporting, setExporting] = useState<'' | 'png' | 'pdf'>('');
+  const [exportDpi, setExportDpi] = useState<number>(300);
   const [apiError, setApiError] = useState<string>('');
   const [loadingKab, setLoadingKab] = useState<boolean>(false);
   const [sheetScale, setSheetScale] = useState<number>(1);
@@ -1263,6 +1413,15 @@ export default function App() {
   const [sumberData, setSumberData] = useState<string>('Badan Informasi Geospasial (BIG) & WebGIS Aiven PostGIS');
   const [pembuatPeta, setPembuatPeta] = useState<string>('Laboratorium SIG & Informatika');
   const [tahunPeta, setTahunPeta] = useState<string>('2026');
+
+  // --- LOGO & TANDA TANGAN (opsional) ---
+  const [logoInstansi, setLogoInstansi] = useState<string>('');
+  const [logoMitra, setLogoMitra] = useState<string>('');
+  const [showTtd, setShowTtd] = useState<boolean>(false);
+  const [ttdTempatTanggal, setTtdTempatTanggal] = useState<string>('');
+  const [penandatangan, setPenandatangan] = useState<Penandatangan[]>([
+    { id: 'ttd-1', jabatan: 'Mengetahui', nama: '', nip: '' }
+  ]);
 
   // --- SIMBOLOGI & TAMPILAN WILAYAH ---
   const [basemapKey, setBasemapKey] = useState<string>('citra');
@@ -1279,11 +1438,13 @@ export default function App() {
   geeActiveRef.current = geeActive;
   const geeOpacityRef = useRef<number>(geeOpacity);
   geeOpacityRef.current = geeOpacity;
+  const geeTileUrlRef = useRef<Record<string, string>>({});
 
   const toggleGeeLayer = async (key: string, on: boolean) => {
     const map = mapInstance.current;
     if (!on) {
       setGeeActive((p) => ({ ...p, [key]: false }));
+      delete geeTileUrlRef.current[key];
       removeGeeLayer(map, key);
       return;
     }
@@ -1301,6 +1462,7 @@ export default function App() {
       if (!res.ok) throw new Error(String(res.status));
       const data = await res.json();
       if (!data.tileUrl) throw new Error('tileUrl kosong');
+      geeTileUrlRef.current[key] = data.tileUrl;
       if (!geeActiveRef.current[key]) return; // sempat dimatikan saat memuat
       runWhenReady(map, () => addGeeLayer(map, key, data.tileUrl, geeOpacityRef.current));
     } catch (e) {
@@ -1402,6 +1564,12 @@ export default function App() {
   const aoiMarkersMapRef = useRef<Map<string, { pointMarker: maplibregl.Marker; calloutMarker?: maplibregl.Marker; bendMarker?: maplibregl.Marker }>>(new Map());
 
   const toggleSec = (k: string) => setOpenSec((p) => ({ ...p, [k]: !p[k] }));
+
+  const addTtd = () =>
+    setPenandatangan((p) => [...p, { id: `ttd-${Date.now()}-${p.length}`, jabatan: '', nama: '', nip: '' }]);
+  const patchTtd = (id: string, patch: Partial<Penandatangan>) =>
+    setPenandatangan((p) => p.map((x) => (x.id === id ? { ...x, ...patch } : x)));
+  const removeTtd = (id: string) => setPenandatangan((p) => p.filter((x) => x.id !== id));
   // Fitur lain baru terbuka setelah kabupaten/kota dipilih dan datanya berhasil dimuat
   const wilayahSiap = !!selectedKab && !loadingKab && listDesa.length > 0;
   const patchAoi = (id: string, patch: Partial<AoiItem>) =>
@@ -2179,7 +2347,8 @@ export default function App() {
   };
 
   // ===================== EKSPOR =====================
-  const renderSheetToCanvas = async (): Promise<HTMLCanvasElement | null> => {
+  const renderSheetToCanvas = async (dpi: number = 300): Promise<HTMLCanvasElement | null> => {
+    const sheetPr = dpiToPixelRatio(dpi);
     if (!sheetRef.current) return null;
 
     const ok = await ensureScript('html2canvas', 'https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js');
@@ -2191,8 +2360,22 @@ export default function App() {
     const mainMap = mapInstance.current;
     const inset = insetInstance.current;
 
-    await Promise.all([waitMapIdle(mainMap), waitMapIdle(inset)]);
-    const [mainUrl, insetUrl] = await Promise.all([captureMapCanvas(mainMap), captureMapCanvas(inset)]);
+    // Naikkan detail tile + pixel ratio, lalu tunggu semua tile selesai dimuat
+    const prep = await prepareMapsForExport(
+      [
+        { map: mainMap, basemapKey: basemapKeyRef.current, geeUrls: geeTileUrlRef.current, geeOpacity: geeOpacityRef.current },
+        { map: inset, basemapKey: insetKeyRef.current }
+      ],
+      sheetPr
+    );
+
+    let mainUrl = '';
+    let insetUrl = '';
+    try {
+      [mainUrl, insetUrl] = await Promise.all([captureMapCanvas(mainMap), captureMapCanvas(inset)]);
+    } finally {
+      prep.restore();
+    }
 
     if (mainMap && mainUrl.length < 5000) {
       console.warn('Snapshot peta utama tampak kosong. Pastikan tile peta dasar sudah tampil sebelum ekspor.');
@@ -2233,7 +2416,7 @@ export default function App() {
       if (h2iOk) {
         try {
           const opts = {
-            pixelRatio: 2,
+            pixelRatio: sheetPr,
             backgroundColor: '#ffffff',
             cacheBust: false,
             skipFonts: true,
@@ -2254,7 +2437,7 @@ export default function App() {
         canvas = await (window as any).html2canvas(node, {
           useCORS: true,
           allowTaint: false,
-          scale: 2,
+          scale: sheetPr,
           logging: false,
           backgroundColor: '#ffffff',
           width: SHEET_W,
@@ -2300,12 +2483,15 @@ export default function App() {
     if (!(await izinEkspor())) return;
     setExporting('png');
     try {
-      const canvas = await renderSheetToCanvas();
+      const canvas = await renderSheetToCanvas(exportDpi);
       if (!canvas) return;
+      const blob = await canvasToPngBlob(canvas, exportDpi);
+      const url = URL.createObjectURL(blob);
       const link = document.createElement('a');
-      link.download = `${exportFileBase()}.png`;
-      link.href = canvas.toDataURL('image/png');
+      link.download = `${exportFileBase()}-${exportDpi}dpi.png`;
+      link.href = url;
       link.click();
+      setTimeout(() => URL.revokeObjectURL(url), 10000);
     } catch (err) {
       console.error('Gagal ekspor PNG:', err);
       alert('Gagal mengekspor PNG. Lihat console browser untuk detailnya.');
@@ -2323,15 +2509,17 @@ export default function App() {
         alert('Library jsPDF gagal dimuat. Periksa koneksi internet lalu coba lagi.');
         return;
       }
-      const canvas = await renderSheetToCanvas();
+      const canvas = await renderSheetToCanvas(exportDpi);
       if (!canvas) return;
-      const imgData = canvas.toDataURL('image/png');
+      // 600 dpi: pakai JPEG kualitas tinggi agar berkas PDF tidak membengkak
+      const useJpeg = exportDpi > 300;
+      const imgData = useJpeg ? canvas.toDataURL('image/jpeg', 0.95) : canvas.toDataURL('image/png');
       const { jsPDF } = (window as any).jspdf;
       const pdf = new jsPDF('l', 'mm', 'a4');
       const pdfWidth = pdf.internal.pageSize.getWidth();
       const pdfHeight = (canvas.height * pdfWidth) / canvas.width;
-      pdf.addImage(imgData, 'PNG', 0, (pdf.internal.pageSize.getHeight() - pdfHeight) / 2, pdfWidth, pdfHeight);
-      pdf.save(`${exportFileBase()}.pdf`);
+      pdf.addImage(imgData, useJpeg ? 'JPEG' : 'PNG', 0, (pdf.internal.pageSize.getHeight() - pdfHeight) / 2, pdfWidth, pdfHeight, undefined, 'FAST');
+      pdf.save(`${exportFileBase()}-${exportDpi}dpi.pdf`);
     } catch (err) {
       console.error('Gagal ekspor PDF:', err);
       alert('Gagal mengekspor PDF. Lihat console browser untuk detailnya.');
@@ -2896,9 +3084,96 @@ export default function App() {
               </div>
               <Toggle label="Tampilkan info peta dasar di legenda" checked={showLegendBasemap} onChange={setShowLegendBasemap} />
             </Section>
+
+            {/* 7. LOGO & TANDA TANGAN (OPSIONAL) */}
+            <Section
+              step={7}
+              locked={!wilayahSiap}
+              title="Logo dan tanda tangan"
+              open={!!openSec.layout}
+              onToggle={() => toggleSec('layout')}
+              badge={(logoInstansi || logoMitra || showTtd) ? <span className="gl-badge">aktif</span> : <span className="gl-badge">opsional</span>}
+            >
+              <div className="gl-label">Logo di kop peta</div>
+              <div className="gl-row">
+                {([
+                  { label: 'Logo instansi', val: logoInstansi, set: setLogoInstansi },
+                  { label: 'Logo mitra / kerja sama', val: logoMitra, set: setLogoMitra }
+                ] as const).map((slot) => (
+                  <div key={slot.label} className="gl-field">
+                    <span className="gl-label">{slot.label}</span>
+                    {slot.val ? (
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: 6, alignItems: 'center', padding: 8, border: '1px solid #cbd5e1', borderRadius: 10 }}>
+                        <img src={slot.val} alt={slot.label} style={{ height: 52, maxWidth: '100%', objectFit: 'contain' }} />
+                        <button type="button" className="gl-btn gl-btn--sm" onClick={() => slot.set('')}>
+                          <Icon name="trash" size={14} /> Hapus
+                        </button>
+                      </div>
+                    ) : (
+                      <label className="gl-upload" style={{ minHeight: 72 }}>
+                        <Icon name="upload" size={18} />
+                        <span>Unggah</span>
+                        <input
+                          type="file"
+                          accept="image/*"
+                          onChange={(e) => {
+                            const file = e.target.files?.[0];
+                            e.target.value = '';
+                            if (!file) return;
+                            readIconFile(file, (url) => slot.set(url), 600);
+                          }}
+                        />
+                      </label>
+                    )}
+                  </div>
+                ))}
+              </div>
+              <div className="gl-note">Satu logo tampil di tengah, di atas judul peta. Bila dua logo terisi, judul berada di antara kedua logo. Gunakan PNG transparan agar rapi.</div>
+
+              <div className="gl-divider" />
+
+              <Toggle label="Tampilkan kolom tanda tangan" checked={showTtd} onChange={setShowTtd} />
+              {showTtd && (
+                <>
+                  <label className="gl-field">
+                    <span className="gl-label">Tempat, tanggal (opsional)</span>
+                    <input type="text" className="gl-input" placeholder="Contoh: Bengkulu, 14 Oktober 2026" value={ttdTempatTanggal} onChange={(e) => setTtdTempatTanggal(e.target.value)} />
+                  </label>
+
+                  {penandatangan.map((t, i) => (
+                    <div key={t.id} style={{ display: 'flex', flexDirection: 'column', gap: 8, padding: 10, border: '1px solid #cbd5e1', borderRadius: 10 }}>
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                        <span className="gl-label">Penandatangan {i + 1}</span>
+                        <button type="button" className="gl-btn gl-btn--sm" aria-label={`Hapus penandatangan ${i + 1}`} onClick={() => removeTtd(t.id)}>
+                          <Icon name="trash" size={14} />
+                        </button>
+                      </div>
+                      <input type="text" className="gl-input" placeholder="Jabatan (mis. Kepala Desa)" value={t.jabatan} onChange={(e) => patchTtd(t.id, { jabatan: e.target.value })} />
+                      <input type="text" className="gl-input" placeholder="Nama lengkap" value={t.nama} onChange={(e) => patchTtd(t.id, { nama: e.target.value })} />
+                      <input type="text" className="gl-input" placeholder="NIP / NIM (opsional)" value={t.nip} onChange={(e) => patchTtd(t.id, { nip: e.target.value })} />
+                    </div>
+                  ))}
+
+                  <button type="button" className="gl-btn gl-btn--sm" style={{ alignSelf: 'flex-start' }} onClick={addTtd}>
+                    <Icon name="plus" size={14} /> Tambah penandatangan
+                  </button>
+                  {penandatangan.length > 4 && (
+                    <div className="gl-note">Lebih dari 4 penandatangan membuat area legenda menyempit. Periksa pratinjau sebelum mengunduh.</div>
+                  )}
+                </>
+              )}
+            </Section>
           </div>
 
           <div className="gl-side__foot">
+            <label className="gl-field" style={{ gridColumn: '1 / -1' }}>
+              <span className="gl-label">Resolusi ekspor</span>
+              <select className="gl-input" value={exportDpi} onChange={(e) => setExportDpi(Number(e.target.value))} disabled={!!exporting}>
+                {EXPORT_DPI_OPTIONS.map((o) => (
+                  <option key={o.dpi} value={o.dpi}>{o.label}</option>
+                ))}
+              </select>
+            </label>
             <button type="button" className="gl-btn gl-btn--primary" onClick={handleExportPNG} disabled={!!exporting || !wilayahSiap}>
               <Icon name="download" size={16} /> {exporting === 'png' ? 'Memproses...' : 'Unduh PNG'}
             </button>
@@ -3007,13 +3282,38 @@ export default function App() {
                   {/* KOLOM KANAN: INFORMASI KARTOGRAFI */}
                   <div style={{ padding: '10px', display: 'flex', flexDirection: 'column', gap: '7px', height: '100%', boxSizing: 'border-box', backgroundColor: '#ffffff', overflow: 'hidden', fontFamily: SHEET_FONT }}>
 
-                    <div style={{ border: '1.5px solid #000', padding: '8px 6px', textAlign: 'center' }}>
-                      <div style={{ fontSize: '11px', fontWeight: 'bold', letterSpacing: '1px', textTransform: 'uppercase' }}>{judulUtama}</div>
-                      <div style={{ fontSize: '14px', fontWeight: 900, color: '#000', textTransform: 'uppercase', margin: '3px 0', borderBottom: '1.5px solid #000', paddingBottom: '3px', letterSpacing: '0.5px' }}>
-                        {namaWilayahJudul || selectedDesa || 'WILAYAH INDONESIA'}
-                      </div>
-                      <div style={{ fontSize: '9px', color: '#333', textTransform: 'uppercase', lineHeight: 1.2 }}>{subJudul}</div>
-                    </div>
+                    {(() => {
+                      const dua = !!(logoInstansi && logoMitra);
+                      const satu = logoInstansi || logoMitra;
+                      const logoImg = (src: string, h: number) => (
+                        <img src={src} alt="" style={{ height: `${h}px`, width: `${h}px`, objectFit: 'contain', display: 'block', flexShrink: 0 }} />
+                      );
+                      const teks = (
+                        <div style={{ flex: 1, minWidth: 0 }}>
+                          <div style={{ fontSize: dua ? '9px' : '11px', fontWeight: 'bold', letterSpacing: dua ? '0.5px' : '1px', textTransform: 'uppercase', lineHeight: 1.2 }}>{judulUtama}</div>
+                          <div style={{ fontSize: dua ? '12px' : '14px', fontWeight: 900, color: '#000', textTransform: 'uppercase', margin: '3px 0', borderBottom: '1.5px solid #000', paddingBottom: '3px', letterSpacing: '0.3px', lineHeight: 1.15 }}>
+                            {namaWilayahJudul || selectedDesa || 'WILAYAH INDONESIA'}
+                          </div>
+                          <div style={{ fontSize: dua ? '7px' : '9px', color: '#333', textTransform: 'uppercase', lineHeight: 1.2 }}>{subJudul}</div>
+                        </div>
+                      );
+                      return (
+                        <div style={{ border: '1.5px solid #000', padding: '8px 6px', textAlign: 'center' }}>
+                          {dua ? (
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
+                              {logoImg(logoInstansi, 54)}
+                              {teks}
+                              {logoImg(logoMitra, 54)}
+                            </div>
+                          ) : (
+                            <>
+                              {satu && <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '6px' }}>{logoImg(satu, 70)}</div>}
+                              {teks}
+                            </>
+                          )}
+                        </div>
+                      );
+                    })()}
 
                     <div style={{ display: 'grid', gridTemplateColumns: '62px 1fr', gap: '7px' }}>
                       <Panel title="Utara" bodyStyle={{ display: 'flex', justifyContent: 'center', alignItems: 'center', padding: '4px 0 5px' }}>
@@ -3133,6 +3433,26 @@ export default function App() {
                     <div style={{ border: '1.5px solid #000', backgroundColor: '#ffffff', flexShrink: 0, position: 'relative' }}>
                       <div data-inset-container="true" ref={insetContainer} style={{ position: 'relative', width: '100%', height: '150px' }} />
                     </div>
+
+                    {/* TANDA TANGAN (opsional, jumlah bebas) */}
+                    {showTtd && penandatangan.length > 0 && (
+                      <div style={{ border: '1.5px solid #000', padding: '5px 6px 6px', flexShrink: 0, fontFamily: SHEET_SANS, fontSize: '8px', lineHeight: 1.3 }}>
+                        {ttdTempatTanggal.trim() && <div style={{ textAlign: 'center', marginBottom: '3px' }}>{ttdTempatTanggal}</div>}
+                        <div style={{ display: 'grid', gridTemplateColumns: penandatangan.length === 1 ? '1fr' : '1fr 1fr', gap: '4px 8px' }}>
+                          {penandatangan.map((t, i) => (
+                            <div
+                              key={t.id}
+                              style={{ textAlign: 'center', gridColumn: penandatangan.length % 2 === 1 && i === penandatangan.length - 1 && penandatangan.length > 1 ? '1 / -1' : undefined }}
+                            >
+                              <div>{t.jabatan}</div>
+                              <div style={{ height: '26px' }} />
+                              <div style={{ fontWeight: 'bold', textDecoration: 'underline' }}>{t.nama || '(.........................)'}</div>
+                              {t.nip.trim() && <div style={{ fontSize: '7px' }}>{t.nip}</div>}
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
 
                   </div>
                 </div>
