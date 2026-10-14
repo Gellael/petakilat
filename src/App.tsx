@@ -22,7 +22,10 @@ export interface AoiItem {
   showCallout: boolean;
   showInLegend: boolean;
   legendLabel: string;
-  legendImageUrl: string;
+  iconImageUrl: string; // gambar ikon buatan sendiri: dipakai di pin peta DAN di legenda
+  lineTone: 'white' | 'black'; // warna garis penunjuk dan bingkai foto (tidak ikut warna titik)
+  bendLng: number | null; // titik belokan garis penunjuk (null = garis lurus)
+  bendLat: number | null;
 }
 
 const AOI_ICONS: { emoji: string; label: string }[] = [
@@ -221,6 +224,46 @@ const escapeHtml = (s: string) =>
   s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 
 const hasCallout = (a: AoiItem) => a.showCallout && !!(a.imageUrl || a.imageCaption);
+
+// Garis penunjuk dan bingkai foto hanya putih atau hitam; 'casing' adalah garis tipis lawannya agar tetap terbaca di peta terang maupun gelap
+const LINE_TONES = {
+  white: { main: '#ffffff', casing: '#0f172a' },
+  black: { main: '#0f172a', casing: '#ffffff' }
+} as const;
+const toneOf = (a: AoiItem): 'white' | 'black' => (a.lineTone === 'black' ? 'black' : 'white');
+const hasBend = (a: AoiItem) => a.bendLng != null && a.bendLat != null;
+const bendHandlePos = (a: AoiItem): [number, number] =>
+  hasBend(a) ? [a.bendLng as number, a.bendLat as number] : [(a.lng + a.calloutLng) / 2, (a.lat + a.calloutLat) / 2];
+const leaderCoords = (a: AoiItem): number[][] =>
+  hasBend(a)
+    ? [[a.lng, a.lat], [a.bendLng as number, a.bendLat as number], [a.calloutLng, a.calloutLat]]
+    : [[a.lng, a.lat], [a.calloutLng, a.calloutLat]];
+
+// Baca gambar ikon, kecilkan (maks 160 px) agar ringan
+const readIconFile = (file: File, done: (dataUrl: string) => void) => {
+  const reader = new FileReader();
+  reader.onload = (ev) => {
+    const src = ev.target?.result as string;
+    const img = new Image();
+    img.onload = () => {
+      try {
+        const w0 = img.naturalWidth || 128;
+        const h0 = img.naturalHeight || 128;
+        const k = Math.min(1, 160 / Math.max(w0, h0));
+        const c = document.createElement('canvas');
+        c.width = Math.max(1, Math.round(w0 * k));
+        c.height = Math.max(1, Math.round(h0 * k));
+        c.getContext('2d')!.drawImage(img, 0, 0, c.width, c.height);
+        done(c.toDataURL('image/png'));
+      } catch (_) {
+        done(src);
+      }
+    };
+    img.onerror = () => done(src);
+    img.src = src;
+  };
+  reader.readAsDataURL(file);
+};
 const expandBbox = (b: number[], f: number): [number, number, number, number] => {
   const dx = (b[2] - b[0]) * f;
   const dy = (b[3] - b[1]) * f;
@@ -385,10 +428,15 @@ const overlayMapSnapshot = async (selector: string, url: string): Promise<() => 
 };
 
 // ===================== MARKER AOI & KARTU FOTO =====================
-const buildPinHtml = (aoi: AoiItem) => `
-  <div style="background:${aoi.color};color:#fff;font-size:18px;width:32px;height:32px;border:2.5px solid #fff;border-radius:50%;box-shadow:0 3px 10px rgba(0,0,0,.35);display:flex;align-items:center;justify-content:center;">${aoi.icon || '📍'}</div>
+const buildPinHtml = (aoi: AoiItem) => {
+  const head = aoi.iconImageUrl
+    ? `<div style="background:#fff;width:32px;height:32px;border:2.5px solid #fff;border-radius:50%;box-shadow:0 3px 10px rgba(0,0,0,.35);display:flex;align-items:center;justify-content:center;overflow:hidden;"><img src="${aoi.iconImageUrl}" alt="" style="width:100%;height:100%;object-fit:contain;display:block;" /></div>`
+    : `<div style="background:${aoi.color};color:#fff;font-size:18px;width:32px;height:32px;border:2.5px solid #fff;border-radius:50%;box-shadow:0 3px 10px rgba(0,0,0,.35);display:flex;align-items:center;justify-content:center;">${aoi.icon || '📍'}</div>`;
+  return `
+  ${head}
   <div style="width:0;height:0;border-left:5px solid transparent;border-right:5px solid transparent;border-top:7px solid ${aoi.color};margin-top:-1px;"></div>
 `;
+};
 
 // Kartu foto: foto di atas, keterangan di kotak putih tepat di bawah foto.
 // Bila keterangan kosong, kotak putih memakai nama titik AOI.
@@ -401,16 +449,24 @@ const buildCalloutHtml = (a: AoiItem) => {
   `;
 };
 
-const CALLOUT_FRAME_CSS = (color: string) => `
-  background:${color};
+const calloutFrameStyle = (a: AoiItem) => {
+  const t = LINE_TONES[toneOf(a)];
+  return { background: t.main, boxShadow: `0 0 0 1px ${t.casing}99, 0 6px 18px rgba(0,0,0,.28)` };
+};
+
+const CALLOUT_FRAME_CSS = (a: AoiItem) => {
+  const f = calloutFrameStyle(a);
+  return `
+  background:${f.background};
+  box-shadow:${f.boxShadow};
   padding:3px;
   border-radius:8px;
-  box-shadow:0 6px 18px rgba(0,0,0,.28);
   width:168px;
   font-family:Inter,system-ui,sans-serif;
   cursor:grab;
   user-select:none;
 `;
+};
 
 // ===================== IKON UI (SVG INLINE) =====================
 const ICON_PATHS: Record<string, ReactNode> = {
@@ -445,15 +501,32 @@ const Icon = ({ name, size = 16 }: { name: string; size?: number }) => (
   </svg>
 );
 
-// Simbol AOI di legenda: gambar buatan sendiri bila ada, jika tidak memakai ikon dan warna pin
-const LegendSymbol = ({ aoi, size = 16 }: { aoi: AoiItem; size?: number }) =>
-  aoi.legendImageUrl ? (
-    <img src={aoi.legendImageUrl} alt="" style={{ width: size, height: size, objectFit: 'contain', display: 'block' }} />
-  ) : (
-    <span style={{ width: size, height: size, borderRadius: '50%', background: aoi.color, border: '1.5px solid #000', boxSizing: 'border-box', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: Math.round(size * 0.55), lineHeight: 1 }}>
-      {aoi.icon || '📍'}
-    </span>
-  );
+// Simbol AOI di legenda: tampilannya sama dengan pin di peta (ikon/gambar yang sama)
+const LegendSymbol = ({ aoi, size = 16 }: { aoi: AoiItem; size?: number }) => (
+  <span
+    style={{
+      width: size,
+      height: size,
+      borderRadius: '50%',
+      background: aoi.iconImageUrl ? '#fff' : aoi.color,
+      border: `${Math.max(1.5, size * 0.08)}px solid #fff`,
+      boxShadow: '0 0 0 1px #94a3b8, 0 1px 3px rgba(0,0,0,.35)',
+      boxSizing: 'border-box',
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      overflow: 'hidden',
+      fontSize: Math.round(size * 0.55),
+      lineHeight: 1
+    }}
+  >
+    {aoi.iconImageUrl ? (
+      <img src={aoi.iconImageUrl} alt="" style={{ width: '100%', height: '100%', objectFit: 'contain', display: 'block' }} />
+    ) : (
+      aoi.icon || '📍'
+    )}
+  </span>
+);
 
 const legendName = (a: AoiItem, i: number) => (a.legendLabel || '').trim() || (a.title || '').trim() || `Titik ${i + 1}`;
 
@@ -891,6 +964,15 @@ const APP_CSS = `
 .gl-icons button{display:grid;place-items:center;aspect-ratio:1;border:1px solid var(--line);border-radius:10px;background:#fff;font-size:18px;cursor:pointer;transition:background .15s}
 .gl-icons button:hover{background:var(--line-2)}
 .gl-icons button.is-on{border-width:2px}
+.gl-icons__up{display:grid;place-items:center;aspect-ratio:1;border:1px dashed var(--muted);border-radius:10px;background:#fff;color:var(--muted);cursor:pointer;overflow:hidden}
+.gl-icons__up:hover{background:var(--line-2)}
+.gl-icons__up.is-on{border:2px solid var(--brand)}
+.gl-icons__up img{width:100%;height:100%;object-fit:contain;padding:3px;box-sizing:border-box}
+.gl-icons__up input{display:none}
+.gl-tone{display:grid;grid-template-columns:1fr 1fr;gap:6px}
+.gl-tone button{display:flex;align-items:center;justify-content:center;gap:8px;height:36px;border:1px solid var(--line);border-radius:10px;background:#fff;font-size:12px;font-weight:600;color:var(--ink);cursor:pointer}
+.gl-tone button.is-on{border:2px solid var(--brand)}
+.gl-tone i{display:inline-block;width:12px;height:12px;border-radius:50%;border:1px solid #0f172a}
 .gl-coords{padding:7px 10px;border-radius:8px;background:var(--paper);font:500 12px ui-monospace,Menlo,Consolas,monospace;color:var(--ink-2)}
 .gl-upload{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;min-height:92px;padding:12px;border:1.5px dashed #a9cfda;border-radius:12px;background:#f3fafc;color:var(--brand-d);font-size:12px;font-weight:600;text-align:center;cursor:pointer}
 .gl-upload:hover{background:#e7f5f9}
@@ -1317,7 +1399,7 @@ export default function App() {
   const isAddingAoiRef = useRef<boolean>(false);
   isAddingAoiRef.current = isAddingAoi;
 
-  const aoiMarkersMapRef = useRef<Map<string, { pointMarker: maplibregl.Marker; calloutMarker?: maplibregl.Marker }>>(new Map());
+  const aoiMarkersMapRef = useRef<Map<string, { pointMarker: maplibregl.Marker; calloutMarker?: maplibregl.Marker; bendMarker?: maplibregl.Marker }>>(new Map());
 
   const toggleSec = (k: string) => setOpenSec((p) => ({ ...p, [k]: !p[k] }));
   // Fitur lain baru terbuka setelah kabupaten/kota dipilih dan datanya berhasil dimuat
@@ -1486,7 +1568,10 @@ export default function App() {
         showCallout: true,
         showInLegend: true,
         legendLabel: '',
-        legendImageUrl: ''
+        iconImageUrl: '',
+        lineTone: 'white',
+        bendLng: null,
+        bendLat: null
       };
       setAoiList((prev) => [...prev, newAoi]);
       setSelectedAoiId(newAoi.id);
@@ -1651,33 +1736,56 @@ export default function App() {
     } catch (_) {}
   }, [isAddingAoi]);
 
-  // Garis penunjuk (leader lines)
+  // Garis penunjuk (leader lines): putih atau hitam, bisa dibelokkan lewat titik pegangan di tengah garis
   const updateLeaderLinesGeoJson = (items: AoiItem[]) => {
     const map = mapInstance.current;
     if (!map) return;
 
+    const active = items.filter(hasCallout);
     const fc = {
       type: 'FeatureCollection' as const,
-      features: items.filter(hasCallout).map((a) => ({
-        type: 'Feature' as const,
-        properties: { id: a.id, color: a.color || '#0f172a' },
-        geometry: { type: 'LineString' as const, coordinates: [[a.lng, a.lat], [a.calloutLng, a.calloutLat]] }
-      }))
+      features: active.map((a) => {
+        const tone = LINE_TONES[toneOf(a)];
+        return {
+          type: 'Feature' as const,
+          properties: { id: a.id, color: tone.main, casing: tone.casing },
+          geometry: { type: 'LineString' as const, coordinates: leaderCoords(a) }
+        };
+      })
     };
+
+    // Titik pegangan selalu mengikuti garis (di tengah bila belum dibelokkan)
+    active.forEach((a) => {
+      const handle = aoiMarkersMapRef.current.get(a.id)?.bendMarker;
+      if (handle) handle.setLngLat(bendHandlePos(a));
+    });
 
     if (map.getSource('aoi-leader-lines-source')) {
       (map.getSource('aoi-leader-lines-source') as maplibregl.GeoJSONSource).setData(fc as any);
     } else if (map.isStyleLoaded()) {
       map.addSource('aoi-leader-lines-source', { type: 'geojson', data: fc as any });
+      if (!map.getLayer('aoi-leader-lines-casing')) {
+        map.addLayer({
+          id: 'aoi-leader-lines-casing',
+          type: 'line',
+          source: 'aoi-leader-lines-source',
+          layout: { 'line-cap': 'round', 'line-join': 'round' },
+          paint: {
+            'line-color': ['coalesce', ['get', 'casing'], '#0f172a'],
+            'line-width': 4.5,
+            'line-opacity': 0.55
+          }
+        });
+      }
       if (!map.getLayer('aoi-leader-lines-layer')) {
         map.addLayer({
           id: 'aoi-leader-lines-layer',
           type: 'line',
           source: 'aoi-leader-lines-source',
+          layout: { 'line-cap': 'round', 'line-join': 'round' },
           paint: {
-            'line-color': ['coalesce', ['get', 'color'], '#0f172a'],
-            'line-width': 2,
-            'line-dasharray': [4, 2]
+            'line-color': ['coalesce', ['get', 'color'], '#ffffff'],
+            'line-width': 2.2
           }
         });
       }
@@ -1694,6 +1802,7 @@ export default function App() {
       if (!currentIds.has(id)) {
         obj.pointMarker.remove();
         obj.calloutMarker?.remove();
+        obj.bendMarker?.remove();
         aoiMarkersMapRef.current.delete(id);
       }
     });
@@ -1734,7 +1843,7 @@ export default function App() {
       if (hasCallout(aoi)) {
         if (!markerObj.calloutMarker) {
           const cardEl = document.createElement('div');
-          cardEl.style.cssText = CALLOUT_FRAME_CSS(aoi.color || '#0f172a');
+          cardEl.style.cssText = CALLOUT_FRAME_CSS(aoi);
           cardEl.innerHTML = buildCalloutHtml(aoi);
 
           const calloutMarker = new maplibregl.Marker({ element: cardEl, draggable: true })
@@ -1758,12 +1867,54 @@ export default function App() {
         } else {
           markerObj.calloutMarker.setLngLat([aoi.calloutLng, aoi.calloutLat]);
           const cardEl = markerObj.calloutMarker.getElement();
-          cardEl.style.background = aoi.color || '#0f172a';
+          const frame = calloutFrameStyle(aoi);
+          cardEl.style.background = frame.background;
+          cardEl.style.boxShadow = frame.boxShadow;
           cardEl.innerHTML = buildCalloutHtml(aoi);
         }
-      } else if (markerObj.calloutMarker) {
-        markerObj.calloutMarker.remove();
-        markerObj.calloutMarker = undefined;
+
+        // Titik pegangan di garis: geser untuk membelokkan garis, klik dua kali untuk meluruskan lagi
+        if (!markerObj.bendMarker) {
+          const handleEl = document.createElement('div');
+          handleEl.setAttribute('data-export-hide', 'true');
+          handleEl.title = 'Geser untuk membelokkan garis. Klik dua kali untuk meluruskan.';
+          handleEl.style.cssText = 'width:12px;height:12px;border-radius:50%;box-shadow:0 1px 4px rgba(0,0,0,.5);cursor:move;border:2px solid #0f172a;background:#fff;';
+
+          const bendMarker = new maplibregl.Marker({ element: handleEl, draggable: true })
+            .setLngLat(bendHandlePos(aoi))
+            .addTo(map);
+
+          bendMarker.on('drag', () => {
+            const pos = bendMarker.getLngLat();
+            const updated = aoiListRef.current.map((it) => (it.id === aoi.id ? { ...it, bendLng: pos.lng, bendLat: pos.lat } : it));
+            aoiListRef.current = updated;
+            updateLeaderLinesGeoJson(updated);
+          });
+          bendMarker.on('dragend', () => {
+            const pos = bendMarker.getLngLat();
+            patchAoi(aoi.id, { bendLng: pos.lng, bendLat: pos.lat });
+          });
+          handleEl.addEventListener('dblclick', (ev) => {
+            ev.stopPropagation();
+            patchAoi(aoi.id, { bendLng: null, bendLat: null });
+          });
+
+          markerObj.bendMarker = bendMarker;
+        } else {
+          markerObj.bendMarker.setLngLat(bendHandlePos(aoi));
+        }
+        const hEl = markerObj.bendMarker.getElement();
+        hEl.style.background = hasBend(aoi) ? '#0f172a' : '#ffffff';
+        hEl.style.borderColor = hasBend(aoi) ? '#ffffff' : '#0f172a';
+      } else {
+        if (markerObj.calloutMarker) {
+          markerObj.calloutMarker.remove();
+          markerObj.calloutMarker = undefined;
+        }
+        if (markerObj.bendMarker) {
+          markerObj.bendMarker.remove();
+          markerObj.bendMarker = undefined;
+        }
       }
     });
 
@@ -2571,21 +2722,46 @@ export default function App() {
                           <div className="gl-field">
                             <span className="gl-label">Ikon</span>
                             <div className="gl-icons">
-                              {AOI_ICONS.map((ic) => (
-                                <button
-                                  key={ic.emoji}
-                                  type="button"
-                                  title={ic.label}
-                                  aria-label={ic.label}
-                                  aria-pressed={aoi.icon === ic.emoji}
-                                  className={aoi.icon === ic.emoji ? 'is-on' : ''}
-                                  style={aoi.icon === ic.emoji ? { borderColor: aoi.color, background: `${aoi.color}18` } : undefined}
-                                  onClick={() => patchAoi(aoi.id, { icon: ic.emoji })}
-                                >
-                                  {ic.emoji}
-                                </button>
-                              ))}
+                              {AOI_ICONS.map((ic) => {
+                                const on = !aoi.iconImageUrl && aoi.icon === ic.emoji;
+                                return (
+                                  <button
+                                    key={ic.emoji}
+                                    type="button"
+                                    title={ic.label}
+                                    aria-label={ic.label}
+                                    aria-pressed={on}
+                                    className={on ? 'is-on' : ''}
+                                    style={on ? { borderColor: aoi.color, background: `${aoi.color}18` } : undefined}
+                                    onClick={() => patchAoi(aoi.id, { icon: ic.emoji, iconImageUrl: '' })}
+                                  >
+                                    {ic.emoji}
+                                  </button>
+                                );
+                              })}
+                              <label
+                                className={`gl-icons__up ${aoi.iconImageUrl ? 'is-on' : ''}`}
+                                title={aoi.iconImageUrl ? 'Ganti gambar ikon' : 'Unggah gambar ikon sendiri'}
+                              >
+                                {aoi.iconImageUrl ? <img src={aoi.iconImageUrl} alt="Ikon unggahan" /> : <Icon name="upload" size={18} />}
+                                <input
+                                  type="file"
+                                  accept="image/*"
+                                  onChange={(e) => {
+                                    const file = e.target.files?.[0];
+                                    e.target.value = '';
+                                    if (!file) return;
+                                    readIconFile(file, (url) => patchAoi(aoi.id, { iconImageUrl: url }));
+                                  }}
+                                />
+                              </label>
                             </div>
+                            {aoi.iconImageUrl && (
+                              <button type="button" className="gl-btn gl-legrow__up" onClick={() => patchAoi(aoi.id, { iconImageUrl: '' })}>
+                                <Icon name="trash" size={14} /> Hapus gambar ikon
+                              </button>
+                            )}
+                            <div className="gl-note">Kotak paling akhir untuk mengunggah gambar sendiri. Gambar itu dipakai sebagai pin di peta sekaligus simbol di legenda.</div>
                           </div>
 
                           <div className="gl-row">
@@ -2606,34 +2782,10 @@ export default function App() {
                                 <span className="gl-label">Nama di legenda</span>
                                 <input type="text" className="gl-input" placeholder={aoi.title || 'Nama titik'} value={aoi.legendLabel} onChange={(e) => patchAoi(aoi.id, { legendLabel: e.target.value })} />
                               </label>
-                              <div className="gl-field">
-                                <span className="gl-label">Gambar simbol legenda</span>
-                                <div className="gl-legrow">
-                                  <span className="gl-legrow__sym"><LegendSymbol aoi={aoi} size={22} /></span>
-                                  <label className="gl-btn gl-legrow__up">
-                                    <Icon name="upload" size={14} /> {aoi.legendImageUrl ? 'Ganti gambar' : 'Unggah gambar'}
-                                    <input
-                                      type="file"
-                                      accept="image/*"
-                                      style={{ display: 'none' }}
-                                      onChange={(e) => {
-                                        const file = e.target.files?.[0];
-                                        e.target.value = '';
-                                        if (!file) return;
-                                        const reader = new FileReader();
-                                        reader.onload = (ev) => patchAoi(aoi.id, { legendImageUrl: ev.target?.result as string });
-                                        reader.readAsDataURL(file);
-                                      }}
-                                    />
-                                  </label>
-                                  {aoi.legendImageUrl && (
-                                    <button type="button" className="gl-iconbtn gl-iconbtn--danger" aria-label="Hapus gambar legenda" title="Hapus gambar legenda" onClick={() => patchAoi(aoi.id, { legendImageUrl: '' })}>
-                                      <Icon name="trash" size={16} />
-                                    </button>
-                                  )}
-                                </div>
+                              <div className="gl-legrow">
+                                <span className="gl-legrow__sym"><LegendSymbol aoi={aoi} size={22} /></span>
+                                <div className="gl-note" style={{ flex: 1 }}>Simbol legenda sama dengan pin di peta. Tanpa nama khusus, legenda memakai nama titik.</div>
                               </div>
-                              <div className="gl-note">Tanpa gambar, legenda memakai ikon dan warna titik ini. Tanpa nama khusus, legenda memakai nama titik.</div>
                             </>
                           )}
 
@@ -2672,7 +2824,7 @@ export default function App() {
                           {(aoi.imageUrl || aoi.imageCaption) && (
                             <div className="gl-field">
                               <span className="gl-label">Pratinjau kartu di peta</span>
-                              <div className="gl-cardprev" style={{ background: aoi.color }}>
+                              <div className="gl-cardprev" style={{ background: LINE_TONES[toneOf(aoi)].main, outline: '1px solid #cbd5e1' }}>
                                 {aoi.imageUrl && <img src={aoi.imageUrl} alt="Pratinjau foto" />}
                                 {aoi.imageUrl && (
                                   <button type="button" className="gl-cardprev__x" aria-label="Hapus foto" title="Hapus foto" onClick={() => patchAoi(aoi.id, { imageUrl: '' })}>
@@ -2685,7 +2837,27 @@ export default function App() {
                           )}
 
                           <Toggle label="Tampilkan foto dan garis penunjuk" checked={aoi.showCallout} onChange={(v) => patchAoi(aoi.id, { showCallout: v })} />
-                          <div className="gl-note">Keterangan tampil di kotak putih di bawah foto. Kosongkan untuk memakai nama titik. Geser pin atau kartu foto di peta untuk mengatur garis penunjuk.</div>
+                          {aoi.showCallout && (
+                            <>
+                              <div className="gl-field">
+                                <span className="gl-label">Warna garis dan bingkai foto</span>
+                                <div className="gl-tone">
+                                  <button type="button" className={toneOf(aoi) === 'white' ? 'is-on' : ''} aria-pressed={toneOf(aoi) === 'white'} onClick={() => patchAoi(aoi.id, { lineTone: 'white' })}>
+                                    <i style={{ background: '#fff' }} /> Putih
+                                  </button>
+                                  <button type="button" className={toneOf(aoi) === 'black' ? 'is-on' : ''} aria-pressed={toneOf(aoi) === 'black'} onClick={() => patchAoi(aoi.id, { lineTone: 'black' })}>
+                                    <i style={{ background: '#0f172a' }} /> Hitam
+                                  </button>
+                                </div>
+                              </div>
+                              {hasBend(aoi) && (
+                                <button type="button" className="gl-btn gl-legrow__up" onClick={() => patchAoi(aoi.id, { bendLng: null, bendLat: null })}>
+                                  <Icon name="rotate" size={14} /> Luruskan garis
+                                </button>
+                              )}
+                            </>
+                          )}
+                          <div className="gl-note">Keterangan tampil di kotak putih di bawah foto. Kosongkan untuk memakai nama titik. Geser pin atau kartu foto untuk memindahkannya. Bila garis bertabrakan dengan garis lain, geser titik kecil di tengah garis untuk membelokkannya; klik dua kali titik itu untuk meluruskan lagi.</div>
                         </div>
                       )}
                     </div>
