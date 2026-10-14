@@ -3,7 +3,7 @@ import * as maplibregl from 'maplibre-gl';
 import 'maplibre-gl/dist/maplibre-gl.css';
 import workerUrl from 'maplibre-gl/dist/maplibre-gl-worker.mjs?url';
 import * as turf from '@turf/turf';
-import { useAuth, AuthModal, AccountModal, apiFetch } from './auth';
+import { useAuth, AuthModal, AccountModal, apiFetch, PAKET_KREDIT, hemat, rupiah } from './auth';
 maplibregl.setWorkerUrl(workerUrl);
 
 const API= import.meta.env.VITE_API_URL || "http://localhost:8080";
@@ -726,26 +726,23 @@ const STEPS = [
   { title: 'Unduh hasil', text: 'Periksa lembar peta, lalu ekspor sebagai PNG atau PDF.' }
 ];
 
-// Contoh harga. Sesuaikan sebelum diluncurkan.
+// Harga dan isi paket diambil dari PAKET_KREDIT di auth.tsx (satu sumber), jadi cukup ubah di sana.
+interface PackItem { id: string; n: string; p: string; tag?: string; best?: boolean }
+const PACK_ITEMS: PackItem[] = PAKET_KREDIT.map((p) => ({
+  id: p.id,
+  n: `${p.kredit} kredit`,
+  p: rupiah(p.harga),
+  tag: hemat(p) > 0 ? `Hemat ${rupiah(hemat(p))}` : undefined,
+  best: !!p.badge
+}));
+const RINGKAS_PAKET = PAKET_KREDIT.map((p) => `${rupiah(p.harga)} untuk ${p.kredit} kredit`).join(', ');
 const PLANS = [
   {
-    id: 'gratis', name: 'Coba gratis', price: 'Rp0', unit: 'tanpa batas waktu', hi: false,
-    blurb: 'Kenali alurnya dan susun peta sepuasnya sebelum membayar.',
-    feats: ['Editor peta lengkap', 'Pratinjau lembar peta tanpa batas', 'Ekspor PNG ber-watermark, 3 kali per bulan'],
-    packs: [] as { n: string; p: string }[], cta: 'Mulai gratis'
-  },
-  {
-    id: 'kredit', name: 'Paket kredit', price: 'Mulai Rp20.000', unit: 'per kredit', hi: true,
-    blurb: 'Bayar sesuai pemakaian. Satu kredit untuk satu kali ekspor PNG atau PDF. Membuka peta tidak memakai kredit.',
+    id: 'kredit', name: 'Paket kredit', price: 'Rp20.000', unit: 'per kredit', hi: true, badge: 'Paling hemat',
+    blurb: 'Bayar sesuai pemakaian. Satu kredit untuk satu kali ekspor PNG atau PDF. Menyusun peta tidak mengurangi kredit, tetapi saldo minimal 1 kredit dibutuhkan untuk memilih wilayah.',
     feats: ['Ekspor tanpa watermark', 'Resolusi cetak penuh', 'Kredit berlaku 12 bulan'],
-    packs: [{ n: '5 kredit', p: 'Rp100.000' }, { n: '20 kredit', p: 'Rp400.000' }, { n: '50 kredit', p: 'Rp1.000.000' }],
+    packs: PACK_ITEMS,
     cta: 'Pilih paket'
-  },
-  {
-    id: 'institusi', name: 'Institusi', price: 'Rp250.000', unit: 'per bulan', hi: false,
-    blurb: 'Untuk kantor desa, kecamatan, dan lembaga yang rutin mencetak peta.',
-    feats: ['60 ekspor per bulan', 'Beberapa akun anggota tim', 'Faktur resmi untuk instansi'],
-    packs: [] as { n: string; p: string }[], cta: 'Pilih paket'
   }
 ];
 
@@ -766,6 +763,7 @@ const FAQS = [
   { q: 'Dari mana data batas desa berasal?', a: 'Dari Badan Informasi Geospasial (BIG), disimpan di basis data PostGIS dan disajikan lewat server API.' },
   { q: 'Daftar provinsi tidak muncul. Apa yang harus dilakukan?', a: 'Aplikasi mengambil data wilayah dari server API. Pastikan server berjalan, lalu tekan Coba lagi di panel pengaturan.' },
   { q: 'Format apa saja yang bisa diunduh?', a: 'PNG resolusi tinggi dan PDF A4 lanskap.' },
+  { q: 'Berapa harga kredit?', a: `Satu kredit Rp20.000. Paket yang tersedia: ${RINGKAS_PAKET}. Semakin besar paketnya, semakin murah harga per kredit.` },
   { q: 'Apa yang dihitung sebagai satu kredit?', a: 'Satu kali ekspor PNG atau PDF A4 dari satu lembar peta.' },
   { q: 'Apakah kredit bisa kedaluwarsa?', a: 'Kredit berlaku 12 bulan sejak tanggal pembelian.' }
 ];
@@ -1048,7 +1046,7 @@ const APP_CSS = `
 .gl-flow h3{margin:0 0 6px;font-size:18px;font-weight:700;color:var(--h-ink)}
 .gl-flow p{margin:0;font-size:15px;line-height:1.6;color:var(--h-mute)}
 
-.gl-plans{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px;align-items:stretch}
+.gl-plans{display:grid;grid-template-columns:minmax(0,1fr);gap:16px;max-width:980px;margin:0 auto}
 .gl-plan{display:flex;flex-direction:column;gap:14px;padding:28px;border:1px solid var(--h-line);border-radius:18px;background:#fff}
 .gl-plan--hi{background:var(--h-sea);border-color:var(--h-sea);color:#fff;box-shadow:0 24px 50px rgba(12,52,71,.28)}
 .gl-plan h3{margin:0;font-size:18px;font-weight:700;color:var(--h-ink)}
@@ -1063,9 +1061,24 @@ const APP_CSS = `
 .gl-plan li{display:flex;gap:10px;align-items:flex-start;line-height:1.45}
 .gl-plan li svg{flex-shrink:0;margin-top:2px;color:var(--h-green)}
 .gl-plan--hi li svg{color:var(--h-aqua)}
-.gl-packs{display:flex;flex-direction:column;border-top:1px solid rgba(255,255,255,.18)}
-.gl-packs div{display:flex;justify-content:space-between;padding:9px 0;border-bottom:1px solid rgba(255,255,255,.18);font-size:14px}
-.gl-packs b{font-weight:600}
+.gl-plan{position:relative;transition:transform .2s,box-shadow .2s}
+.gl-plan:hover{transform:translateY(-6px);box-shadow:0 22px 44px rgba(12,52,71,.16)}
+.gl-plan--hi{overflow:hidden;background:radial-gradient(120% 90% at 100% 0%,rgba(76,201,224,.35),transparent 55%),linear-gradient(160deg,#0a1c28,#0c3447 55%,#124a5e)}
+.gl-plan--hi{display:grid;grid-template-columns:minmax(0,1.1fr) minmax(0,1fr);gap:36px;padding:40px 36px;align-items:center}
+.gl-plan__main{display:flex;flex-direction:column;gap:14px}
+.gl-plan__buy{display:flex;flex-direction:column;gap:14px}
+.gl-plan--hi .gl-plan__price{font-size:46px}
+.gl-plan--hi .gl-plan__buy .gl-btn{margin-top:6px}
+.gl-plan--hi:hover{box-shadow:0 30px 60px rgba(12,52,71,.38)}
+.gl-plan__badge{position:absolute;top:0;right:0;padding:7px 16px 7px 18px;border-radius:0 0 0 16px;background:linear-gradient(135deg,#facc15,#f59e0b);color:#422006;font-size:11px;font-weight:800;letter-spacing:.06em;text-transform:uppercase}
+.gl-packs{display:flex;flex-direction:column;gap:10px}
+.gl-pack{display:flex;justify-content:space-between;align-items:center;gap:12px;width:100%;padding:14px 16px;border-radius:14px;border:1px solid rgba(255,255,255,.22);background:rgba(255,255,255,.06);color:#fff;font:inherit;font-size:15px;text-align:left;cursor:pointer;transition:background .15s,transform .15s,border-color .15s}
+.gl-pack:hover{background:rgba(255,255,255,.14);border-color:rgba(255,255,255,.5);transform:translateY(-2px)}
+.gl-pack--best{border:2px solid #facc15;background:linear-gradient(135deg,rgba(250,204,21,.24),rgba(250,204,21,.06))}
+.gl-pack--best:hover{border-color:#fde047;background:linear-gradient(135deg,rgba(250,204,21,.34),rgba(250,204,21,.1))}
+.gl-pack__n{display:flex;flex-wrap:wrap;align-items:center;gap:8px;font-weight:600}
+.gl-pack__n i{font-style:normal;font-size:11px;font-weight:800;padding:3px 9px;border-radius:999px;background:#facc15;color:#422006}
+.gl-pack b{font-family:'Bricolage Grotesque',Poppins,Inter,sans-serif;font-size:18px;font-weight:700}
 .gl-plan .gl-btn{margin-top:auto;height:46px;border-radius:12px}
 
 .gl-faq{max-width:780px}
@@ -1105,6 +1118,7 @@ const APP_CSS = `
   .gl-nav__links .gl-btn--light{margin:6px}
   .gl-about{grid-template-columns:1fr}
   .gl-plans{grid-template-columns:1fr}
+  .gl-plan--hi{grid-template-columns:1fr;gap:24px;padding:32px 22px}
   .gl-spec div{grid-template-columns:1fr;gap:4px}
 }
 @media (max-width:600px){
@@ -1138,6 +1152,7 @@ export default function App() {
   const auth = useAuth();
   const [showAuth, setShowAuth] = useState<boolean>(false);
   const [showAccount, setShowAccount] = useState<boolean>(false);
+  const [paketAwal, setPaketAwal] = useState<string | undefined>(undefined);
 
   // Judul tab dan favicon petir (tidak perlu mengubah index.html)
   useEffect(() => {
@@ -1332,7 +1347,16 @@ export default function App() {
       window.location.href = `${CHECKOUT_URL}?paket=${encodeURIComponent(planId)}`;
       return;
     }
+    if (planId === 'kredit') { pilihPaket('hemat'); return; }
     openApp();
+  };
+
+  // Pilih satu paket kredit: belum login -> buka form masuk, sudah login -> buka dashboard top-up dengan paket terpilih
+  const pilihPaket = (paketId: string) => {
+    setNavOpen(false);
+    if (!auth.user) { setShowAuth(true); return; }
+    setPaketAwal(paketId);
+    setShowAccount(true);
   };
 
   // Konversi Derajat Desimal ke Format DMS
@@ -2307,24 +2331,34 @@ export default function App() {
           <section id="harga" className="gl-sect gl-sect--tint">
             <div className="gl-wrap">
               <div className="gl-head">
-                <h2>Menyusun gratis, bayar saat mengunduh</h2>
-                <p className="gl-lead">Coba editornya dulu. Kredit hanya terpakai ketika Anda mengekspor peta tanpa watermark.</p>
+                <h2>Bayar sesuai pemakaian</h2>
+                <p className="gl-lead">Tanpa langganan. Kredit hanya berkurang ketika Anda mengekspor peta tanpa watermark.</p>
               </div>
               <div className="gl-plans">
                 {PLANS.map((pl) => (
                   <article className={`gl-plan ${pl.hi ? 'gl-plan--hi' : ''}`} key={pl.id}>
-                    <h3>{pl.name}</h3>
-                    <div className="gl-plan__price">{pl.price} <span className="gl-plan__unit">{pl.unit}</span></div>
-                    <p className="gl-plan__blurb">{pl.blurb}</p>
-                    <ul>
-                      {pl.feats.map((ft) => (<li key={ft}><Icon name="check" size={16} /> <span>{ft}</span></li>))}
-                    </ul>
+                    {pl.badge && <span className="gl-plan__badge">{pl.badge}</span>}
+                    <div className="gl-plan__main">
+                      <h3>{pl.name}</h3>
+                      <div className="gl-plan__price">{pl.price} <span className="gl-plan__unit">{pl.unit}</span></div>
+                      <p className="gl-plan__blurb">{pl.blurb}</p>
+                      <ul>
+                        {pl.feats.map((ft) => (<li key={ft}><Icon name="check" size={16} /> <span>{ft}</span></li>))}
+                      </ul>
+                    </div>
+                    <div className="gl-plan__buy">
                     {pl.packs.length > 0 && (
                       <div className="gl-packs">
-                        {pl.packs.map((pk) => (<div key={pk.n}><span>{pk.n}</span><b>{pk.p}</b></div>))}
+                        {pl.packs.map((pk) => (
+                          <button type="button" key={pk.id} className={`gl-pack ${pk.best ? 'gl-pack--best' : ''}`} onClick={() => pilihPaket(pk.id)}>
+                            <span className="gl-pack__n">{pk.n}{pk.tag && <i>{pk.tag}</i>}</span>
+                            <b>{pk.p}</b>
+                          </button>
+                        ))}
                       </div>
                     )}
                     <button type="button" className={`gl-btn ${pl.hi ? 'gl-btn--white' : 'gl-btn--primary'}`} onClick={() => choosePlan(pl.id)}>{pl.cta}</button>
+                    </div>
                   </article>
                 ))}
               </div>
@@ -2944,7 +2978,9 @@ export default function App() {
           onSuccess={() => { setShowAuth(false); setActivePage('admin-map'); }}
         />
       )}
-      {showAccount && auth.user && <AccountModal auth={auth} onClose={() => setShowAccount(false)} />}
+      {showAccount && auth.user && (
+        <AccountModal auth={auth} initialPaket={paketAwal} onClose={() => { setShowAccount(false); setPaketAwal(undefined); }} />
+      )}
     </div>
   );
 }
