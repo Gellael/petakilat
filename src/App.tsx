@@ -199,7 +199,6 @@ const INSET_CHOICES: string[] = [
   'topo'
 ].filter((k) => k === INSET_SYNC || isBasemapAvailable(k));
 
-const basemapThumb = (key: string) => (BASEMAP_TILES[key] || BASEMAP_TILES.citra).thumb;
 
 const rasterSource = (key: string) => {
   const b = BASEMAP_TILES[key] && isBasemapAvailable(key) ? BASEMAP_TILES[key] : BASEMAP_TILES.citra;
@@ -857,11 +856,7 @@ const APP_CSS = `
 
 .gl-bmgroup{display:flex;flex-direction:column;gap:8px}
 .gl-subhead{font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
-.gl-chips{display:flex;flex-wrap:wrap;gap:6px}
-.gl-chip{display:inline-flex;align-items:center;gap:7px;padding:5px 11px 5px 6px;border:1px solid var(--line);border-radius:999px;background:#fff;color:var(--ink-2);font-size:12px;font-weight:500;cursor:pointer;transition:border-color .15s,background .15s}
-.gl-chip:hover{border-color:#b7c4d0}
-.gl-chip.is-on{border-color:var(--brand);background:var(--brand-soft);color:var(--brand-d);font-weight:600}
-.gl-chip__dot{width:16px;height:16px;border-radius:50%;border:1px solid rgba(15,27,45,.15);flex-shrink:0}
+.gl-basemap--wide{grid-column:1/-1}
 .gl-legrow{display:flex;align-items:center;gap:8px}
 .gl-legrow__sym{width:36px;height:36px;display:flex;align-items:center;justify-content:center;border:1px solid var(--line);border-radius:8px;background:#fff;flex-shrink:0}
 .gl-legrow__up{height:36px;padding:0 12px;font-size:12px}
@@ -1035,8 +1030,8 @@ const APP_CSS = `
 .gl-cascade div:last-child{background:rgba(255,255,255,.16);border-left-color:#ef4444}
 .gl-cascade small{font-size:11px;color:rgba(255,255,255,.62)}
 .gl-cascade b{font-size:14px;font-weight:600}
-.gl-chips{display:flex;gap:10px}
-.gl-chips span{display:inline-flex;align-items:center;height:40px;padding:0 18px;border-radius:10px;background:#fff;border:1px solid #bfdde6;font-size:14px;font-weight:700;color:var(--h-ink)}
+.gl-fmt{display:flex;gap:10px}
+.gl-fmt span{display:inline-flex;align-items:center;height:40px;padding:0 18px;border-radius:10px;background:#fff;border:1px solid #bfdde6;font-size:14px;font-weight:700;color:var(--h-ink)}
 
 .gl-flow{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:24px;margin:0;padding:0;list-style:none}
 .gl-flow li{position:relative;padding-top:46px}
@@ -2302,7 +2297,7 @@ export default function App() {
                       </div>
                     )}
                     {i === 5 && (
-                      <div className="gl-chips" aria-hidden="true"><span>PNG</span><span>PDF A4</span></div>
+                      <div className="gl-fmt" aria-hidden="true"><span>PNG</span><span>PDF A4</span></div>
                     )}
                   </div>
                 ))}
@@ -2470,15 +2465,19 @@ export default function App() {
 
               <div className="gl-bmgroup">
                 <div className="gl-subhead">Peta dasar inset</div>
-                <div className="gl-chips" role="group" aria-label="Peta dasar inset">
+                <div className="gl-basemaps" role="group" aria-label="Peta dasar inset">
                   {INSET_CHOICES.map((key) => {
                     const isSync = key === INSET_SYNC;
-                    const label = isSync ? 'Ikuti peta utama' : BASEMAP_TILES[key].name;
-                    const thumb = isSync ? basemapThumb(basemapKey) : BASEMAP_TILES[key].thumb;
+                    const item = BASEMAP_TILES[isSync ? basemapKey : key] || BASEMAP_TILES.citra;
                     return (
-                      <button type="button" key={key} className={`gl-chip ${insetBasemapKey === key ? 'is-on' : ''}`} onClick={() => setInsetBasemapKey(key)} aria-pressed={insetBasemapKey === key}>
-                        <span className="gl-chip__dot" style={{ background: thumb }} />
-                        {label}
+                      <button
+                        type="button" key={key}
+                        className={`gl-basemap ${isSync ? 'gl-basemap--wide' : ''} ${insetBasemapKey === key ? 'is-on' : ''}`}
+                        onClick={() => setInsetBasemapKey(key)} aria-pressed={insetBasemapKey === key}
+                      >
+                        <span className="gl-basemap__thumb" style={{ background: item.thumb }} />
+                        <span className="gl-basemap__name">{isSync ? 'Ikuti peta utama' : item.name}</span>
+                        <span className="gl-basemap__desc">{isSync ? `Sama dengan peta dasar utama (${item.name})` : item.desc}</span>
                       </button>
                     );
                   })}
