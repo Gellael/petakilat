@@ -824,8 +824,8 @@ const HeroSheet = () => (
         <stop offset="0" stopColor="#f6b26b" /><stop offset=".45" stopColor="#e98a5b" /><stop offset=".46" stopColor="#5f8fb0" /><stop offset="1" stopColor="#2c4f6e" />
       </linearGradient>
     </defs>
-    <rect x="2" y="2" width="556" height="376" fill="#fff" stroke="#0a1c28" strokeWidth="2" />
-    <line x1="394" y1="2" x2="394" y2="378" stroke="#0a1c28" strokeWidth="2" />
+    <rect x="2" y="2" width="556" height="376" fill="#fff" stroke="#08211a" strokeWidth="2" />
+    <line x1="394" y1="2" x2="394" y2="378" stroke="#08211a" strokeWidth="2" />
 
     {/* jendela peta */}
     <rect x="10" y="10" width="380" height="360" fill="#fff" stroke="#000" strokeWidth="1.2" />
@@ -854,12 +854,12 @@ const HeroSheet = () => (
         <polygon points="30,260 100,250 140,300 120,350 25,350" />
         <polygon points="290,260 385,240 385,350 270,350" />
       </g>
-      <polygon className="gl-fillin" points="125,105 205,72 285,92 335,150 325,230 275,292 200,312 140,272 98,200" fill="rgba(76,201,224,.34)" />
+      <polygon className="gl-fillin" points="125,105 205,72 285,92 335,150 325,230 275,292 200,312 140,272 98,200" fill="rgba(123,227,180,.34)" />
       <polygon className="gl-draw" pathLength={1} points="125,105 205,72 285,92 335,150 325,230 275,292 200,312 140,272 98,200" fill="none" stroke="#dc2626" strokeWidth="2.4" strokeLinejoin="round" />
       <rect x="172" y="184" width="76" height="18" rx="9" fill="#fff" />
       <text x="210" y="196.5" textAnchor="middle" fontFamily={SHEET_SANS} fontSize="8" fontWeight="bold" fill="#0f172a" letterSpacing=".5">BETUNGAN</text>
       <line x1="64" y1="96" x2="140" y2="150" stroke="#2f9e6b" strokeWidth="1.4" strokeDasharray="4 3" />
-      <circle cx="140" cy="150" r="7" fill="#0e7490" stroke="#fff" strokeWidth="2" />
+      <circle cx="140" cy="150" r="7" fill="#0b7a56" stroke="#fff" strokeWidth="2" />
       <rect x="26" y="34" width="76" height="62" rx="4" fill="#2f9e6b" />
       <rect x="29" y="37" width="70" height="40" fill="url(#glsun)" />
       <rect x="29" y="77" width="70" height="16" fill="#fff" />
@@ -895,11 +895,11 @@ const HeroSheet = () => (
       <text x="474" y="135" textAnchor="middle" fontSize="6" fontWeight="bold">LEGENDA</text>
       <line x1="410" y1="138" x2="538" y2="138" stroke="#ccc" strokeWidth=".8" />
       <g fontFamily={SHEET_SANS} fontSize="5.6">
-        <rect x="410" y="145" width="14" height="9" fill="#4cc9e0" fillOpacity=".6" stroke="#dc2626" strokeWidth="1.5" />
+        <rect x="410" y="145" width="14" height="9" fill="#7be3b4" fillOpacity=".6" stroke="#dc2626" strokeWidth="1.5" />
         <text x="430" y="152.5" fontWeight="bold">Batas Desa Betungan</text>
         <rect x="410" y="161" width="14" height="9" fill="rgba(100,116,139,.1)" stroke="#475569" strokeWidth="1" strokeDasharray="2 1.5" />
         <text x="430" y="168.5" fill="#334155">Batas Desa Sekitar</text>
-        <circle cx="417" cy="181" r="5" fill="#0e7490" stroke="#000" strokeWidth=".8" />
+        <circle cx="417" cy="181" r="5" fill="#0b7a56" stroke="#000" strokeWidth=".8" />
         <text x="430" y="183" fill="#334155">AOI 1</text>
         <text x="410" y="203" fontSize="4.6" fill="#64748b">Peta Dasar: Citra Satelit</text>
       </g>
@@ -913,7 +913,7 @@ const HeroSheet = () => (
         <text x="410" y="275" fill="#64748b">Sumber:</text><text x="452" y="275">BIG &amp; WebGIS PostGIS</text>
       </g>
 
-      <rect x="404" y="296" width="140" height="68" fill="#eef2f5" stroke="#000" strokeWidth="1.2" />
+      <rect x="404" y="296" width="140" height="68" fill="#e8f0eb" stroke="#000" strokeWidth="1.2" />
       <g fill="#fff" stroke="#94a3b8" strokeWidth=".8">
         <polygon points="410,302 450,300 462,330 430,358 410,350" />
         <polygon points="450,300 500,304 504,340 462,330" />
@@ -989,13 +989,13 @@ const FAQS = [
 
 // ===================== STYLESHEET =====================
 const APP_CSS = `
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Poppins:wght@500;600;700&family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Poppins:wght@500;600;700&family=Newsreader:opsz,wght@6..72,400;6..72,500;6..72,600&display=swap');
 
 .gl-root{
-  --ink:#0f1b2d; --ink-2:#334155; --muted:#64748b; --line:#dde4ea; --line-2:#eef2f5;
-  --paper:#f3f6f8; --surface:#ffffff; --brand:#0e7490; --brand-d:#155e75; --brand-soft:#e0f4f8;
-  --sea:#0b3445; --bolt:#facc15; --bolt-d:#f59e0b; --bolt-soft:#fef9c3; --danger:#dc2626; --danger-soft:#fee2e2;
-  --shadow:0 1px 2px rgba(15,27,45,.06),0 10px 28px rgba(15,27,45,.12);
+  --ink:#0c1f19; --ink-2:#2f4a40; --muted:#647a70; --line:#d5e3db; --line-2:#e8f0eb;
+  --paper:#f1f6f3; --surface:#ffffff; --brand:#0b7a56; --brand-d:#086146; --brand-soft:#dcf1e7;
+  --sea:#0a2e25; --bolt:#7be3b4; --bolt-d:#3fc08b; --bolt-soft:#d8f5e8; --danger:#dc2626; --danger-soft:#fee2e2;
+  --shadow:0 1px 2px rgba(12,31,25,.06),0 10px 28px rgba(12,31,25,.12);
   position:fixed; inset:0; overflow:hidden; color:var(--ink); background:var(--paper);
   font-family:Inter,system-ui,-apple-system,'Segoe UI',sans-serif; -webkit-font-smoothing:antialiased;
 }
@@ -1014,7 +1014,7 @@ const APP_CSS = `
 .gl-btn--primary{background:var(--brand);border-color:var(--brand);color:#fff}
 .gl-btn--primary:hover{background:var(--brand-d)}
 .gl-btn--dark{background:var(--ink);border-color:var(--ink);color:#fff}
-.gl-btn--dark:hover{background:#1e2c44}
+.gl-btn--dark:hover{background:#17352b}
 .gl-btn--danger{background:var(--danger-soft);border-color:#fecaca;color:#b91c1c}
 .gl-btn--danger:hover{background:#fecaca}
 .gl-btn--block{width:100%}
@@ -1049,13 +1049,13 @@ const APP_CSS = `
 .gl-row{display:grid;grid-template-columns:1fr 1fr;gap:12px}
 .gl-divider{height:1px;background:var(--line-2)}
 .gl-input,.gl-textarea,.gl-select{width:100%;min-height:38px;padding:8px 12px;border:1px solid var(--line);border-radius:10px;background:var(--surface);color:var(--ink);font:inherit;font-size:13px;transition:border-color .15s,box-shadow .15s}
-.gl-input:focus,.gl-textarea:focus{outline:none;border-color:var(--brand);box-shadow:0 0 0 3px rgba(14,116,144,.18)}
+.gl-input:focus,.gl-textarea:focus{outline:none;border-color:var(--brand);box-shadow:0 0 0 3px rgba(11,122,86,.18)}
 .gl-textarea{min-height:68px;resize:vertical;line-height:1.4}
 .gl-select{display:flex;align-items:center;justify-content:space-between;gap:8px;cursor:pointer;text-align:left}
-.gl-select.is-open{border-color:var(--brand);box-shadow:0 0 0 3px rgba(14,116,144,.18)}
-.gl-select:disabled{background:var(--paper);color:#94a3b8;cursor:not-allowed}
+.gl-select.is-open{border-color:var(--brand);box-shadow:0 0 0 3px rgba(11,122,86,.18)}
+.gl-select:disabled{background:var(--paper);color:#8aa196;cursor:not-allowed}
 .gl-select__val{font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.gl-select__ph{color:#8493a6;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.gl-select__ph{color:#7f968b;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .gl-pop{position:absolute;left:0;right:0;top:100%;z-index:60;margin-top:4px;padding:6px;background:#fff;border:1px solid var(--line);border-radius:12px;box-shadow:var(--shadow)}
 .gl-pop__search{display:flex;align-items:center;gap:8px;padding:0 8px;margin-bottom:4px;border:1px solid var(--line);border-radius:8px;color:var(--muted)}
 .gl-pop__search input{flex:1;min-width:0;height:34px;border:0;outline:0;background:none;font:inherit;font-size:13px;color:var(--ink)}
@@ -1068,9 +1068,9 @@ const APP_CSS = `
 
 .gl-basemaps{display:grid;grid-template-columns:1fr 1fr;gap:8px}
 .gl-basemap{display:flex;flex-direction:column;gap:7px;padding:6px 6px 8px;border:1px solid var(--line);border-radius:12px;background:#fff;text-align:left;cursor:pointer;transition:border-color .15s,box-shadow .15s}
-.gl-basemap:hover{border-color:#b7c4d0}
-.gl-basemap.is-on{border-color:var(--brand);box-shadow:0 0 0 2px rgba(14,116,144,.25)}
-.gl-basemap__thumb{height:46px;border-radius:8px;border:1px solid rgba(15,27,45,.08)}
+.gl-basemap:hover{border-color:#b3c9bc}
+.gl-basemap.is-on{border-color:var(--brand);box-shadow:0 0 0 2px rgba(11,122,86,.25)}
+.gl-basemap__thumb{height:46px;border-radius:8px;border:1px solid rgba(12,31,25,.08)}
 .gl-basemap__name{padding:0 4px;font-size:12px;font-weight:600;line-height:1.25;color:var(--ink)}
 .gl-basemap__desc{padding:0 4px;margin-top:-4px;font-size:11px;line-height:1.3;color:var(--muted)}
 
@@ -1082,13 +1082,13 @@ const APP_CSS = `
 .gl-legrow__up{height:36px;padding:0 12px;font-size:12px}
 .gl-color{position:relative;display:flex;align-items:center;gap:8px;height:38px;padding:0 10px;border:1px solid var(--line);border-radius:10px;background:#fff;cursor:pointer}
 .gl-color input{position:absolute;inset:0;width:100%;height:100%;opacity:0;cursor:pointer}
-.gl-color__sw{width:20px;height:20px;border-radius:6px;border:1px solid rgba(15,27,45,.2);flex-shrink:0}
+.gl-color__sw{width:20px;height:20px;border-radius:6px;border:1px solid rgba(12,31,25,.2);flex-shrink:0}
 .gl-color code{font:500 12px ui-monospace,Menlo,Consolas,monospace;color:var(--ink-2)}
 .gl-range{width:100%;accent-color:var(--brand)}
 
 .gl-toggle{position:relative;display:flex;align-items:center;justify-content:space-between;gap:12px;font-size:13px;color:var(--ink-2);cursor:pointer}
 .gl-toggle input{position:absolute;opacity:0;width:1px;height:1px}
-.gl-toggle i{position:relative;flex-shrink:0;width:36px;height:20px;border-radius:999px;background:#cbd5e1;transition:background .15s}
+.gl-toggle i{position:relative;flex-shrink:0;width:36px;height:20px;border-radius:999px;background:#c3d3ca;transition:background .15s}
 .gl-toggle i::after{content:'';position:absolute;top:2px;left:2px;width:16px;height:16px;border-radius:50%;background:#fff;box-shadow:0 1px 2px rgba(0,0,0,.3);transition:transform .15s}
 .gl-toggle input:checked + i{background:var(--brand)}
 .gl-toggle input:checked + i::after{transform:translateX(16px)}
@@ -1101,7 +1101,7 @@ const APP_CSS = `
 
 .gl-aoi-list{display:flex;flex-direction:column;gap:8px}
 .gl-aoi{border:1px solid var(--line);border-radius:12px;background:#fff}
-.gl-aoi.is-open{border-color:var(--brand);box-shadow:0 0 0 2px rgba(14,116,144,.12)}
+.gl-aoi.is-open{border-color:var(--brand);box-shadow:0 0 0 2px rgba(11,122,86,.12)}
 .gl-aoi__head{display:flex;align-items:center;gap:8px;padding:6px 8px 6px 6px}
 .gl-aoi__toggle{flex:1;min-width:0;display:flex;align-items:center;gap:10px;padding:2px;border:0;background:none;text-align:left;cursor:pointer;color:var(--ink);border-radius:8px}
 .gl-aoi__chip{display:grid;place-items:center;width:30px;height:30px;border-radius:50%;font-size:15px;flex-shrink:0;color:#fff}
@@ -1119,16 +1119,16 @@ const APP_CSS = `
 .gl-tone{display:grid;grid-template-columns:1fr 1fr;gap:6px}
 .gl-tone button{display:flex;align-items:center;justify-content:center;gap:8px;height:36px;border:1px solid var(--line);border-radius:10px;background:#fff;font-size:12px;font-weight:600;color:var(--ink);cursor:pointer}
 .gl-tone button.is-on{border:2px solid var(--brand)}
-.gl-tone i{display:inline-block;width:12px;height:12px;border-radius:50%;border:1px solid #0f172a}
+.gl-tone i{display:inline-block;width:12px;height:12px;border-radius:50%;border:1px solid #0c1f19}
 .gl-coords{padding:7px 10px;border-radius:8px;background:var(--paper);font:500 12px ui-monospace,Menlo,Consolas,monospace;color:var(--ink-2)}
-.gl-upload{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;min-height:92px;padding:12px;border:1.5px dashed #a9cfda;border-radius:12px;background:#f3fafc;color:var(--brand-d);font-size:12px;font-weight:600;text-align:center;cursor:pointer}
-.gl-upload:hover{background:#e7f5f9}
+.gl-upload{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;min-height:92px;padding:12px;border:1.5px dashed #a6d1bd;border-radius:12px;background:#f0f9f4;color:var(--brand-d);font-size:12px;font-weight:600;text-align:center;cursor:pointer}
+.gl-upload:hover{background:#e2f3ea}
 .gl-upload input{display:none}
-.gl-cardprev{position:relative;border-radius:10px;padding:3px;width:168px;max-width:100%;box-shadow:0 4px 12px rgba(15,27,45,.2)}
+.gl-cardprev{position:relative;border-radius:10px;padding:3px;width:168px;max-width:100%;box-shadow:0 4px 12px rgba(12,31,25,.2)}
 .gl-cardprev img{display:block;width:100%;height:96px;object-fit:cover;border-radius:7px 7px 0 0}
-.gl-cardprev__cap{padding:6px 8px;background:#fff;color:#0f172a;font-size:10px;line-height:1.4;font-weight:500;text-align:center;white-space:pre-wrap;word-break:break-word;border-radius:0 0 7px 7px}
+.gl-cardprev__cap{padding:6px 8px;background:#fff;color:#0c1f19;font-size:10px;line-height:1.4;font-weight:500;text-align:center;white-space:pre-wrap;word-break:break-word;border-radius:0 0 7px 7px}
 .gl-cardprev__cap--solo{border-radius:7px}
-.gl-cardprev__x{position:absolute;top:8px;right:8px;width:24px;height:24px;display:grid;place-items:center;border:0;border-radius:6px;background:rgba(15,27,45,.72);color:#fff;cursor:pointer}
+.gl-cardprev__x{position:absolute;top:8px;right:8px;width:24px;height:24px;display:grid;place-items:center;border:0;border-radius:6px;background:rgba(12,31,25,.72);color:#fff;cursor:pointer}
 .gl-cardprev__x:hover{background:var(--danger)}
 
 /* ---------- area peta ---------- */
@@ -1140,14 +1140,14 @@ const APP_CSS = `
 .gl-toolbar__chips{display:flex;gap:8px}
 .gl-chip{display:inline-flex;align-items:center;height:28px;padding:0 10px;border-radius:999px;border:1px solid var(--line);background:var(--paper);font-size:12px;font-weight:500;color:var(--ink-2);font-variant-numeric:tabular-nums;white-space:nowrap}
 .gl-menu-btn{display:none}
-.gl-paper{flex:1;min-height:0;overflow:auto;display:grid;place-items:center;padding:20px;background-color:#e8edf1;background-image:radial-gradient(#cdd6de 1px,transparent 1px);background-size:18px 18px}
+.gl-paper{flex:1;min-height:0;overflow:auto;display:grid;place-items:center;padding:20px;background-color:#e4ede8;background-image:radial-gradient(#c3d6cb 1px,transparent 1px);background-size:18px 18px}
 .gl-backdrop{display:none}
 
 @media (max-width:900px){
   .gl-side{position:fixed;top:0;bottom:0;left:0;width:min(420px,92vw);visibility:hidden;transform:translateX(-102%);transition:transform .25s ease,visibility .25s;box-shadow:var(--shadow)}
   .gl-side.is-open{visibility:visible;transform:none}
   .gl-side__close{display:inline-grid}
-  .gl-backdrop{display:block;position:fixed;inset:0;z-index:25;background:rgba(15,27,45,.45)}
+  .gl-backdrop{display:block;position:fixed;inset:0;z-index:25;background:rgba(12,31,25,.45)}
   .gl-menu-btn{display:inline-flex}
   .gl-toolbar__chips .gl-chip:last-child{display:none}
   .gl-paper{padding:12px}
@@ -1155,17 +1155,17 @@ const APP_CSS = `
 
 /* ---------- halaman utama ---------- */
 .gl-home{
-  --h-ink:#0a1c28; --h-sea:#0c3447; --h-sea2:#124a5e; --h-teal:#0e7490; --h-aqua:#4cc9e0;
-  --h-paper:#f3f6f8; --h-line:#d9e2e8; --h-text:#17303f; --h-mute:#586d7c; --h-red:#dc2626; --h-green:#2f9e6b;
+  --h-ink:#08211a; --h-sea:#0b3a2e; --h-sea2:#115240; --h-teal:#0b7a56; --h-aqua:#7be3b4;
+  --h-paper:#f1f6f3; --h-line:#d5e3db; --h-text:#173329; --h-mute:#566e63; --h-red:#dc2626; --h-green:#2f9e6b;
   position:absolute;inset:0;overflow-x:hidden;overflow-y:auto;background:#fff;color:var(--h-text);scroll-behavior:smooth
 }
-.gl-home h1,.gl-home h2,.gl-home h3,.gl-brand__name{font-family:'Bricolage Grotesque',Poppins,Inter,sans-serif}
+.gl-home h1,.gl-home h2,.gl-home h3,.gl-brand__name{font-family:'Newsreader','Cormorant Garamond',Georgia,serif}
 .gl-nav{position:sticky;top:0;z-index:40;height:72px;display:flex;align-items:center;justify-content:space-between;gap:24px;padding:0 clamp(16px,5vw,64px);color:#fff;transition:background .2s,box-shadow .2s}
-.gl-nav.is-solid{background:rgba(8,26,38,.94);backdrop-filter:blur(10px);box-shadow:0 1px 0 rgba(255,255,255,.08)}
+.gl-nav.is-solid{background:rgba(7,32,26,.94);backdrop-filter:blur(10px);box-shadow:0 1px 0 rgba(255,255,255,.08)}
 .gl-brand{display:flex;align-items:center;gap:10px;padding:0;border:0;background:none;color:inherit;text-align:left;cursor:pointer}
-.gl-brand__mark{display:grid;place-items:center;width:38px;height:38px;border-radius:10px;background:linear-gradient(135deg,#fde047,#f59e0b);color:#0b3445;box-shadow:0 0 0 1px rgba(250,204,21,.45),0 0 18px rgba(250,204,21,.45)}
-.gl-brand__mark svg{fill:#0b3445}
-.gl-brand__acc{font-style:normal;color:#facc15}
+.gl-brand__mark{display:grid;place-items:center;width:38px;height:38px;border-radius:10px;background:linear-gradient(135deg,#b4f0d3,#3fc08b);color:#0a2e25;box-shadow:0 0 0 1px rgba(123,227,180,.45),0 0 18px rgba(123,227,180,.45)}
+.gl-brand__mark svg{fill:#0a2e25}
+.gl-brand__acc{font-style:normal;color:#7be3b4}
 .gl-brand__name{font-size:18px;font-weight:700;line-height:1.1;letter-spacing:-.01em}
 .gl-brand__sub{margin-top:2px;font-size:11px;opacity:.72}
 .gl-nav__links{display:flex;align-items:center;gap:28px}
@@ -1174,7 +1174,7 @@ const APP_CSS = `
 .gl-btn--light{height:40px;border:1px solid rgba(255,255,255,.7);background:transparent;color:#fff}
 .gl-btn--light:hover{background:#fff;color:var(--h-ink)}
 .gl-btn--white{background:#fff;border-color:#fff;color:var(--h-ink)}
-.gl-btn--white:hover{background:#e3f4f8}
+.gl-btn--white:hover{background:#ddf3e8}
 .gl-btn--outline{background:transparent;border-color:rgba(255,255,255,.5);color:#fff}
 .gl-btn--outline:hover{background:rgba(255,255,255,.1)}
 .gl-nav__toggle{display:none;border-color:rgba(255,255,255,.4);background:transparent;color:#fff}
@@ -1184,29 +1184,29 @@ const APP_CSS = `
   background:
     linear-gradient(rgba(255,255,255,.035) 1px,transparent 1px) 0 0/64px 64px,
     linear-gradient(90deg,rgba(255,255,255,.035) 1px,transparent 1px) 0 0/64px 64px,
-    radial-gradient(60% 70% at 85% 40%,rgba(76,201,224,.2),transparent 70%),
-    linear-gradient(rgba(8,26,38,.88),rgba(8,26,38,.88)),
+    radial-gradient(60% 70% at 85% 40%,rgba(123,227,180,.2),transparent 70%),
+    linear-gradient(rgba(7,32,26,.88),rgba(7,32,26,.88)),
     url('/hero.jpg') center/cover no-repeat,
-    linear-gradient(160deg,#081a26 0%,#0c3447 60%,#0f4558 100%)}
+    linear-gradient(160deg,#07201a 0%,#0b3a2e 60%,#0f4a3a 100%)}
 .gl-hero__copy{max-width:560px}
 .gl-hero h1{margin:0 0 18px;font-size:clamp(34px,4.6vw,58px);font-weight:700;line-height:1.06;letter-spacing:-.02em}
 .gl-hero p{margin:0;max-width:50ch;font-size:clamp(16px,1.5vw,18px);line-height:1.6;color:rgba(255,255,255,.84)}
 .gl-hero{overflow:hidden}
 .gl-hero__copy,.gl-hero .gl-sheet{position:relative;z-index:2}
-.gl-hero__bolt{position:absolute;z-index:1;right:5%;top:6%;height:72%;opacity:.13;pointer-events:none;filter:drop-shadow(0 0 30px rgba(250,204,21,.75));animation:gl-flash 7s infinite}
+.gl-hero__bolt{position:absolute;z-index:1;right:5%;top:6%;height:72%;opacity:.13;pointer-events:none;filter:drop-shadow(0 0 30px rgba(123,227,180,.75));animation:gl-flash 7s infinite}
 .gl-hero__bolt--2{right:auto;left:1%;top:auto;bottom:3%;height:38%;transform:rotate(-14deg) scaleX(-1);animation-delay:2.6s}
-.gl-hero__tag{display:inline-flex;align-items:center;gap:6px;margin-bottom:16px;padding:5px 12px;border-radius:999px;border:1px solid rgba(250,204,21,.45);background:rgba(250,204,21,.12);color:#fde047;font-size:12px;font-weight:600;letter-spacing:.02em}
-.gl-hero__tag svg{fill:#facc15;stroke:#facc15}
+.gl-hero__tag{display:inline-flex;align-items:center;gap:6px;margin-bottom:16px;padding:5px 12px;border-radius:999px;border:1px solid rgba(123,227,180,.45);background:rgba(123,227,180,.12);color:#b4f0d3;font-size:12px;font-weight:600;letter-spacing:.02em}
+.gl-hero__tag svg{fill:#7be3b4;stroke:#7be3b4}
 @keyframes gl-flash{0%,84%,100%{opacity:.12}86%{opacity:.55}88%{opacity:.14}90%{opacity:.4}93%{opacity:.12}}
-@keyframes gl-glow{0%,100%{box-shadow:0 0 0 1px rgba(250,204,21,.45),0 0 14px rgba(250,204,21,.35)}50%{box-shadow:0 0 0 1px rgba(250,204,21,.7),0 0 24px rgba(250,204,21,.7)}}
+@keyframes gl-glow{0%,100%{box-shadow:0 0 0 1px rgba(123,227,180,.45),0 0 14px rgba(123,227,180,.35)}50%{box-shadow:0 0 0 1px rgba(123,227,180,.7),0 0 24px rgba(123,227,180,.7)}}
 .gl-bolt-anim{animation:gl-glow 3.2s ease-in-out infinite}
 .gl-side__head{position:relative}
-.gl-side__head::after{content:'';position:absolute;left:0;right:0;bottom:-1px;height:2px;background:linear-gradient(90deg,transparent,#facc15 25%,#f59e0b 75%,transparent)}
+.gl-side__head::after{content:'';position:absolute;left:0;right:0;bottom:-1px;height:2px;background:linear-gradient(90deg,transparent,#7be3b4 25%,#3fc08b 75%,transparent)}
 .gl-side__title{display:flex;align-items:center;gap:6px}
-.gl-side__title svg{fill:#facc15;stroke:#f59e0b}
-.gl-sec.is-open .gl-sec__step{background:linear-gradient(135deg,#fde047,#f59e0b);color:#0b3445}
+.gl-side__title svg{fill:#7be3b4;stroke:#3fc08b}
+.gl-sec.is-open .gl-sec__step{background:linear-gradient(135deg,#b4f0d3,#3fc08b);color:#0a2e25}
 .gl-credit{display:inline-flex;align-items:center;gap:6px;white-space:nowrap}
-.gl-credit svg{fill:#facc15;stroke:#f59e0b}
+.gl-credit svg{fill:#7be3b4;stroke:#3fc08b}
 @media (max-width:860px){.gl-hero__bolt{height:46%;right:-3%}.gl-hero__bolt--2{display:none}}
 @media (prefers-reduced-motion:reduce){.gl-hero__bolt,.gl-bolt-anim{animation:none}}
 .gl-cta{display:flex;flex-wrap:wrap;gap:12px;margin-top:28px}
@@ -1241,7 +1241,7 @@ const APP_CSS = `
 .gl-tile--w6{grid-column:span 6}
 .gl-tile--split{flex-direction:row;align-items:center;justify-content:space-between;gap:28px}
 .gl-tile--dark{background:var(--h-sea);border-color:var(--h-sea);color:#fff}
-.gl-tile--tint{background:#e6f4f8;border-color:#cde6ed}
+.gl-tile--tint{background:#e3f2ea;border-color:#c6e0d3}
 .gl-tile__txt{max-width:46ch}
 .gl-tile h3{margin:0 0 6px;font-size:19px;font-weight:700;letter-spacing:-.01em;color:var(--h-ink)}
 .gl-tile--dark h3{color:#fff}
@@ -1249,10 +1249,10 @@ const APP_CSS = `
 .gl-tile--dark p{color:rgba(255,255,255,.8)}
 .gl-ic{display:inline-grid;place-items:center;width:42px;height:42px;margin-bottom:12px;border-radius:12px}
 .gl-ic--red{background:#fde8e8;color:#b91c1c}
-.gl-ic--teal{background:#d9f1f6;color:#0b5f74}
-.gl-ic--blue{background:#e1ecf8;color:#1d4f91}
+.gl-ic--teal{background:#d6f0e4;color:#096b4c}
+.gl-ic--blue{background:#e2ede7;color:#2f5648}
 .gl-ic--green{background:#dcf3e7;color:#17714a}
-.gl-ic--ink{background:#dde6ec;color:var(--h-ink)}
+.gl-ic--ink{background:#dde8e1;color:var(--h-ink)}
 .gl-tile--dark .gl-ic{background:rgba(255,255,255,.12);color:#fff}
 .gl-cascade{display:flex;flex-direction:column;gap:8px;min-width:200px}
 .gl-cascade div{display:flex;flex-direction:column;padding:9px 14px;border-radius:10px;background:rgba(255,255,255,.08);border-left:3px solid rgba(255,255,255,.25)}
@@ -1260,7 +1260,7 @@ const APP_CSS = `
 .gl-cascade small{font-size:11px;color:rgba(255,255,255,.62)}
 .gl-cascade b{font-size:14px;font-weight:600}
 .gl-fmt{display:flex;gap:10px}
-.gl-fmt span{display:inline-flex;align-items:center;height:40px;padding:0 18px;border-radius:10px;background:#fff;border:1px solid #bfdde6;font-size:14px;font-weight:700;color:var(--h-ink)}
+.gl-fmt span{display:inline-flex;align-items:center;height:40px;padding:0 18px;border-radius:10px;background:#fff;border:1px solid #bcdccd;font-size:14px;font-weight:700;color:var(--h-ink)}
 
 .gl-flow{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:24px;margin:0;padding:0;list-style:none}
 .gl-flow li{position:relative;padding-top:46px}
@@ -1272,10 +1272,10 @@ const APP_CSS = `
 
 .gl-plans{display:grid;grid-template-columns:minmax(0,1fr);gap:16px;max-width:980px;margin:0 auto}
 .gl-plan{display:flex;flex-direction:column;gap:14px;padding:28px;border:1px solid var(--h-line);border-radius:18px;background:#fff}
-.gl-plan--hi{background:var(--h-sea);border-color:var(--h-sea);color:#fff;box-shadow:0 24px 50px rgba(12,52,71,.28)}
+.gl-plan--hi{background:var(--h-sea);border-color:var(--h-sea);color:#fff;box-shadow:0 24px 50px rgba(11,58,46,.28)}
 .gl-plan h3{margin:0;font-size:18px;font-weight:700;color:var(--h-ink)}
 .gl-plan--hi h3{color:#fff}
-.gl-plan__price{font-family:'Bricolage Grotesque',Poppins,Inter,sans-serif;font-size:34px;font-weight:700;letter-spacing:-.02em;line-height:1.1;color:var(--h-ink)}
+.gl-plan__price{font-family:'Newsreader','Cormorant Garamond',Georgia,serif;font-size:34px;font-weight:500;letter-spacing:-.02em;line-height:1.1;color:var(--h-ink)}
 .gl-plan--hi .gl-plan__price{color:#fff}
 .gl-plan__unit{font-size:14px;font-weight:500;color:var(--h-mute);font-family:Inter,system-ui,sans-serif;letter-spacing:0}
 .gl-plan--hi .gl-plan__unit{color:rgba(255,255,255,.7)}
@@ -1286,23 +1286,23 @@ const APP_CSS = `
 .gl-plan li svg{flex-shrink:0;margin-top:2px;color:var(--h-green)}
 .gl-plan--hi li svg{color:var(--h-aqua)}
 .gl-plan{position:relative;transition:transform .2s,box-shadow .2s}
-.gl-plan:hover{transform:translateY(-6px);box-shadow:0 22px 44px rgba(12,52,71,.16)}
-.gl-plan--hi{overflow:hidden;background:radial-gradient(120% 90% at 100% 0%,rgba(76,201,224,.35),transparent 55%),linear-gradient(160deg,#0a1c28,#0c3447 55%,#124a5e)}
+.gl-plan:hover{transform:translateY(-6px);box-shadow:0 22px 44px rgba(11,58,46,.16)}
+.gl-plan--hi{overflow:hidden;background:radial-gradient(120% 90% at 100% 0%,rgba(123,227,180,.35),transparent 55%),linear-gradient(160deg,#08211a,#0b3a2e 55%,#115240)}
 .gl-plan--hi{display:grid;grid-template-columns:minmax(0,1.1fr) minmax(0,1fr);gap:36px;padding:40px 36px;align-items:center}
 .gl-plan__main{display:flex;flex-direction:column;gap:14px}
 .gl-plan__buy{display:flex;flex-direction:column;gap:14px}
 .gl-plan--hi .gl-plan__price{font-size:46px}
 .gl-plan--hi .gl-plan__buy .gl-btn{margin-top:6px}
-.gl-plan--hi:hover{box-shadow:0 30px 60px rgba(12,52,71,.38)}
-.gl-plan__badge{position:absolute;top:0;right:0;padding:7px 16px 7px 18px;border-radius:0 0 0 16px;background:linear-gradient(135deg,#facc15,#f59e0b);color:#422006;font-size:11px;font-weight:800;letter-spacing:.06em;text-transform:uppercase}
+.gl-plan--hi:hover{box-shadow:0 30px 60px rgba(11,58,46,.38)}
+.gl-plan__badge{position:absolute;top:0;right:0;padding:7px 16px 7px 18px;border-radius:0 0 0 16px;background:linear-gradient(135deg,#7be3b4,#3fc08b);color:#06281d;font-size:11px;font-weight:800;letter-spacing:.06em;text-transform:uppercase}
 .gl-packs{display:flex;flex-direction:column;gap:10px}
 .gl-pack{display:flex;justify-content:space-between;align-items:center;gap:12px;width:100%;padding:14px 16px;border-radius:14px;border:1px solid rgba(255,255,255,.22);background:rgba(255,255,255,.06);color:#fff;font:inherit;font-size:15px;text-align:left;cursor:pointer;transition:background .15s,transform .15s,border-color .15s}
 .gl-pack:hover{background:rgba(255,255,255,.14);border-color:rgba(255,255,255,.5);transform:translateY(-2px)}
-.gl-pack--best{border:2px solid #facc15;background:linear-gradient(135deg,rgba(250,204,21,.24),rgba(250,204,21,.06))}
-.gl-pack--best:hover{border-color:#fde047;background:linear-gradient(135deg,rgba(250,204,21,.34),rgba(250,204,21,.1))}
+.gl-pack--best{border:2px solid #7be3b4;background:linear-gradient(135deg,rgba(123,227,180,.24),rgba(123,227,180,.06))}
+.gl-pack--best:hover{border-color:#b4f0d3;background:linear-gradient(135deg,rgba(123,227,180,.34),rgba(123,227,180,.1))}
 .gl-pack__n{display:flex;flex-wrap:wrap;align-items:center;gap:8px;font-weight:600}
-.gl-pack__n i{font-style:normal;font-size:11px;font-weight:800;padding:3px 9px;border-radius:999px;background:#facc15;color:#422006}
-.gl-pack b{font-family:'Bricolage Grotesque',Poppins,Inter,sans-serif;font-size:18px;font-weight:700}
+.gl-pack__n i{font-style:normal;font-size:11px;font-weight:800;padding:3px 9px;border-radius:999px;background:#7be3b4;color:#06281d}
+.gl-pack b{font-family:'Newsreader','Cormorant Garamond',Georgia,serif;font-size:18px;font-weight:500}
 .gl-plan .gl-btn{margin-top:auto;height:46px;border-radius:12px}
 
 .gl-faq{max-width:780px}
@@ -1319,11 +1319,11 @@ const APP_CSS = `
 .gl-spec dt{font-size:15px;font-weight:600;color:var(--h-ink)}
 .gl-spec dd{margin:0;font-size:15px;line-height:1.6;color:var(--h-mute)}
 
-.gl-foot{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:20px;padding:40px clamp(16px,5vw,64px);background:#081a26;color:#bcd3dc}
-.gl-foot b{display:block;color:#fff;font-family:'Bricolage Grotesque',Poppins,Inter,sans-serif;font-weight:700;font-size:18px}
+.gl-foot{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:20px;padding:40px clamp(16px,5vw,64px);background:#07201a;color:#bcd9cc}
+.gl-foot b{display:block;color:#fff;font-family:'Newsreader','Cormorant Garamond',Georgia,serif;font-weight:500;font-size:18px}
 .gl-foot span{font-size:14px}
 .gl-foot__links{display:flex;flex-wrap:wrap;gap:6px 22px}
-.gl-foot__links .gl-link{font-size:14px;color:#bcd3dc}
+.gl-foot__links .gl-link{font-size:14px;color:#bcd9cc}
 
 @media (max-width:1000px){
   .gl-hero{grid-template-columns:1fr;min-height:0;padding-top:104px}
@@ -1336,7 +1336,7 @@ const APP_CSS = `
 }
 @media (max-width:860px){
   .gl-nav__toggle{display:inline-grid}
-  .gl-nav__links{display:none;position:absolute;top:72px;left:12px;right:12px;flex-direction:column;align-items:stretch;gap:0;padding:8px;border-radius:14px;background:rgba(8,26,38,.97);box-shadow:var(--shadow)}
+  .gl-nav__links{display:none;position:absolute;top:72px;left:12px;right:12px;flex-direction:column;align-items:stretch;gap:0;padding:8px;border-radius:14px;background:rgba(7,32,26,.97);box-shadow:var(--shadow)}
   .gl-nav__links.is-open{display:flex}
   .gl-nav__links .gl-link{padding:13px 14px;border:0;text-align:left}
   .gl-nav__links .gl-btn--light{margin:6px}
@@ -1381,6 +1381,90 @@ const APP_CSS = `
   .gl-brand__sub{display:none}
   .gl-basemaps{grid-template-columns:1fr}
 }
+
+
+/* =====================================================================
+   JADE: penyempurnaan dashboard dan animasi masking
+   ===================================================================== */
+.gl-root{--ease:cubic-bezier(.77,0,.18,1);--ease-out:cubic-bezier(.16,1,.3,1);--jade-ink:#07241c}
+
+@keyframes gl-iris{from{clip-path:circle(0% at 50% 46%)}to{clip-path:circle(150% at 50% 46%)}}
+@keyframes gl-curtain{from{clip-path:inset(0 0 100% 0 round 14px)}to{clip-path:inset(0 0 0 0 round 14px)}}
+@keyframes gl-wipe-x{from{clip-path:inset(0 100% 0 0)}to{clip-path:inset(0 0 0 0)}}
+@keyframes gl-wipe-y{from{clip-path:inset(0 0 100% 0)}to{clip-path:inset(0 0 0 0)}}
+@keyframes gl-wipe-up{from{clip-path:inset(100% 0 0 0)}to{clip-path:inset(0 0 0 0)}}
+@keyframes gl-rise{from{transform:translateY(110%)}to{transform:none}}
+
+/* --- panel samping: kepala gelap jade --- */
+.gl-side{border-right-color:#c9ddd2}
+.gl-side__head{padding:16px 14px;color:#fff;border-bottom:0;background:linear-gradient(160deg,#06211a 0%,#0b3a2e 65%,#0f4a3a 100%)}
+.gl-side__head .gl-iconbtn{background:rgba(255,255,255,.07);border-color:rgba(255,255,255,.18);color:#e8f7f0}
+.gl-side__head .gl-iconbtn:hover{background:rgba(255,255,255,.16)}
+.gl-side__head .gl-credit{background:rgba(123,227,180,.12);border-color:rgba(123,227,180,.42);color:#d9f7e8}
+.gl-side__head .gl-credit:hover{background:rgba(123,227,180,.24)}
+.gl-side__title{font-family:'Newsreader','Cormorant Garamond',Georgia,serif;font-size:20px;font-weight:600;letter-spacing:-.01em;color:#fff}
+.gl-side__sub{color:rgba(224,244,234,.68)}
+.gl-side__body{background:linear-gradient(180deg,#f1f6f3,#e9f1ec)}
+.gl-side__foot{background:#fff;border-top-color:#d5e3db}
+
+/* --- kartu bagian --- */
+.gl-sec{border-color:#d5e3db;transition:border-color .35s,box-shadow .35s}
+.gl-sec.is-open{border-color:#b4d9c5;box-shadow:0 10px 26px -14px rgba(11,122,86,.45)}
+.gl-sec__title{letter-spacing:-.005em}
+.gl-sec__step{font-family:'Newsreader','Cormorant Garamond',Georgia,serif;font-size:14px;font-weight:600}
+
+/* --- toolbar dan area peta --- */
+.gl-toolbar{min-height:64px;background:rgba(255,255,255,.86);-webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px)}
+.gl-toolbar__title{font-family:'Newsreader','Cormorant Garamond',Georgia,serif;font-size:21px;font-weight:500;line-height:1.25;letter-spacing:-.01em}
+.gl-toolbar__sub{font-size:12.5px}
+.gl-chip{background:var(--brand-soft);border-color:#c4e3d3;color:var(--brand-d)}
+.gl-paper{position:relative;--mx:50%;--my:50%;background-color:#e3ede7;background-image:radial-gradient(#c3d6cb 1px,transparent 1px);background-size:18px 18px}
+.gl-paper::before{content:'';position:absolute;inset:0;z-index:0;pointer-events:none;
+  background-image:radial-gradient(rgba(11,122,86,.7) 1.4px,transparent 1.7px);background-size:18px 18px;
+  -webkit-mask-image:radial-gradient(260px circle at var(--mx) var(--my),#000 0,rgba(0,0,0,.35) 45%,transparent 72%);
+  mask-image:radial-gradient(260px circle at var(--mx) var(--my),#000 0,rgba(0,0,0,.35) 45%,transparent 72%)}
+.gl-paper>div{position:relative;z-index:1}
+@media (hover:none){.gl-paper::before{display:none}}
+
+/* --- masking teks: naik dari balik garis potong --- */
+.gl-mask{display:block;overflow:hidden;padding-bottom:.16em;margin-bottom:-.16em}
+.gl-mask__in{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;animation:gl-rise .8s var(--ease-out) backwards}
+.gl-toolbar__sub .gl-mask__in{animation-delay:.08s}
+
+/* --- satu urutan pembuka saat dashboard dibuka ---
+   fill-mode "backwards": setelah selesai tidak ada clip-path tersisa,
+   jadi ekspor PNG/PDF dan popover dropdown tidak terpengaruh. */
+.gl-app .gl-paper>div{animation:gl-iris 1.3s var(--ease) .2s backwards}
+.gl-app .gl-toolbar{animation:gl-wipe-x 1s var(--ease) .05s backwards}
+.gl-app .gl-chip{animation:gl-wipe-x .7s var(--ease) .6s backwards}
+.gl-app .gl-chip+.gl-chip{animation-delay:.7s}
+.gl-app .gl-side__head{animation:gl-wipe-y .9s var(--ease) backwards}
+.gl-app .gl-side__title,.gl-app .gl-side__sub{animation:gl-wipe-x .85s var(--ease) .3s backwards}
+.gl-app .gl-side__sub{animation-delay:.4s}
+.gl-app .gl-side__body>.gl-sec{animation:gl-curtain .95s var(--ease) backwards}
+.gl-app .gl-side__body>.gl-sec:nth-child(1){animation-delay:.30s}
+.gl-app .gl-side__body>.gl-sec:nth-child(2){animation-delay:.37s}
+.gl-app .gl-side__body>.gl-sec:nth-child(3){animation-delay:.44s}
+.gl-app .gl-side__body>.gl-sec:nth-child(4){animation-delay:.51s}
+.gl-app .gl-side__body>.gl-sec:nth-child(5){animation-delay:.58s}
+.gl-app .gl-side__body>.gl-sec:nth-child(6){animation-delay:.65s}
+.gl-app .gl-side__body>.gl-sec:nth-child(n+7){animation-delay:.72s}
+.gl-app .gl-side__foot{animation:gl-wipe-up .9s var(--ease) .75s backwards}
+
+/* --- respons terhadap aksi: isi bagian terbuka disapu dari atas --- */
+.gl-sec__body{animation:gl-wipe-y .55s var(--ease-out) backwards}
+
+/* --- tipografi halaman utama --- */
+.gl-home h1{font-weight:500;letter-spacing:-.02em}
+.gl-home h2,.gl-home h3{font-weight:500;letter-spacing:-.012em}
+.gl-brand__name{font-weight:600}
+.gl-brand__mark{background:linear-gradient(135deg,#b4f0d3,#3fc08b);box-shadow:0 0 0 1px rgba(123,227,180,.5),0 0 18px rgba(123,227,180,.4)}
+.gl-hero__tag{border-color:rgba(123,227,180,.45);background:rgba(123,227,180,.12);color:#b4f0d3}
+
+@media (max-width:900px){
+  .gl-toolbar__title{font-size:18px}
+  .gl-app .gl-paper>div{animation-duration:1s}
+}
 `;
 
 // ===================== APLIKASI =====================
@@ -1408,7 +1492,7 @@ export default function App() {
   // Judul tab dan favicon petir (tidak perlu mengubah index.html)
   useEffect(() => {
     document.title = 'Petakilat | Pembuat Peta Administrasi Desa';
-    const svg = "<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'><rect width='64' height='64' rx='14' fill='#0b3445'/><path d='M36 6 14 36h14l-4 22 26-33H35z' fill='#facc15'/></svg>";
+    const svg = "<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'><rect width='64' height='64' rx='14' fill='#0a2e25'/><path d='M36 6 14 36h14l-4 22 26-33H35z' fill='#7be3b4'/></svg>";
     let link = document.querySelector<HTMLLinkElement>("link[rel~='icon']");
     if (!link) { link = document.createElement('link'); link.rel = 'icon'; document.head.appendChild(link); }
     link.type = 'image/svg+xml';
@@ -2600,7 +2684,7 @@ export default function App() {
 
           <section className="gl-hero">
             <svg className="gl-hero__bolt" viewBox="0 0 200 320" aria-hidden="true" focusable="false">
-              <defs><linearGradient id="gl-bolt-g" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stopColor="#fef08a" /><stop offset="1" stopColor="#f59e0b" /></linearGradient></defs>
+              <defs><linearGradient id="gl-bolt-g" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stopColor="#b4f0d3" /><stop offset="1" stopColor="#3fc08b" /></linearGradient></defs>
               <polygon points="125,0 20,170 95,170 70,320 185,120 108,120" fill="url(#gl-bolt-g)" />
             </svg>
             <svg className="gl-hero__bolt gl-hero__bolt--2" viewBox="0 0 200 320" aria-hidden="true" focusable="false">
@@ -3215,8 +3299,8 @@ export default function App() {
               <Icon name="sliders" size={14} /> Pengaturan
             </button>
             <div className="gl-toolbar__text">
-              <div className="gl-toolbar__title">{regionTitle}</div>
-              <div className="gl-toolbar__sub">{regionSub}</div>
+              <div className="gl-toolbar__title"><span className="gl-mask"><span key={regionTitle} className="gl-mask__in">{regionTitle}</span></span></div>
+              <div className="gl-toolbar__sub"><span className="gl-mask"><span key={regionSub} className="gl-mask__in">{regionSub}</span></span></div>
             </div>
             <div className="gl-toolbar__chips">
               <span className="gl-chip">Zoom {zoom}</span>
@@ -3224,7 +3308,15 @@ export default function App() {
             </div>
           </div>
 
-          <div className="gl-paper" ref={paperRef}>
+          <div
+            className="gl-paper"
+            ref={paperRef}
+            onPointerMove={(e) => {
+              const r = e.currentTarget.getBoundingClientRect();
+              e.currentTarget.style.setProperty('--mx', `${e.clientX - r.left + e.currentTarget.scrollLeft}px`);
+              e.currentTarget.style.setProperty('--my', `${e.clientY - r.top + e.currentTarget.scrollTop}px`);
+            }}
+          >
             <div style={{ width: SHEET_W * sheetScale, height: SHEET_H * sheetScale }}>
               <div ref={scalerRef} style={{ width: SHEET_W, height: SHEET_H, transform: `scale(${sheetScale})`, transformOrigin: 'top left' }}>
 
@@ -3236,7 +3328,7 @@ export default function App() {
                     height: SHEET_H,
                     backgroundColor: '#ffffff',
                     border: '3px solid #000000',
-                    boxShadow: '0 18px 50px rgba(15,27,45,0.28)',
+                    boxShadow: '0 18px 50px rgba(12,31,25,0.28)',
                     display: 'grid',
                     gridTemplateColumns: '1fr 270px',
                     boxSizing: 'border-box',
