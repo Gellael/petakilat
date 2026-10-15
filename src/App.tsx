@@ -1410,7 +1410,7 @@ export default function App() {
   const [judulUtama, setJudulUtama] = useState<string>('PETA ADMINISTRASI DESA');
   const [namaWilayahJudul, setNamaWilayahJudul] = useState<string>('');
   const [subJudul, setSubJudul] = useState<string>('KABUPATEN BENGKULU UTARA - PROVINSI BENGKULU');
-  const [sumberData, setSumberData] = useState<string>('Badan Informasi Geospasial (BIG) & WebGIS Aiven PostGIS');
+  const [sumberData, setSumberData] = useState<string>('Badan Informasi Geospasial (BIG) & WebGIS');
   const [pembuatPeta, setPembuatPeta] = useState<string>('Laboratorium SIG & Informatika');
   const [tahunPeta, setTahunPeta] = useState<string>('2026');
 
