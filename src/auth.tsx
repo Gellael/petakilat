@@ -4,9 +4,8 @@ const API: string = import.meta.env.VITE_API_URL || 'http://localhost:8080';
 const TOKEN_KEY = 'gl_token';
 
 // ====== ISI SESUAI KEBUTUHAN ANDA ======
-const REKENING = { bank: 'DANA', nomor: '082311607227', nama: 'Ricardo Gellael' };
-/** Menampilkan nomor per 4 digit agar mudah dibaca: 0823 1160 7227 */
-const formatNomor = (n: string) => n.replace(/\s+/g, '').replace(/(\d{4})(?=\d)/g, '$1 ');
+/** Gambar kode QR tujuan transfer. Letakkan berkasnya di folder public frontend. */
+const QR_IMAGE = '/qrbayar.jpeg';
 
 /** Harga satuan: 1 kredit = Rp20.000. */
 export const HARGA_PER_KREDIT = 20000;
@@ -381,6 +380,9 @@ const ACC_CSS = `
 .ac-rek__info b{font-family:'Bricolage Grotesque',Poppins,Inter,sans-serif;font-size:22px;font-weight:700;letter-spacing:.02em;color:#0a1c28;overflow-wrap:anywhere}
 .ac-rek__info span{font-size:13px;color:#334155}
 .ac-copy{flex-shrink:0;min-width:96px}
+.ac-qr{display:flex;flex-direction:column;align-items:center;gap:10px;padding:14px;border-radius:14px;background:#fff;border:1px solid #d9e2e8}
+.ac-qr img{display:block;width:100%;max-width:260px;height:auto;max-height:48vh;object-fit:contain}
+.ac-qr__dl{display:inline-flex;align-items:center;justify-content:center;text-decoration:none}
 .ac-copy.ok{background:#2f9e6b;border-color:#2f9e6b;color:#fff}
 .ac-drop{position:relative;display:flex;align-items:center;gap:14px;padding:16px;border-radius:16px;border:2px dashed #b8c7d1;background:#fafcfd;cursor:pointer;transition:border-color .15s,background .15s}
 .ac-drop:hover,.ac-drop:focus-within{border-color:#0e7490;background:#f0fbfe}
@@ -448,7 +450,7 @@ export function AccountModal({ auth, onClose, initialPaket }: { auth: Auth; onCl
   const [catatan, setCatatan] = useState('');
   const [file, setFile] = useState<File | null>(null);
   const [fileKey, setFileKey] = useState(0);
-  const [copied, setCopied] = useState(false);
+  const [qrError, setQrError] = useState(false);
   const [msg, setMsg] = useState<{ ok: boolean; text: string } | null>(null);
   const [busy, setBusy] = useState(false);
   const [riwayat, setRiwayat] = useState<Topup[]>([]);
@@ -460,22 +462,6 @@ export function AccountModal({ auth, onClose, initialPaket }: { auth: Auth; onCl
     if (res.ok) setRiwayat(await res.json());
   }, []);
   useEffect(() => { loadRiwayat(); auth.refreshUser(); /* eslint-disable-next-line */ }, []);
-
-  const salin = async () => {
-    const teks = REKENING.nomor.replace(/\s+/g, '');
-    let ok = false;
-    try { await navigator.clipboard.writeText(teks); ok = true; } catch { /* coba cara cadangan */ }
-    if (!ok) {
-      try {
-        const ta = document.createElement('textarea');
-        ta.value = teks; ta.style.position = 'fixed'; ta.style.opacity = '0';
-        document.body.appendChild(ta); ta.select();
-        ok = document.execCommand('copy');
-        document.body.removeChild(ta);
-      } catch { /* abaikan */ }
-    }
-    if (ok) { setCopied(true); setTimeout(() => setCopied(false), 1800); }
-  };
 
   const kirim = async (e: FormEvent) => {
     e.preventDefault();
@@ -575,17 +561,19 @@ export function AccountModal({ auth, onClose, initialPaket }: { auth: Auth; onCl
                     <small>Total transfer</small>
                     <b>{rupiah(paket.harga)}</b>
                   </div>
-                  <div className="ac-rek">
-                    <div className="ac-rek__info">
-                      <small>Rekening tujuan · <span className="ac-rek__bank">{REKENING.bank}</span></small>
-                      <b>{formatNomor(REKENING.nomor)}</b>
-                      <span>a.n. {REKENING.nama}</span>
-                    </div>
-                    <button type="button" className={`ac-copy ${copied ? 'ok' : ''}`} onClick={salin}>
-                      {copied ? 'Tersalin ✓' : 'Salin nomor'}
-                    </button>
+                  <div className="ac-qr">
+                    {qrError ? (
+                      <div className="ac-msg ac-msg--err" style={{ marginTop: 0 }}>
+                        Gambar QR tidak ditemukan. Pastikan berkas <code>qrbayar.jpeg</code> ada di folder <code>public</code>, lalu muat ulang halaman.
+                      </div>
+                    ) : (
+                      <>
+                        <img src={QR_IMAGE} alt={`Kode QR pembayaran ${rupiah(paket.harga)}`} onError={() => setQrError(true)} />
+                        <a className="ac-copy ac-qr__dl" href={QR_IMAGE} download="qr-pembayaran-petakilat.jpeg">Unduh QR</a>
+                      </>
+                    )}
                   </div>
-                  <p>Setelah transfer, unggah bukti di langkah 3. Kredit ditambahkan admin setelah diverifikasi.</p>
+                  <p>Pindai kode QR dengan aplikasi bank atau dompet digital, lalu bayar sesuai total di atas. Setelah transfer, unggah bukti di langkah 3. Kredit ditambahkan admin setelah diverifikasi.</p>
                 </div>
 
                 {/* ===== 3. BUKTI ===== */}
