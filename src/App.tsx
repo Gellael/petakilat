@@ -989,8 +989,6 @@ const FAQS = [
 
 // ===================== STYLESHEET =====================
 const APP_CSS = `
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Poppins:wght@500;600;700&family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,700&display=swap');
-
 .gl-root{
   --ink:#0f1b2d; --ink-2:#334155; --muted:#64748b; --line:#dde4ea; --line-2:#eef2f5;
   --paper:#f3f6f8; --surface:#ffffff; --brand:#0e7490; --brand-d:#155e75; --brand-soft:#e0f4f8;
@@ -1000,6 +998,9 @@ const APP_CSS = `
   font-family:Inter,system-ui,-apple-system,'Segoe UI',sans-serif; -webkit-font-smoothing:antialiased;
 }
 .gl-root *,.gl-root *::before,.gl-root *::after{box-sizing:border-box}
+/* Halaman utama: scroll dokumen biasa (bukan kotak scroll internal) supaya crawler dan perangkat mobile membaca seluruh halaman */
+.gl-root.is-home{position:static;inset:auto;overflow:visible;min-height:100vh;min-height:100dvh}
+.gl-root.is-home .gl-home{position:relative;inset:auto;overflow-x:clip;overflow-y:visible;min-height:100vh;min-height:100dvh}
 .gl-root button{font-family:inherit}
 .gl-root :focus-visible{outline:2px solid var(--brand); outline-offset:2px}
 @media (prefers-reduced-motion:reduce){
@@ -1072,10 +1073,10 @@ const APP_CSS = `
 .gl-basemap.is-on{border-color:var(--brand);box-shadow:0 0 0 2px rgba(14,116,144,.25)}
 .gl-basemap__thumb{height:46px;border-radius:8px;border:1px solid rgba(15,27,45,.08)}
 .gl-basemap__name{padding:0 4px;font-size:12px;font-weight:600;line-height:1.25;color:var(--ink)}
-.gl-basemap__desc{padding:0 4px;margin-top:-4px;font-size:11px;line-height:1.3;color:var(--muted)}
+.gl-basemap__desc{padding:0 4px;margin-top:-4px;font-size:12px;line-height:1.3;color:var(--muted)}
 
 .gl-bmgroup{display:flex;flex-direction:column;gap:8px}
-.gl-subhead{font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
+.gl-subhead{font-size:12px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
 .gl-basemap--wide{grid-column:1/-1}
 .gl-legrow{display:flex;align-items:center;gap:8px}
 .gl-legrow__sym{width:36px;height:36px;display:flex;align-items:center;justify-content:center;border:1px solid var(--line);border-radius:8px;background:#fff;flex-shrink:0}
@@ -1097,7 +1098,7 @@ const APP_CSS = `
 .gl-note{padding:9px 11px;border-radius:10px;background:var(--paper);font-size:12px;line-height:1.5;color:var(--muted)}
 .gl-note--warn{background:#fff6dc;color:#7a5200}
 .gl-note--err{background:var(--danger-soft);color:#991b1b;display:flex;flex-direction:column;gap:8px;align-items:flex-start}
-.gl-badge{padding:2px 9px;border-radius:999px;background:var(--brand-soft);color:var(--brand-d);font-size:11px;font-weight:600}
+.gl-badge{padding:2px 9px;border-radius:999px;background:var(--brand-soft);color:var(--brand-d);font-size:12px;font-weight:600}
 
 .gl-aoi-list{display:flex;flex-direction:column;gap:8px}
 .gl-aoi{border:1px solid var(--line);border-radius:12px;background:#fff}
@@ -1167,7 +1168,7 @@ const APP_CSS = `
 .gl-brand__mark svg{fill:#0b3445}
 .gl-brand__acc{font-style:normal;color:#facc15}
 .gl-brand__name{font-size:18px;font-weight:700;line-height:1.1;letter-spacing:-.01em}
-.gl-brand__sub{margin-top:2px;font-size:11px;opacity:.72}
+.gl-brand__sub{margin-top:2px;font-size:12px;opacity:.72}
 .gl-nav__links{display:flex;align-items:center;gap:28px}
 .gl-link{padding:6px 0;border:0;border-bottom:2px solid transparent;background:none;color:inherit;font:inherit;font-size:15px;font-weight:500;cursor:pointer;opacity:.9}
 .gl-link:hover{border-bottom-color:var(--h-aqua);opacity:1}
@@ -1257,7 +1258,7 @@ const APP_CSS = `
 .gl-cascade{display:flex;flex-direction:column;gap:8px;min-width:200px}
 .gl-cascade div{display:flex;flex-direction:column;padding:9px 14px;border-radius:10px;background:rgba(255,255,255,.08);border-left:3px solid rgba(255,255,255,.25)}
 .gl-cascade div:last-child{background:rgba(255,255,255,.16);border-left-color:#ef4444}
-.gl-cascade small{font-size:11px;color:rgba(255,255,255,.62)}
+.gl-cascade small{font-size:12px;color:rgba(255,255,255,.62)}
 .gl-cascade b{font-size:14px;font-weight:600}
 .gl-fmt{display:flex;gap:10px}
 .gl-fmt span{display:inline-flex;align-items:center;height:40px;padding:0 18px;border-radius:10px;background:#fff;border:1px solid #bfdde6;font-size:14px;font-weight:700;color:var(--h-ink)}
@@ -1294,14 +1295,14 @@ const APP_CSS = `
 .gl-plan--hi .gl-plan__price{font-size:46px}
 .gl-plan--hi .gl-plan__buy .gl-btn{margin-top:6px}
 .gl-plan--hi:hover{box-shadow:0 30px 60px rgba(12,52,71,.38)}
-.gl-plan__badge{position:absolute;top:0;right:0;padding:7px 16px 7px 18px;border-radius:0 0 0 16px;background:linear-gradient(135deg,#facc15,#f59e0b);color:#422006;font-size:11px;font-weight:800;letter-spacing:.06em;text-transform:uppercase}
+.gl-plan__badge{position:absolute;top:0;right:0;padding:7px 16px 7px 18px;border-radius:0 0 0 16px;background:linear-gradient(135deg,#facc15,#f59e0b);color:#422006;font-size:12px;font-weight:800;letter-spacing:.06em;text-transform:uppercase}
 .gl-packs{display:flex;flex-direction:column;gap:10px}
 .gl-pack{display:flex;justify-content:space-between;align-items:center;gap:12px;width:100%;padding:14px 16px;border-radius:14px;border:1px solid rgba(255,255,255,.22);background:rgba(255,255,255,.06);color:#fff;font:inherit;font-size:15px;text-align:left;cursor:pointer;transition:background .15s,transform .15s,border-color .15s}
 .gl-pack:hover{background:rgba(255,255,255,.14);border-color:rgba(255,255,255,.5);transform:translateY(-2px)}
 .gl-pack--best{border:2px solid #facc15;background:linear-gradient(135deg,rgba(250,204,21,.24),rgba(250,204,21,.06))}
 .gl-pack--best:hover{border-color:#fde047;background:linear-gradient(135deg,rgba(250,204,21,.34),rgba(250,204,21,.1))}
 .gl-pack__n{display:flex;flex-wrap:wrap;align-items:center;gap:8px;font-weight:600}
-.gl-pack__n i{font-style:normal;font-size:11px;font-weight:800;padding:3px 9px;border-radius:999px;background:#facc15;color:#422006}
+.gl-pack__n i{font-style:normal;font-size:12px;font-weight:800;padding:3px 9px;border-radius:999px;background:#facc15;color:#422006}
 .gl-pack b{font-family:'Bricolage Grotesque',Poppins,Inter,sans-serif;font-size:18px;font-weight:700}
 .gl-plan .gl-btn{margin-top:auto;height:46px;border-radius:12px}
 
@@ -1353,6 +1354,37 @@ const APP_CSS = `
   .gl-cta .gl-btn{flex:1 1 100%}
   .gl-side__foot{grid-template-columns:1fr}
 }
+
+/* ---------- penyempurnaan mobile ---------- */
+@media (pointer:coarse){
+  .gl-btn{min-height:44px}
+  .gl-btn--sm{height:40px}
+  .gl-iconbtn{width:44px;height:44px}
+  .gl-link{min-height:44px;display:inline-flex;align-items:center}
+  .gl-sec__head{min-height:48px}
+  .gl-pop__item{padding:12px}
+  .gl-toggle{min-height:44px}
+}
+@media (max-width:900px){
+  /* 16px mencegah iOS Safari memperbesar layar otomatis saat kolom diisi */
+  .gl-input,.gl-textarea,.gl-select,.gl-pop__search input{font-size:16px}
+  .gl-toolbar{padding:8px 12px;gap:8px}
+}
+@media (max-width:600px){
+  .gl-hero{padding-bottom:40px}
+  .gl-hero__facts{gap:8px 16px}
+  .gl-tile{padding:20px}
+  .gl-plan{padding:22px 18px}
+  .gl-plan--hi{padding:52px 18px 26px}
+  .gl-plan--hi .gl-plan__price{font-size:38px}
+  .gl-pack{padding:12px 14px}
+  .gl-foot{flex-direction:column;align-items:flex-start}
+  .gl-foot .gl-btn{width:100%}
+}
+@media (max-width:360px){
+  .gl-brand__sub{display:none}
+  .gl-basemaps{grid-template-columns:1fr}
+}
 `;
 
 // ===================== APLIKASI =====================
@@ -1377,15 +1409,8 @@ export default function App() {
   const [showAuth, setShowAuth] = useState<boolean>(false);
   const [showAccount, setShowAccount] = useState<boolean>(false);
 
-  // Judul tab dan favicon petir (tidak perlu mengubah index.html)
-  useEffect(() => {
-    document.title = 'Petakilat | Pembuat Peta Administrasi Desa';
-    const svg = "<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'><rect width='64' height='64' rx='14' fill='#0b3445'/><path d='M36 6 14 36h14l-4 22 26-33H35z' fill='#facc15'/></svg>";
-    let link = document.querySelector<HTMLLinkElement>("link[rel~='icon']");
-    if (!link) { link = document.createElement('link'); link.rel = 'icon'; document.head.appendChild(link); }
-    link.type = 'image/svg+xml';
-    link.href = 'data:image/svg+xml,' + encodeURIComponent(svg);
-  }, []);
+  // Ke atas halaman setiap berpindah antara beranda dan aplikasi peta
+  useEffect(() => { window.scrollTo(0, 0); }, [activePage]);
 
   // Kalau belum login tapi membuka #/peta langsung, kembalikan ke beranda + tampilkan form login
   useEffect(() => {
@@ -1395,6 +1420,12 @@ export default function App() {
   }
   }, [auth.loading, auth.user, activePage]);
   const [navSolid, setNavSolid] = useState<boolean>(false);
+  useEffect(() => {
+    const onScroll = () => setNavSolid(window.scrollY > 24);
+    onScroll();
+    window.addEventListener('scroll', onScroll, { passive: true });
+    return () => window.removeEventListener('scroll', onScroll);
+  }, []);
   const [sidebarOpen, setSidebarOpen] = useState<boolean>(false);
   const [openSec, setOpenSec] = useState<Record<string, boolean>>({ lokasi: true, dasar: false, simbol: false, gee: false, aoi: false, identitas: false, layout: false });
   const [exporting, setExporting] = useState<'' | 'png' | 'pdf'>('');
@@ -2534,14 +2565,14 @@ export default function App() {
   const regionSub = selectedDesa ? subJudul : 'Pilih wilayah di panel pengaturan untuk memulai';
 
   return (
-    <div className="gl-root">
+    <div className={`gl-root${activePage === 'home' ? ' is-home' : ''}`}>
       <style>{APP_CSS}</style>
 
       {/* ----------------- HALAMAN UTAMA ----------------- */}
       {activePage === 'home' && (
-        <div className="gl-home" onScroll={(e) => setNavSolid(e.currentTarget.scrollTop > 24)}>
+        <div className="gl-home">
           <header className={`gl-nav ${navSolid || navOpen ? 'is-solid' : ''}`}>
-            <button type="button" className="gl-brand" onClick={() => document.querySelector('.gl-home')?.scrollTo({ top: 0, behavior: 'smooth' })} aria-label="Petakilat, kembali ke atas">
+            <button type="button" className="gl-brand" onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })} aria-label="Petakilat, kembali ke atas">
               <span className="gl-brand__mark gl-bolt-anim"><Icon name="bolt" size={20} /></span>
               <span>
                 <span className="gl-brand__name" style={{ display: 'block' }}>Peta<em className="gl-brand__acc">kilat</em></span>
@@ -2570,6 +2601,7 @@ export default function App() {
             </nav>
           </header>
 
+          <main>
           <section className="gl-hero">
             <svg className="gl-hero__bolt" viewBox="0 0 200 320" aria-hidden="true" focusable="false">
               <defs><linearGradient id="gl-bolt-g" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stopColor="#fef08a" /><stop offset="1" stopColor="#f59e0b" /></linearGradient></defs>
@@ -2723,6 +2755,8 @@ export default function App() {
               </div>
             </div>
           </section>
+
+          </main>
 
           <footer className="gl-foot">
             <div>
