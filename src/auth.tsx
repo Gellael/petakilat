@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState, type CSSProperties, type FormEvent } from 'react';
+import { useCallback, useEffect, useState, type CSSProperties, type FormEvent, type ReactNode } from 'react';
 
 const API: string = import.meta.env.VITE_API_URL || 'http://localhost:8080';
 const TOKEN_KEY = 'gl_token';
@@ -123,15 +123,6 @@ export function useAuth() {
 export type Auth = ReturnType<typeof useAuth>;
 
 // ===================== UI =====================
-const overlay: CSSProperties = {
-  position: 'fixed', inset: 0, background: 'rgba(8,28,22,.55)', zIndex: 9999,
-  display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16,
-};
-const card: CSSProperties = {
-  background: '#fff', borderRadius: 14, width: '100%', maxWidth: 520, maxHeight: '90vh',
-  overflowY: 'auto', padding: 20, boxShadow: '0 20px 50px rgba(0,0,0,.3)', color: '#0f172a', borderTop: '4px solid #0b7a56',
-};
-const row: CSSProperties = { display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' };
 export const rupiah = (n: number) => 'Rp' + n.toLocaleString('id-ID');
 
 /** Link WhatsApp ke admin dengan pesan pesanan yang sudah terisi (paket, nama, dan email akun). */
@@ -163,11 +154,92 @@ const Skel = ({ w, h, dark, style }: { w?: number | string; h?: number | string;
   <span className={`ak-skel${dark ? ' ak-skel--dark' : ''}`} style={{ width: w, height: h, ...style }} aria-hidden="true" />
 );
 
+// ===================== STYLE FORM MASUK / DAFTAR =====================
+const AUTH_CSS = `
+.au-overlay{--au-ink:#0c1f19;--au-green:#0b7a56;--au-line:#c5d6cc;--au-muted:#647a70;position:fixed;inset:0;z-index:9999;display:flex;align-items:center;justify-content:center;padding:16px;background:rgba(4,22,17,.62);font-family:Inter,system-ui,sans-serif;overscroll-behavior:contain}
+.au-overlay *,.au-overlay *::before,.au-overlay *::after{box-sizing:border-box}
+.au-dialog{position:relative;display:grid;grid-template-columns:minmax(0,5fr) minmax(0,6fr);grid-template-rows:minmax(0,1fr);width:100%;max-width:880px;max-height:calc(100vh - 32px);max-height:calc(100dvh - 32px);overflow:hidden;border-radius:24px;background:#fff;color:var(--au-ink);box-shadow:0 30px 80px rgba(0,0,0,.45);animation:au-rise .28s cubic-bezier(.2,.8,.2,1)}
+
+/* ---- panel kiri: identitas Petakilat dengan garis kontur peta ---- */
+.au-brand{position:relative;overflow:hidden;display:flex;flex-direction:column;justify-content:space-between;gap:28px;padding:30px 30px 32px;color:#fff;background:radial-gradient(120% 90% at 100% 0%,rgba(123,227,180,.35) 0%,transparent 55%),linear-gradient(160deg,#08211a,#0b3a2e 60%,#115240)}
+.au-brand>*{position:relative;z-index:1}
+.au-map{position:absolute;z-index:0;right:-45%;bottom:-25%;width:150%;height:auto;pointer-events:none}
+.au-logo{display:flex;align-items:center;gap:8px;font-family:'Newsreader','Cormorant Garamond',Georgia,serif;font-size:22px;font-weight:500;letter-spacing:.01em}
+.au-brand__copy h2{margin:0 0 10px;font-family:'Newsreader','Cormorant Garamond',Georgia,serif;font-size:clamp(26px,3.4vw,34px);line-height:1.1;font-weight:500}
+.au-brand__copy p{margin:0;max-width:30ch;font-size:14px;line-height:1.55;color:rgba(255,255,255,.78)}
+.au-points{margin:0;padding:0;list-style:none;display:grid;gap:10px;font-size:13px;line-height:1.45;color:rgba(255,255,255,.86)}
+.au-points li{display:flex;align-items:flex-start;gap:9px}
+.au-points svg{margin-top:2px}
+
+/* ---- panel kanan: form ---- */
+.au-close{position:absolute;top:12px;right:12px;z-index:3;width:36px;height:36px;border:0;border-radius:10px;background:#ebf2ee;color:#2f4a40;font-size:15px;line-height:1;cursor:pointer;transition:background .15s}
+.au-close:hover{background:#dcebe3}
+.au-panel{min-width:0;display:flex;flex-direction:column;overflow-y:auto;padding:60px 36px 32px}
+.au-form{width:100%;max-width:400px;margin:auto}
+.au-tabs{display:grid;grid-template-columns:1fr 1fr;gap:4px;padding:4px;border-radius:12px;background:#ebf2ee}
+.au-tabs button{height:40px;border:0;border-radius:9px;background:transparent;color:#2f4a40;font:inherit;font-size:14px;font-weight:600;cursor:pointer;transition:background .15s,color .15s}
+.au-tabs button.on{background:#fff;color:#0b3a2e;box-shadow:0 1px 3px rgba(8,33,26,.18)}
+.au-field{margin-top:14px}
+.au-tabs+.au-field{margin-top:20px}
+.au-label{display:block;margin-bottom:6px;font-size:13px;font-weight:600;color:#2f4a40}
+.au-input{display:block;width:100%;height:48px;padding:0 14px;border:1px solid var(--au-line);border-radius:12px;background:#fff;color:var(--au-ink);font:inherit;font-size:16px;transition:border-color .15s,box-shadow .15s}
+.au-input::placeholder{color:#9aaea4}
+.au-input:focus{outline:0;border-color:var(--au-green);box-shadow:0 0 0 3px rgba(11,122,86,.18)}
+.au-pw{position:relative}
+.au-pw .au-input{padding-right:104px}
+.au-pw__t{position:absolute;top:50%;right:6px;transform:translateY(-50%);height:36px;padding:0 10px;border:0;border-radius:8px;background:none;color:var(--au-green);font:inherit;font-size:13px;font-weight:700;cursor:pointer}
+.au-pw__t:hover{background:#ebf2ee}
+.au-hint{margin:6px 0 0;font-size:12px;color:var(--au-muted)}
+.au-code{height:60px;padding:0 0 0 .5em;text-align:center;font-size:28px;font-weight:600;letter-spacing:.5em;font-variant-numeric:tabular-nums}
+.au-note{margin-bottom:4px;padding:11px 13px;border:1px solid #cfe8dc;border-radius:12px;background:#ecf7f1;color:#0b3a2e;font-size:13px;line-height:1.5}
+.au-note--err{margin:14px 0 0;border-color:#fecaca;background:#fef2f2;color:#991b1b}
+.au-btn{display:grid;place-items:center;width:100%;height:50px;margin-top:18px;border:0;border-radius:12px;background:var(--au-green);color:#fff;font:inherit;font-size:15px;font-weight:700;cursor:pointer;transition:filter .15s}
+.au-btn:hover:not(:disabled){filter:brightness(1.08)}
+.au-btn:disabled{opacity:.55;cursor:not-allowed}
+.au-alt{display:flex;flex-wrap:wrap;align-items:center;justify-content:center;gap:6px 18px;margin-top:16px;font-size:13px;color:var(--au-muted)}
+.au-link{border:0;background:none;padding:0;color:var(--au-green);font:inherit;font-size:13px;font-weight:700;cursor:pointer;text-decoration:underline}
+.au-overlay button:focus-visible{outline:2px solid var(--au-green);outline-offset:2px}
+@keyframes au-rise{from{opacity:0;transform:translateY(12px) scale(.98)}to{opacity:1;transform:none}}
+@keyframes au-sheet{from{opacity:.6;transform:translateY(32px)}to{opacity:1;transform:none}}
+
+/* ---- ponsel: tampil sebagai lembar dari bawah layar ---- */
+@media (max-width:640px){
+  .au-overlay{align-items:flex-end;padding:0}
+  .au-dialog{grid-template-columns:minmax(0,1fr);grid-template-rows:auto minmax(0,1fr);max-width:none;max-height:94vh;max-height:94dvh;border-radius:24px 24px 0 0;animation-name:au-sheet}
+  .au-brand{gap:14px;padding:16px 20px 20px}
+  .au-brand__copy h2{margin:0;font-size:24px}
+  .au-brand__copy p,.au-points{display:none}
+  .au-map{right:-30%;bottom:-140%;width:120%}
+  .au-close{top:10px;right:10px;background:rgba(255,255,255,.14);color:#fff}
+  .au-close:hover{background:rgba(255,255,255,.24)}
+  .au-close:focus-visible{outline-color:#7be3b4}
+  .au-panel{padding:20px 20px calc(24px + env(safe-area-inset-bottom,0px))}
+}
+@media (prefers-reduced-motion:reduce){.au-dialog{animation:none}}
+`;
+
+/** Garis kontur peta: satu bentuk yang diperbesar bertahap, seperti kontur ketinggian. */
+const Contours = () => (
+  <svg className="au-map" viewBox="-150 -150 300 300" aria-hidden="true" focusable="false">
+    <g fill="none" stroke="rgba(123,227,180,.22)" strokeWidth={1}>
+      {Array.from({ length: 13 }).map((_, i) => (
+        <path
+          key={i}
+          vectorEffect="non-scaling-stroke"
+          transform={`rotate(${i * 5}) scale(${(0.18 + i * 0.13).toFixed(2)})`}
+          d="M10,-100 C70,-96 110,-40 96,12 C84,64 30,104 -26,94 C-84,84 -112,30 -92,-26 C-74,-76 -30,-104 10,-100Z"
+        />
+      ))}
+    </g>
+  </svg>
+);
+
 export function AuthModal({ auth, onClose, onSuccess }: { auth: Auth; onClose: () => void; onSuccess: () => void }) {
   const [mode, setMode] = useState<'login' | 'daftar'>('login');
   const [nama, setNama] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [showPw, setShowPw] = useState(false);
   const [err, setErr] = useState('');
   const [info, setInfo] = useState('');
   const [busy, setBusy] = useState(false);
@@ -181,6 +253,18 @@ export function AuthModal({ auth, onClose, onSuccess }: { auth: Auth; onClose: (
     const t = setTimeout(() => setCooldown((c) => c - 1), 1000);
     return () => clearTimeout(t);
   }, [cooldown]);
+
+  // Tombol Esc menutup form; halaman di belakang tidak ikut bergulir selama form terbuka.
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose(); };
+    document.addEventListener('keydown', onKey);
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    return () => {
+      document.removeEventListener('keydown', onKey);
+      document.body.style.overflow = prev;
+    };
+  }, [onClose]);
 
   const submit = async (e: FormEvent) => {
     e.preventDefault();
@@ -226,81 +310,112 @@ export function AuthModal({ auth, onClose, onSuccess }: { auth: Auth; onClose: (
     }
   };
 
-  const header = (title: string) => (
-    <div style={{ ...row, justifyContent: 'space-between', marginBottom: 12 }}>
-      <h3 style={{ margin: 0, display: 'flex', alignItems: 'center', gap: 8 }}><Bolt size={20} />{title}</h3>
-      <button type="button" className="gl-btn gl-btn--sm" onClick={onClose}>Tutup</button>
+  const switchMode = (m: 'login' | 'daftar') => { setMode(m); setErr(''); setShowPw(false); };
+
+  /** Kerangka bersama: panel identitas di kiri (di ponsel menjadi pita di atas) dan isi form di kanan. */
+  const shell = (title: string, lead: string, body: ReactNode) => (
+    <div className="au-overlay" onMouseDown={(e) => { if (e.target === e.currentTarget) onClose(); }}>
+      <style>{AUTH_CSS}{SKEL_CSS}</style>
+      <div className="au-dialog" role="dialog" aria-modal="true" aria-labelledby="au-title">
+        <button type="button" className="au-close" aria-label="Tutup" onClick={onClose}>✕</button>
+        <aside className="au-brand">
+          <Contours />
+          <div className="au-logo"><Bolt size={22} /><span>Petakilat</span></div>
+          <div className="au-brand__copy">
+            <h2 id="au-title">{title}</h2>
+            <p>{lead}</p>
+          </div>
+          <ul className="au-points">
+            <li><Bolt size={14} />Ekspor peta PNG atau PDF tanpa watermark</li>
+            <li><Bolt size={14} />1 kredit = 1 kali ekspor, dibeli lewat WhatsApp admin</li>
+          </ul>
+        </aside>
+        <div className="au-panel">{body}</div>
+      </div>
     </div>
   );
 
   // ---------- Langkah 2: masukkan kode verifikasi ----------
   if (verifyEmail) {
-    return (
-      <div style={overlay} onClick={onClose}>
-        <form style={card} onClick={(e) => e.stopPropagation()} onSubmit={submitCode}>
-          <style>{SKEL_CSS}</style>
-          {header('Verifikasi email')}
-          {info && <div className="gl-note" style={{ marginBottom: 10 }}><span>{info}</span></div>}
-          <label className="gl-field">
-            <span className="gl-label">Kode verifikasi</span>
-            <input
-              className="gl-input" value={code} required autoFocus
-              inputMode="numeric" autoComplete="one-time-code" pattern="[0-9]{6}" maxLength={6}
-              placeholder="123456"
-              style={{ letterSpacing: 6, fontSize: 20, textAlign: 'center' }}
-              onChange={(e) => setCode(e.target.value.replace(/\D/g, ''))}
-            />
-          </label>
-          {err && <div className="gl-note gl-note--err" style={{ marginTop: 10 }}><span>{err}</span></div>}
-          <button className="gl-btn gl-btn--primary" type="submit" disabled={busy || code.length !== 6} aria-busy={busy} aria-label={busy ? 'Memverifikasi' : undefined} style={{ width: '100%', marginTop: 12 }}>
-            {busy ? <Skel w={110} h={12} dark /> : 'Verifikasi & masuk'}
-          </button>
-          <div style={{ textAlign: 'center', marginTop: 10, fontSize: 13 }}>
-            {cooldown > 0 ? (
-              <span style={{ color: '#64748b' }}>Kirim ulang kode dalam {cooldown} dtk</span>
-            ) : (
-              <a href="#" onClick={(e) => { e.preventDefault(); resend(); }}>Kirim ulang kode</a>
-            )}
-            {' · '}
-            <a href="#" onClick={(e) => { e.preventDefault(); setVerifyEmail(null); setErr(''); setInfo(''); }}>Ganti email</a>
-          </div>
-        </form>
-      </div>
+    return shell(
+      'Cek email Anda',
+      'Masukkan kode 6 digit untuk memastikan email ini milik Anda.',
+      <form className="au-form" onSubmit={submitCode}>
+        {info && <div className="au-note" role="status">{info}</div>}
+        <div className="au-field">
+          <label className="au-label" htmlFor="au-code">Kode verifikasi</label>
+          <input
+            id="au-code" className="au-input au-code" value={code} required autoFocus
+            inputMode="numeric" autoComplete="one-time-code" pattern="[0-9]{6}" maxLength={6}
+            placeholder="123456"
+            onChange={(e) => setCode(e.target.value.replace(/\D/g, ''))}
+          />
+        </div>
+        {err && <div className="au-note au-note--err" role="alert">{err}</div>}
+        <button className="au-btn" type="submit" disabled={busy || code.length !== 6} aria-busy={busy} aria-label={busy ? 'Memverifikasi' : undefined}>
+          {busy ? <Skel w={110} h={12} dark /> : 'Verifikasi & masuk'}
+        </button>
+        <div className="au-alt">
+          {cooldown > 0 ? (
+            <span>Kirim ulang kode dalam {cooldown} dtk</span>
+          ) : (
+            <button type="button" className="au-link" onClick={resend}>Kirim ulang kode</button>
+          )}
+          <button type="button" className="au-link" onClick={() => { setVerifyEmail(null); setErr(''); setInfo(''); }}>Ganti email</button>
+        </div>
+      </form>
     );
   }
 
   // ---------- Langkah 1: masuk / daftar ----------
-  return (
-    <div style={overlay} onClick={onClose}>
-      <form style={card} onClick={(e) => e.stopPropagation()} onSubmit={submit}>
-        <style>{SKEL_CSS}</style>
-        {header(mode === 'login' ? 'Masuk ke Petakilat' : 'Daftar di Petakilat')}
-        {mode === 'daftar' && (
-          <label className="gl-field">
-            <span className="gl-label">Nama</span>
-            <input className="gl-input" value={nama} onChange={(e) => setNama(e.target.value)} required />
-          </label>
-        )}
-        <label className="gl-field">
-          <span className="gl-label">Email</span>
-          <input className="gl-input" type="email" value={email} onChange={(e) => setEmail(e.target.value)} required />
-        </label>
-        <label className="gl-field">
-          <span className="gl-label">Kata sandi {mode === 'daftar' && '(min. 8 karakter)'}</span>
-          <input className="gl-input" type="password" value={password} onChange={(e) => setPassword(e.target.value)} required minLength={mode === 'daftar' ? 8 : 1} />
-        </label>
-        {err && <div className="gl-note gl-note--err" style={{ marginTop: 10 }}><span>{err}</span></div>}
-        <button className="gl-btn gl-btn--primary" type="submit" disabled={busy} aria-busy={busy} aria-label={busy ? 'Memproses' : undefined} style={{ width: '100%', marginTop: 12 }}>
-          {busy ? <Skel w={80} h={12} dark /> : mode === 'login' ? 'Masuk' : 'Daftar'}
-        </button>
-        <div style={{ textAlign: 'center', marginTop: 10, fontSize: 13 }}>
-          {mode === 'login' ? 'Belum punya akun? ' : 'Sudah punya akun? '}
-          <a href="#" onClick={(e) => { e.preventDefault(); setErr(''); setMode(mode === 'login' ? 'daftar' : 'login'); }}>
-            {mode === 'login' ? 'Daftar' : 'Masuk'}
-          </a>
+  return shell(
+    mode === 'login' ? 'Selamat datang kembali' : 'Buat akun Petakilat',
+    mode === 'login'
+      ? 'Masuk untuk memilih wilayah dan mengekspor peta Anda.'
+      : 'Daftar dengan email Anda, lalu verifikasi dengan kode 6 digit.',
+    <form className="au-form" onSubmit={submit}>
+      <div className="au-tabs" role="tablist" aria-label="Masuk atau daftar">
+        <button type="button" role="tab" aria-selected={mode === 'login'} className={mode === 'login' ? 'on' : ''} onClick={() => switchMode('login')}>Masuk</button>
+        <button type="button" role="tab" aria-selected={mode === 'daftar'} className={mode === 'daftar' ? 'on' : ''} onClick={() => switchMode('daftar')}>Daftar</button>
+      </div>
+
+      {mode === 'daftar' && (
+        <div className="au-field">
+          <label className="au-label" htmlFor="au-nama">Nama</label>
+          <input id="au-nama" className="au-input" value={nama} onChange={(e) => setNama(e.target.value)} placeholder="Nama Anda" autoComplete="name" required />
         </div>
-      </form>
-    </div>
+      )}
+      <div className="au-field">
+        <label className="au-label" htmlFor="au-email">Email</label>
+        <input
+          id="au-email" className="au-input" type="email" value={email} onChange={(e) => setEmail(e.target.value)}
+          placeholder="nama@email.com" autoComplete="email" inputMode="email" autoCapitalize="none" spellCheck={false} required
+        />
+      </div>
+      <div className="au-field">
+        <label className="au-label" htmlFor="au-pass">Kata sandi</label>
+        <div className="au-pw">
+          <input
+            id="au-pass" className="au-input" type={showPw ? 'text' : 'password'} value={password}
+            onChange={(e) => setPassword(e.target.value)} required minLength={mode === 'daftar' ? 8 : 1}
+            autoComplete={mode === 'login' ? 'current-password' : 'new-password'} placeholder="Kata sandi"
+          />
+          <button type="button" className="au-pw__t" onClick={() => setShowPw((s) => !s)}>{showPw ? 'Sembunyikan' : 'Tampilkan'}</button>
+        </div>
+        {mode === 'daftar' && <p className="au-hint">Minimal 8 karakter.</p>}
+      </div>
+
+      {err && <div className="au-note au-note--err" role="alert">{err}</div>}
+      <button className="au-btn" type="submit" disabled={busy} aria-busy={busy} aria-label={busy ? 'Memproses' : undefined}>
+        {busy ? <Skel w={80} h={12} dark /> : mode === 'login' ? 'Masuk' : 'Daftar'}
+      </button>
+      <div className="au-alt">
+        <span>{mode === 'login' ? 'Belum punya akun?' : 'Sudah punya akun?'}</span>
+        <button type="button" className="au-link" onClick={() => switchMode(mode === 'login' ? 'daftar' : 'login')}>
+          {mode === 'login' ? 'Daftar' : 'Masuk'}
+        </button>
+      </div>
+    </form>
   );
 }
 
