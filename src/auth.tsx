@@ -117,6 +117,11 @@ export function useAuth() {
       authenticate('/api/auth/register', { nama, email, password }),
     verifyEmail: (email: string, code: string) => authenticate('/api/auth/verify', { email, code }),
     resendCode: (email: string) => postJson('/api/auth/resend', { email }),
+    /** Minta kode reset kata sandi. Server selalu menjawab sukses (tidak membocorkan email terdaftar atau tidak). */
+    forgotPassword: (email: string) => postJson('/api/auth/forgot', { email }),
+    /** Atur kata sandi baru dengan kode dari email. Jika berhasil, user langsung masuk. */
+    resetPassword: (email: string, code: string, password: string) =>
+      authenticate('/api/auth/reset', { email, code, password }),
     logout: () => { setToken(''); setUser(null); },
   };
 }
@@ -190,6 +195,7 @@ const AUTH_CSS = `
 .au-pw__t{position:absolute;top:50%;right:6px;transform:translateY(-50%);height:36px;padding:0 10px;border:0;border-radius:8px;background:none;color:var(--au-green);font:inherit;font-size:13px;font-weight:700;cursor:pointer}
 .au-pw__t:hover{background:#ebf2ee}
 .au-hint{margin:6px 0 0;font-size:12px;color:var(--au-muted)}
+.au-forgot{display:flex;justify-content:flex-end;margin-top:8px}
 .au-code{height:60px;padding:0 0 0 .5em;text-align:center;font-size:28px;font-weight:600;letter-spacing:.5em;font-variant-numeric:tabular-nums}
 .au-note{margin-bottom:4px;padding:11px 13px;border:1px solid #cfe8dc;border-radius:12px;background:#ecf7f1;color:#0b3a2e;font-size:13px;line-height:1.5}
 .au-note--err{margin:14px 0 0;border-color:#fecaca;background:#fef2f2;color:#991b1b}
@@ -235,7 +241,7 @@ const Contours = () => (
 );
 
 export function AuthModal({ auth, onClose, onSuccess }: { auth: Auth; onClose: () => void; onSuccess: () => void }) {
-  const [mode, setMode] = useState<'login' | 'daftar'>('login');
+  const [mode, setMode] = useState<'login' | 'daftar' | 'lupa'>('login');
   const [nama, setNama] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -247,6 +253,9 @@ export function AuthModal({ auth, onClose, onSuccess }: { auth: Auth; onClose: (
   const [verifyEmail, setVerifyEmail] = useState<string | null>(null);
   const [code, setCode] = useState('');
   const [cooldown, setCooldown] = useState(0);
+  // Langkah reset kata sandi: berisi alamat email yang sedang menunggu kode reset
+  const [resetEmail, setResetEmail] = useState<string | null>(null);
+  const [newPassword, setNewPassword] = useState('');
 
   useEffect(() => {
     if (cooldown <= 0) return;
@@ -312,6 +321,56 @@ export function AuthModal({ auth, onClose, onSuccess }: { auth: Auth; onClose: (
 
   const switchMode = (m: 'login' | 'daftar') => { setMode(m); setErr(''); setShowPw(false); };
 
+  // ---------- Lupa kata sandi ----------
+  const openForgot = () => { setMode('lupa'); setErr(''); setInfo(''); setShowPw(false); };
+
+  const backToLogin = () => {
+    setMode('login');
+    setResetEmail(null);
+    setCode(''); setNewPassword('');
+    setErr(''); setInfo(''); setShowPw(false);
+  };
+
+  const submitForgot = async (e: FormEvent) => {
+    e.preventDefault();
+    setErr(''); setInfo(''); setBusy(true);
+    try {
+      const target = email.trim();
+      await auth.forgotPassword(target);
+      setResetEmail(target.toLowerCase());
+      setCode('');
+      setNewPassword('');
+      setCooldown(60);
+      setInfo(`Jika ${target} terdaftar, kami mengirim kode 6 digit ke alamat itu. Kode berlaku 15 menit.`);
+    } catch (ex: any) {
+      setErr(ex?.message || 'Gagal terhubung ke server.');
+    } finally { setBusy(false); }
+  };
+
+  const submitReset = async (e: FormEvent) => {
+    e.preventDefault();
+    if (!resetEmail) return;
+    setErr(''); setInfo(''); setBusy(true);
+    try {
+      await auth.resetPassword(resetEmail, code.trim(), newPassword);
+      onSuccess();
+    } catch (ex: any) {
+      setErr(ex?.message || 'Gagal terhubung ke server.');
+    } finally { setBusy(false); }
+  };
+
+  const resendReset = async () => {
+    if (!resetEmail || cooldown > 0) return;
+    setErr(''); setInfo('');
+    try {
+      await auth.forgotPassword(resetEmail);
+      setInfo('Jika email terdaftar, kode baru sudah dikirim. Cek folder spam jika belum masuk.');
+      setCooldown(60);
+    } catch (ex: any) {
+      setErr(ex?.message || 'Gagal terhubung ke server.');
+    }
+  };
+
   /** Kerangka bersama: panel identitas di kiri (di ponsel menjadi pita di atas) dan isi form di kanan. */
   const shell = (title: string, lead: string, body: ReactNode) => (
     <div className="au-overlay" onMouseDown={(e) => { if (e.target === e.currentTarget) onClose(); }}>
@@ -367,6 +426,75 @@ export function AuthModal({ auth, onClose, onSuccess }: { auth: Auth; onClose: (
     );
   }
 
+  // ---------- Reset kata sandi: masukkan kode + kata sandi baru ----------
+  if (resetEmail) {
+    return shell(
+      'Buat kata sandi baru',
+      'Masukkan kode 6 digit dari email, lalu pilih kata sandi baru Anda.',
+      <form className="au-form" onSubmit={submitReset}>
+        {info && <div className="au-note" role="status">{info}</div>}
+        <div className="au-field">
+          <label className="au-label" htmlFor="au-rcode">Kode dari email</label>
+          <input
+            id="au-rcode" className="au-input au-code" value={code} required autoFocus
+            inputMode="numeric" autoComplete="one-time-code" pattern="[0-9]{6}" maxLength={6}
+            placeholder="123456"
+            onChange={(e) => setCode(e.target.value.replace(/\D/g, ''))}
+          />
+        </div>
+        <div className="au-field">
+          <label className="au-label" htmlFor="au-newpass">Kata sandi baru</label>
+          <div className="au-pw">
+            <input
+              id="au-newpass" className="au-input" type={showPw ? 'text' : 'password'} value={newPassword}
+              onChange={(e) => setNewPassword(e.target.value)} required minLength={8} maxLength={128}
+              autoComplete="new-password" placeholder="Kata sandi baru"
+            />
+            <button type="button" className="au-pw__t" onClick={() => setShowPw((s) => !s)}>{showPw ? 'Sembunyikan' : 'Tampilkan'}</button>
+          </div>
+          <p className="au-hint">Minimal 8 karakter.</p>
+        </div>
+        {err && <div className="au-note au-note--err" role="alert">{err}</div>}
+        <button className="au-btn" type="submit" disabled={busy || code.length !== 6 || newPassword.length < 8} aria-busy={busy} aria-label={busy ? 'Memproses' : undefined}>
+          {busy ? <Skel w={110} h={12} dark /> : 'Simpan & masuk'}
+        </button>
+        <div className="au-alt">
+          {cooldown > 0 ? (
+            <span>Kirim ulang kode dalam {cooldown} dtk</span>
+          ) : (
+            <button type="button" className="au-link" onClick={resendReset}>Kirim ulang kode</button>
+          )}
+          <button type="button" className="au-link" onClick={() => { setResetEmail(null); setErr(''); setInfo(''); }}>Ganti email</button>
+          <button type="button" className="au-link" onClick={backToLogin}>Kembali masuk</button>
+        </div>
+      </form>
+    );
+  }
+
+  // ---------- Lupa kata sandi: masukkan email ----------
+  if (mode === 'lupa') {
+    return shell(
+      'Lupa kata sandi?',
+      'Kami kirim kode 6 digit ke email akun Anda untuk membuat kata sandi baru.',
+      <form className="au-form" onSubmit={submitForgot}>
+        <div className="au-field">
+          <label className="au-label" htmlFor="au-femail">Email akun</label>
+          <input
+            id="au-femail" className="au-input" type="email" value={email} onChange={(e) => setEmail(e.target.value)}
+            placeholder="nama@email.com" autoComplete="email" inputMode="email" autoCapitalize="none" spellCheck={false} required autoFocus
+          />
+        </div>
+        {err && <div className="au-note au-note--err" role="alert">{err}</div>}
+        <button className="au-btn" type="submit" disabled={busy} aria-busy={busy} aria-label={busy ? 'Memproses' : undefined}>
+          {busy ? <Skel w={80} h={12} dark /> : 'Kirim kode'}
+        </button>
+        <div className="au-alt">
+          <button type="button" className="au-link" onClick={backToLogin}>Kembali ke halaman masuk</button>
+        </div>
+      </form>
+    );
+  }
+
   // ---------- Langkah 1: masuk / daftar ----------
   return shell(
     mode === 'login' ? 'Selamat datang kembali' : 'Buat akun Petakilat',
@@ -403,6 +531,11 @@ export function AuthModal({ auth, onClose, onSuccess }: { auth: Auth; onClose: (
           <button type="button" className="au-pw__t" onClick={() => setShowPw((s) => !s)}>{showPw ? 'Sembunyikan' : 'Tampilkan'}</button>
         </div>
         {mode === 'daftar' && <p className="au-hint">Minimal 8 karakter.</p>}
+        {mode === 'login' && (
+          <div className="au-forgot">
+            <button type="button" className="au-link" onClick={openForgot}>Lupa kata sandi?</button>
+          </div>
+        )}
       </div>
 
       {err && <div className="au-note au-note--err" role="alert">{err}</div>}
