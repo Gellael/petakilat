@@ -5,6 +5,7 @@ import workerUrl from 'maplibre-gl/dist/maplibre-gl-worker.mjs?url';
 import * as turf from '@turf/turf';
 import { useHomeMotion, useHeroMap } from './motion';
 import { UserCircle} from 'lucide-react';
+import { SiteFooter } from './SiteFooter';
 import { useAuth, AuthModal, AccountModal, apiFetch, PAKET_KREDIT, hemat, rupiah, linkWaPaket } from './auth';
 maplibregl.setWorkerUrl(workerUrl);
 
@@ -1234,7 +1235,8 @@ const APP_CSS = `
 .gl-nav{position:sticky;top:0;z-index:40;height:72px;display:flex;align-items:center;justify-content:space-between;gap:24px;padding:0 clamp(16px,5vw,64px);color:#fff;transition:background .2s,box-shadow .2s}
 .gl-nav.is-solid{background:rgba(7,32,26,.94);backdrop-filter:blur(10px);box-shadow:0 1px 0 rgba(255,255,255,.08)}
 .gl-brand{display:flex;align-items:center;gap:10px;padding:0;border:0;background:none;color:inherit;text-align:left;cursor:pointer}
-.gl-brand__mark{display:grid;place-items:center;width:38px;height:38px;border-radius:10px;background:linear-gradient(135deg,#b4f0d3,#3fc08b);color:#0a2e25;box-shadow:0 0 0 1px rgba(123,227,180,.45),0 0 18px rgba(123,227,180,.45)}
+.gl-brand__mark2{display:flex;justify-content:center;align-items:center;width:38px;height:38px;border-radius:10px;background-color: rgba(128, 128, 128, 0.2);
+;color:#0a2e25;}
 .gl-brand__mark svg{fill:#0a2e25}
 .gl-brand__acc{font-style:normal;color:#7be3b4}
 .gl-brand__name{font-size:18px;font-weight:700;line-height:1.1;letter-spacing:-.01em}
@@ -1242,6 +1244,8 @@ const APP_CSS = `
 .gl-nav__links{display:flex;align-items:center;gap:28px}
 .gl-link{padding:6px 0;border:0;border-bottom:2px solid transparent;background:none;color:inherit;font:inherit;font-size:15px;font-weight:500;cursor:pointer;opacity:.9}
 .gl-link:hover{border-bottom-color:var(--h-aqua);opacity:1}
+.gf__cta1{display:inline-flex;align-items:center;justify-content:center;height:44px;padding:0 15px;border:0;border-radius:12px;background:#7be3b4;color:#06281d;font:inherit;font-size:14px;font-weight:700;cursor:pointer;transition:filter .15s}
+.gf__cta1:hover{filter:brightness(1.06)}
 .gl-btn--light{height:40px;border:1px solid rgba(255,255,255,.7);background:transparent;color:#fff}
 .gl-btn--light:hover{background:#fff;color:var(--h-ink)}
 .gl-btn--white{background:#fff;border-color:#fff;color:var(--h-ink)}
@@ -2739,10 +2743,18 @@ export default function App() {
         <div className="gl-home" ref={homeRef} onScroll={(e) => setNavSolid(e.currentTarget.scrollTop > 24)}>
           <header className={`gl-nav ${navSolid || navOpen ? 'is-solid' : ''}`}>
             <button type="button" className="gl-brand" onClick={() => document.querySelector('.gl-home')?.scrollTo({ top: 0, behavior: 'smooth' })} aria-label="Petakilat, kembali ke atas">
-              <span className="gl-brand__mark gl-bolt-anim"><Icon name="bolt" size={20} /></span>
+              <span className="gl-brand__mark2">
+                <img
+                  src={`${import.meta.env.BASE_URL}ProjectKalibata1.png`}
+                  alt=""
+                  width={'78px'}
+                  height={'88px'}
+                  style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', marginTop: '16px' }}
+                />
+              </span>
               <span>
                 <span className="gl-brand__name" style={{ display: 'block' }}>Peta<em className="gl-brand__acc">kilat</em></span>
-                <span className="gl-brand__sub" style={{ display: 'block' }}>Modern WebGIS Cartographic Suite</span>
+                <span className="gl-brand__sub" style={{ display: 'block' }}>Buat Peta Secepat Kilat</span>
               </span>
             </button>
 
@@ -2765,7 +2777,7 @@ export default function App() {
                 <UserCircle size={30} /> {auth.user.nama}
               </button>
             ) : (
-              <button type="button" className="gl-link" onClick={() => setShowAuth(true)}>Masuk</button>
+              <button type="button" className="gf__cta1" onClick={() => setShowAuth(true)}>Masuk</button> 
             )}
             </nav>
           </header>
@@ -2779,7 +2791,6 @@ export default function App() {
               <polygon points="125,0 20,170 95,170 70,320 185,120 108,120" fill="url(#gl-bolt-g)" />
             </svg>
             <div className="gl-hero__copy">
-              <span className="gl-hero__tag"><Icon name="bolt" size={13} /> Sekilat petir, siap cetak</span>
               <h1>Susun peta administrasi desa yang siap cetak</h1>
               <p>Petakilat menyusun lembar peta desa atau kelurahan lengkap dengan judul, arah utara, skala, legenda, dan metadata. Pilih wilayah, atur tampilan, lalu unduh sebagai PNG atau PDF A4.</p>
               <div className="gl-cta">
@@ -2929,18 +2940,7 @@ export default function App() {
             </div>
           </section>
 
-          <footer className="gl-foot">
-            <div>
-              <b>Peta<span className="gl-brand__acc">kilat</span></b>
-              <span>Informatika, Universitas Bengkulu</span>
-            </div>
-            <div className="gl-foot__links">
-              <button type="button" className="gl-link" onClick={() => goTo('fitur')}>Fitur</button>
-              <button type="button" className="gl-link" onClick={() => goTo('harga')}>Harga</button>
-              <button type="button" className="gl-link" onClick={() => goTo('faq')}>FAQ</button>
-            </div>
-            <button type="button" className="gl-btn gl-btn--light" onClick={openApp}>Buka aplikasi</button>
-          </footer>
+          <SiteFooter goTo={goTo} openApp={openApp} />
         </div>
       )}
 
