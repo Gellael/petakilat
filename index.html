@@ -91,21 +91,39 @@
     </script>
   </head>
   <body>
-    <div id="root"></div>
-
-    <!-- Konten cadangan bagi pengunjung dan crawler tanpa JavaScript -->
-    <noscript>
+    <!--
+      Konten statis di dalam #root ini langsung terbaca oleh crawler
+      (Google, Bing) tanpa menunggu JavaScript. Saat aplikasi React
+      dimuat, seluruh isi #root akan otomatis digantikan oleh aplikasi.
+    -->
+    <div id="root">
       <main style="font-family:Arial,Helvetica,sans-serif;max-width:720px;margin:40px auto;padding:0 16px;line-height:1.6;color:#17303f">
-        <h1>Petakilat: Pembuat Peta Administrasi Desa dan Kelurahan</h1>
+        <h1>Petakilat: Pembuat Peta Administrasi Desa dan Kelurahan Online</h1>
         <p>Petakilat adalah aplikasi web untuk menyusun peta administrasi desa dan kelurahan siap cetak, lengkap dengan judul, arah utara, skala, legenda, dan metadata. Pilih provinsi, kabupaten/kota, dan desa, atur tampilan, lalu unduh hasilnya sebagai PNG atau PDF A4.</p>
+
+        <h2>Fitur Petakilat</h2>
         <ul>
           <li>Batas administrasi desa dari Badan Informasi Geospasial (BIG)</li>
           <li>Banyak pilihan peta dasar: citra satelit, peta terang, mode gelap, jalan, dan topografi</li>
           <li>Titik AOI dengan foto lapangan dan peta inset</li>
           <li>Ekspor PNG resolusi tinggi dan PDF A4 lanskap</li>
         </ul>
-        <p>Aktifkan JavaScript di browser Anda untuk menggunakan Petakilat.</p>
+
+        <h2>Cara Membuat Peta Administrasi Desa</h2>
+        <ol>
+          <li>Pilih provinsi, kabupaten/kota, lalu desa atau kelurahan.</li>
+          <li>Atur peta dasar, judul, skala, legenda, dan arah utara.</li>
+          <li>Tambahkan titik AOI dan foto lapangan bila diperlukan.</li>
+          <li>Unduh peta sebagai PNG resolusi tinggi atau PDF A4 lanskap.</li>
+        </ol>
       </main>
+    </div>
+
+    <!-- Pesan bagi pengunjung tanpa JavaScript -->
+    <noscript>
+      <p style="font-family:Arial,Helvetica,sans-serif;max-width:720px;margin:24px auto;padding:0 16px;color:#17303f">
+        Aktifkan JavaScript di browser Anda untuk menggunakan Petakilat.
+      </p>
     </noscript>
 
     <script type="module" src="/src/main.tsx"></script>
