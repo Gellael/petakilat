@@ -1353,6 +1353,34 @@ const APP_CSS = `
   .gl-cta .gl-btn{flex:1 1 100%}
   .gl-side__foot{grid-template-columns:1fr}
 }
+
+/* ---------- penyempurnaan mobile (hanya layar <= 900px, desktop tidak terpengaruh) ---------- */
+@media (max-width:900px){
+  /* target sentuh minimal 44px */
+  .gl-btn{min-height:44px}
+  .gl-iconbtn{width:44px;height:44px}
+  .gl-link{min-height:44px;display:inline-flex;align-items:center}
+  .gl-sec__head{min-height:48px}
+  .gl-pop__item{padding:12px}
+  .gl-toggle{min-height:44px}
+  /* 16px mencegah iOS Safari memperbesar layar otomatis saat kolom diisi */
+  .gl-input,.gl-textarea,.gl-select,.gl-pop__search input{font-size:16px}
+}
+@media (max-width:600px){
+  .gl-hero{padding-bottom:40px}
+  .gl-hero__facts{gap:8px 16px}
+  .gl-tile{padding:20px}
+  .gl-plan{padding:22px 18px}
+  .gl-plan--hi{padding:52px 18px 26px}
+  .gl-plan--hi .gl-plan__price{font-size:38px}
+  .gl-pack{padding:12px 14px}
+  .gl-foot{flex-direction:column;align-items:flex-start}
+  .gl-foot .gl-btn{width:100%}
+}
+@media (max-width:360px){
+  .gl-brand__sub{display:none}
+  .gl-basemaps{grid-template-columns:1fr}
+}
 `;
 
 // ===================== APLIKASI =====================
