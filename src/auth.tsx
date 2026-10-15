@@ -4,8 +4,8 @@ const API: string = import.meta.env.VITE_API_URL || 'http://localhost:8080';
 const TOKEN_KEY = 'gl_token';
 
 // ====== ISI SESUAI KEBUTUHAN ANDA ======
-/** Gambar kode QR tujuan transfer. Letakkan berkasnya di folder public frontend. */
-const QR_IMAGE = '/qrbayar.jpeg';
+/** Nomor WhatsApp admin (format internasional tanpa +). Kredit dibeli lewat chat ke nomor ini. */
+export const ADMIN_WA = '6283176819739';
 
 /** Harga satuan: 1 kredit = Rp20.000. */
 export const HARGA_PER_KREDIT = 20000;
@@ -30,44 +30,12 @@ export const PAKET_KREDIT: PaketKredit[] = [
 /** Selisih dibanding membeli satuan (mis. 3 x Rp20.000 - Rp50.000 = Rp10.000). */
 export const hemat = (p: PaketKredit) => p.kredit * HARGA_PER_KREDIT - p.harga;
 
-/**
- * Menghitung saran kredit dari nominal transfer: kombinasi paket yang menghasilkan kredit terbanyak
- * (sisa nominal yang tidak cukup untuk satu paket pun tidak dihitung).
- * Contoh: 20.000 -> 1, 50.000 -> 3, 80.000 -> 5, 100.000 -> 7, 130.000 -> 8.
- */
-const gcd = (a: number, b: number): number => (b ? gcd(b, a % b) : a);
-export const hitungKredit = (nominal: number): number => {
-  const langkah = PAKET_KREDIT.reduce((g, p) => gcd(g, p.harga), 0);
-  const n = Math.min(Math.floor(Math.max(0, nominal) / langkah), 500000);
-  const dp: number[] = new Array(n + 1).fill(0);
-  for (let i = 1; i <= n; i++) {
-    dp[i] = dp[i - 1];
-    for (const p of PAKET_KREDIT) {
-      const c = p.harga / langkah;
-      if (i >= c) dp[i] = Math.max(dp[i], dp[i - c] + p.kredit);
-    }
-  }
-  return dp[n];
-};
-
 export interface AuthUser {
   id: number;
   email: string;
   nama: string;
   role: string;
   kredit: number;
-}
-
-interface Topup {
-  id: number;
-  email: string;
-  nama: string;
-  nominal: number;
-  catatan: string | null;
-  status: 'pending' | 'approved' | 'rejected';
-  kredit_diberikan: number | null;
-  alasan_admin: string | null;
-  dibuat: string;
 }
 
 // ===================== HELPER API =====================
@@ -165,6 +133,14 @@ const card: CSSProperties = {
 };
 const row: CSSProperties = { display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' };
 export const rupiah = (n: number) => 'Rp' + n.toLocaleString('id-ID');
+
+/** Link WhatsApp ke admin dengan pesan pesanan yang sudah terisi (paket, nama, dan email akun). */
+export const linkWaPaket = (p: PaketKredit, u: { nama: string; email: string }): string => {
+  const teks =
+    `Halo admin Petakilat, saya ingin membeli ${p.kredit} kredit (${p.nama}) seharga ${rupiah(p.harga)}.\n\n` +
+    `Nama: ${u.nama}\nEmail akun: ${u.email}`;
+  return `https://wa.me/${ADMIN_WA}?text=${encodeURIComponent(teks)}`;
+};
 
 /** Ikon petir kuning khas Petakilat. */
 const Bolt = ({ size = 18 }: { size?: number }) => (
@@ -312,8 +288,6 @@ export function AuthModal({ auth, onClose, onSuccess }: { auth: Auth; onClose: (
   );
 }
 
-const STATUS_LABEL: Record<string, string> = { pending: 'Menunggu verifikasi', approved: 'Disetujui', rejected: 'Ditolak' };
-
 // ===================== STYLE DASHBOARD AKUN =====================
 const ACC_CSS = `
 @keyframes ac-fade{from{opacity:0}to{opacity:1}}
@@ -350,15 +324,9 @@ const ACC_CSS = `
 .ac-pack{position:relative;overflow:hidden;display:flex;flex-direction:column;align-items:flex-start;gap:6px;padding:18px 16px 16px;border-radius:18px;border:2px solid #d9e2e8;background:#fff;color:#0f172a;font:inherit;text-align:left;cursor:pointer;transition:transform .18s,border-color .18s,box-shadow .18s,background .18s}
 .ac-pack:hover{transform:translateY(-3px);border-color:#4cc9e0;box-shadow:0 12px 28px rgba(12,52,71,.12)}
 .ac-pack:focus-visible{outline:3px solid rgba(14,116,144,.35);outline-offset:2px}
-.ac-pack.on{border-color:#0e7490;background:linear-gradient(160deg,#f0fbfe,#e1f5fa);box-shadow:0 0 0 4px rgba(14,116,144,.14),0 14px 30px rgba(12,52,71,.14)}
 .ac-pack--best{border-color:#facc15;background:linear-gradient(160deg,#fffdf0,#fff6cc)}
 .ac-pack--best:hover{border-color:#f59e0b}
-.ac-pack--best.on{border-color:#f59e0b;background:linear-gradient(160deg,#fffbe6,#fdeea0);box-shadow:0 0 0 4px rgba(245,158,11,.2),0 14px 30px rgba(180,120,0,.22)}
-.ac-pack--best.on::after{content:'';position:absolute;top:0;left:0;width:34%;height:100%;background:linear-gradient(90deg,transparent,rgba(255,255,255,.65),transparent);animation:ac-shine 2.6s ease-in-out infinite;pointer-events:none}
 .ac-ribbon{position:absolute;top:0;right:0;padding:5px 12px 5px 14px;border-radius:0 0 0 14px;background:linear-gradient(135deg,#f59e0b,#d97706);color:#fff;font-size:10px;font-weight:800;letter-spacing:.06em;text-transform:uppercase}
-.ac-radio{position:absolute;top:14px;left:14px;display:grid;place-items:center;width:20px;height:20px;border-radius:50%;border:2px solid #b8c7d1;background:#fff;color:transparent;font-size:11px;font-weight:800;transition:all .15s}
-.ac-pack.on .ac-radio{border-color:#0e7490;background:#0e7490;color:#fff}
-.ac-pack--best.on .ac-radio{border-color:#f59e0b;background:#f59e0b}
 .ac-pack__bolts{display:flex;flex-wrap:wrap;gap:2px;margin:22px 0 0;min-height:24px}
 .ac-pack__qty{display:flex;align-items:baseline;gap:6px;font-family:'Bricolage Grotesque',Poppins,Inter,sans-serif}
 .ac-pack__qty b{font-size:40px;font-weight:700;line-height:1;letter-spacing:-.03em}
@@ -367,128 +335,97 @@ const ACC_CSS = `
 .ac-pack__old{margin-left:6px;font-size:13px;font-weight:500;color:#94a3b8;text-decoration:line-through}
 .ac-pack__per{font-size:12px;color:#586d7c}
 .ac-save{display:inline-flex;align-items:center;gap:4px;margin-top:2px;padding:3px 9px;border-radius:999px;background:#dcfce7;color:#166534;font-size:11px;font-weight:700}
-.ac-pay{display:flex;flex-direction:column;gap:12px;padding:14px 16px;border-radius:16px;border:1px dashed #9fc5d2;background:#f4fafc}
-.ac-pay__total small{display:block;font-size:11px;font-weight:600;letter-spacing:.05em;text-transform:uppercase;color:#586d7c}
-.ac-pay__total b{font-family:'Bricolage Grotesque',Poppins,Inter,sans-serif;font-size:26px;font-weight:700;color:#0c3447}
-.ac-copy{height:36px;padding:0 14px;border-radius:10px;border:1px solid #0e7490;background:#fff;color:#0e7490;font:inherit;font-size:12px;font-weight:700;cursor:pointer;transition:all .15s}
-.ac-copy:hover{background:#0e7490;color:#fff}
-.ac-pay p{margin:0;font-size:12px;line-height:1.55;color:#586d7c}
-.ac-rek{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px 14px;border-radius:14px;background:#fff;border:1px solid #d9e2e8}
-.ac-rek__info{display:flex;flex-direction:column;gap:2px;min-width:0}
-.ac-rek__info small{font-size:11px;font-weight:600;letter-spacing:.05em;text-transform:uppercase;color:#586d7c}
-.ac-rek__bank{padding:1px 7px;border-radius:999px;background:#e1f5fa;color:#0e7490;letter-spacing:.04em}
-.ac-rek__info b{font-family:'Bricolage Grotesque',Poppins,Inter,sans-serif;font-size:22px;font-weight:700;letter-spacing:.02em;color:#0a1c28;overflow-wrap:anywhere}
-.ac-rek__info span{font-size:13px;color:#334155}
-.ac-copy{flex-shrink:0;min-width:96px}
-.ac-qr{display:flex;flex-direction:column;align-items:center;gap:10px;padding:14px;border-radius:14px;background:#fff;border:1px solid #d9e2e8}
-.ac-qr img{display:block;width:100%;max-width:260px;height:auto;max-height:48vh;object-fit:contain}
-.ac-qr__dl{display:inline-flex;align-items:center;justify-content:center;text-decoration:none}
-.ac-copy.ok{background:#2f9e6b;border-color:#2f9e6b;color:#fff}
-.ac-drop{position:relative;display:flex;align-items:center;gap:14px;padding:16px;border-radius:16px;border:2px dashed #b8c7d1;background:#fafcfd;cursor:pointer;transition:border-color .15s,background .15s}
-.ac-drop:hover,.ac-drop:focus-within{border-color:#0e7490;background:#f0fbfe}
-.ac-drop.has{border-style:solid;border-color:#2f9e6b;background:#f0fdf6}
-.ac-drop input{position:absolute;inset:0;width:100%;height:100%;opacity:0;cursor:pointer}
-.ac-drop__ic{flex-shrink:0;display:grid;place-items:center;width:44px;height:44px;border-radius:12px;background:#e1f5fa;color:#0e7490;font-size:20px}
-.ac-drop.has .ac-drop__ic{background:#d1fae5;color:#047857}
-.ac-drop__t{display:flex;flex-direction:column;gap:2px;min-width:0}
-.ac-drop__t b{font-size:14px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.ac-drop__t small{font-size:12px;color:#64748b}
 .ac-input{width:100%;height:42px;margin-top:10px;padding:0 14px;border-radius:12px;border:1px solid #d9e2e8;background:#fff;color:#0f172a;font:inherit;font-size:14px;transition:border-color .15s,box-shadow .15s}
 .ac-input:focus{outline:none;border-color:#0e7490;box-shadow:0 0 0 3px rgba(14,116,144,.18)}
 .ac-msg{margin-top:12px;padding:11px 14px;border-radius:12px;font-size:13px;line-height:1.5}
 .ac-msg--ok{background:#dcfce7;color:#166534}
 .ac-msg--err{background:#fee2e2;color:#991b1b}
-.ac-submit{position:relative;overflow:hidden;width:100%;height:52px;margin-top:14px;border:0;border-radius:14px;background:linear-gradient(135deg,#0e7490,#0c3447);color:#fff;font:inherit;font-size:15px;font-weight:700;cursor:pointer;box-shadow:0 10px 24px rgba(12,52,71,.3);transition:transform .15s,box-shadow .15s,filter .15s}
-.ac-submit:hover:not(:disabled){transform:translateY(-2px);box-shadow:0 14px 30px rgba(12,52,71,.38);filter:brightness(1.08)}
-.ac-submit:disabled{opacity:.6;cursor:not-allowed}
-.ac-sum{display:flex;justify-content:space-between;align-items:center;margin-top:14px;padding:12px 16px;border-radius:14px;background:#0c3447;color:#fff;font-size:13px}
-.ac-sum b{font-family:'Bricolage Grotesque',Poppins,Inter,sans-serif;font-size:17px}
-.ac-sum em{font-style:normal;display:inline-flex;align-items:center;gap:6px;color:#fde68a;font-weight:700}
-.ac-h{margin:26px 0 10px;font-size:14px;font-weight:700;color:#0a1c28}
-.ac-item{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:6px 12px;padding:12px 14px;margin-bottom:8px;border-radius:14px;border:1px solid #e2e8f0;border-left-width:4px;background:#fff}
-.ac-item--pending{border-left-color:#f59e0b}
-.ac-item--approved{border-left-color:#2f9e6b}
-.ac-item--rejected{border-left-color:#dc2626}
-.ac-item b{font-size:14px}
-.ac-item small{display:block;margin-top:2px;font-size:12px;color:#64748b}
-.ac-item__r{display:flex;align-items:center;gap:8px}
-.ac-item__r em{font-style:normal;font-size:13px;font-weight:700;color:#166534}
-.ac-item p{flex-basis:100%;margin:0;font-size:12px;color:#991b1b}
-.ac-chip{padding:3px 10px;border-radius:999px;font-size:11px;font-weight:700}
-.ac-chip--pending{background:#fef3c7;color:#92400e}
-.ac-chip--approved{background:#dcfce7;color:#166534}
-.ac-chip--rejected{background:#fee2e2;color:#991b1b}
 .ac-empty{padding:14px;border-radius:12px;background:#f4f7f9;font-size:13px;color:#64748b;text-align:center}
-.ac-adm{padding:14px;margin-bottom:12px;border-radius:16px;border:1px solid #e2e8f0;background:#fff}
-.ac-adm__top{margin-bottom:8px;font-size:13px;line-height:1.55}
-.ac-adm__row{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin-top:10px}
-.ac-adm__row .ac-input{width:96px;height:36px;margin:0}
-.ac-adm__row span{font-size:12px;color:#586d7c}
 .ac-mini{height:36px;padding:0 14px;border-radius:10px;border:1px solid #d9e2e8;background:#fff;color:#0f172a;font:inherit;font-size:12px;font-weight:700;cursor:pointer;transition:all .15s}
 .ac-mini:hover{background:#eef3f6}
 .ac-mini--ok{border-color:#0e7490;background:#0e7490;color:#fff}
 .ac-mini--ok:hover{background:#0c5f75}
 .ac-mini--no{color:#b91c1c;border-color:#fecaca;background:#fef2f2}
+.ac-pack__go{margin-top:6px;display:inline-flex;align-items:center;gap:6px;padding:7px 12px;border-radius:10px;background:#16a34a;color:#fff;font-size:12px;font-weight:700;transition:background .15s}
+.ac-pack:hover .ac-pack__go{background:#15803d}
+.ac-pack__bolts{margin-top:4px}
+.ac-note{margin-top:14px;padding:12px 14px;border-radius:12px;background:#f4f7f9;font-size:13px;line-height:1.55;color:#334155}
+.ac-note ol{margin:6px 0 0;padding-left:18px}
+.ac-note a,.ac-msg a{color:#0e7490;font-weight:700}
+.ac-refresh{width:100%;height:42px;margin-top:12px;border-radius:12px;border:1px solid #0e7490;background:#fff;color:#0e7490;font:inherit;font-size:13px;font-weight:700;cursor:pointer;transition:all .15s}
+.ac-refresh:hover:not(:disabled){background:#0e7490;color:#fff}
+.ac-refresh:disabled{opacity:.6;cursor:not-allowed}
+.ac-h{margin:0 0 8px;font-size:14px;font-weight:700;color:#0a1c28}
+.ac-search{position:relative}
+.ac-search .ac-input{margin-top:0;padding-left:38px}
+.ac-search__ic{position:absolute;left:13px;top:50%;transform:translateY(-50%);color:#64748b;pointer-events:none;font-size:15px}
+.ac-hint{margin:8px 0 0;font-size:12px;color:#64748b}
+.ac-ulist{display:flex;flex-direction:column;gap:6px;margin-top:10px}
+.ac-urow{display:flex;align-items:center;justify-content:space-between;gap:10px;width:100%;padding:10px 12px;border-radius:12px;border:1px solid #e2e8f0;background:#fff;color:#0f172a;font:inherit;text-align:left;cursor:pointer;transition:background .15s,border-color .15s}
+.ac-urow:hover{background:#f4fafc;border-color:#9fc5d2}
+.ac-urow.on{border:2px solid #0e7490;background:#e1f5fa;padding:9px 11px}
+.ac-urow__t{display:flex;flex-direction:column;min-width:0}
+.ac-urow__t b{font-size:14px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.ac-urow__t small{font-size:12px;color:#64748b;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.ac-urow__k{flex-shrink:0;display:inline-flex;align-items:center;gap:4px;font-size:13px;font-weight:700;color:#0c3447}
+.ac-form{margin-top:16px;padding:14px;border-radius:16px;border:1px solid #d9e2e8;background:#f8fbfc}
+.ac-who{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:12px}
+.ac-who__t{min-width:0}
+.ac-who__t b{display:block;font-size:15px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.ac-who__t small{display:block;font-size:12px;color:#64748b;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.ac-who__k{flex-shrink:0;text-align:right}
+.ac-who__k small{display:block;font-size:11px;font-weight:600;letter-spacing:.05em;text-transform:uppercase;color:#64748b}
+.ac-who__k b{display:inline-flex;align-items:center;gap:4px;font-family:'Bricolage Grotesque',Poppins,Inter,sans-serif;font-size:26px;font-weight:700;color:#0c3447}
+.ac-seg{display:grid;grid-template-columns:1fr 1fr;gap:6px}
+.ac-seg button{height:40px;border-radius:10px;border:1px solid #d9e2e8;background:#fff;color:#0f172a;font:inherit;font-size:13px;font-weight:700;cursor:pointer}
+.ac-seg button.add{border:2px solid #16a34a;background:#dcfce7;color:#166534}
+.ac-seg button.sub{border:2px solid #dc2626;background:#fee2e2;color:#991b1b}
+.ac-lab{display:block;margin:12px 0 0;font-size:12px;font-weight:600;color:#334155}
+.ac-chips{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
+.ac-chips button{height:30px;padding:0 12px;border-radius:999px;border:1px solid #d9e2e8;background:#fff;color:#0f172a;font:inherit;font-size:12px;font-weight:700;cursor:pointer}
+.ac-chips button:hover{background:#eef3f6}
+.ac-preview{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-top:12px;padding:11px 14px;border-radius:12px;background:#0c3447;color:#fff;font-size:13px}
+.ac-preview b{font-family:'Bricolage Grotesque',Poppins,Inter,sans-serif;font-size:17px}
+.ac-preview--bad{background:#991b1b}
+.ac-go{width:100%;height:48px;margin-top:12px;border:0;border-radius:12px;color:#fff;font:inherit;font-size:14px;font-weight:700;cursor:pointer;transition:filter .15s}
+.ac-go--add{background:#16a34a}
+.ac-go--sub{background:#dc2626}
+.ac-go:hover:not(:disabled){filter:brightness(1.08)}
+.ac-go:disabled{opacity:.55;cursor:not-allowed}
+.ac-linkbtn{border:0;background:none;padding:0;color:#0e7490;font:inherit;font-size:12px;font-weight:700;cursor:pointer;text-decoration:underline}
 @media (max-width:520px){
   .ac-packs{grid-template-columns:1fr}
   .ac-balance{flex-direction:column;align-items:flex-start}
   .ac-balance p{text-align:left;max-width:none}
   .ac-balance__num{font-size:48px}
-  .ac-rek{flex-direction:column;align-items:stretch}
-  .ac-copy{width:100%}
 }
 @media (prefers-reduced-motion:reduce){.ac-overlay,.ac-card,.ac-pack--best.on::after{animation:none}}
 `;
 
-export function AccountModal({ auth, onClose, initialPaket }: { auth: Auth; onClose: () => void; initialPaket?: string }) {
+export function AccountModal({ auth, onClose }: { auth: Auth; onClose: () => void }) {
   const user = auth.user!;
   const isAdmin = user.role === 'admin';
   const [tab, setTab] = useState<'kredit' | 'admin'>('kredit');
-  const [paketId, setPaketId] = useState<string>(
-    PAKET_KREDIT.some((p) => p.id === initialPaket) ? (initialPaket as string) : 'hemat'
-  );
-  const [catatan, setCatatan] = useState('');
-  const [file, setFile] = useState<File | null>(null);
-  const [fileKey, setFileKey] = useState(0);
-  const [qrError, setQrError] = useState(false);
-  const [msg, setMsg] = useState<{ ok: boolean; text: string } | null>(null);
-  const [busy, setBusy] = useState(false);
-  const [riwayat, setRiwayat] = useState<Topup[]>([]);
+  const [dipesan, setDipesan] = useState<PaketKredit | null>(null);
+  const [memuat, setMemuat] = useState(false);
 
-  const paket = PAKET_KREDIT.find((p) => p.id === paketId) ?? PAKET_KREDIT[0];
+  useEffect(() => { auth.refreshUser(); /* eslint-disable-next-line */ }, []);
 
-  const loadRiwayat = useCallback(async () => {
-    const res = await apiFetch('/api/topup');
-    if (res.ok) setRiwayat(await res.json());
-  }, []);
-  useEffect(() => { loadRiwayat(); auth.refreshUser(); /* eslint-disable-next-line */ }, []);
+  // Pilih paket -> langsung membuka chat WhatsApp admin dengan pesan pesanan yang sudah terisi
+  const pesan = (p: PaketKredit) => {
+    setDipesan(p);
+    window.open(linkWaPaket(p, user), '_blank', 'noopener,noreferrer');
+  };
 
-  const kirim = async (e: FormEvent) => {
-    e.preventDefault();
-    if (!file) { setMsg({ ok: false, text: 'Pilih file bukti pembayaran.' }); return; }
-    if (file.size > 3 * 1024 * 1024) { setMsg({ ok: false, text: 'Ukuran bukti maksimal 3 MB.' }); return; }
-    setBusy(true); setMsg(null);
-    try {
-      const fd = new FormData();
-      fd.append('nominal', String(paket.harga));
-      // Nama paket ikut dicatat agar admin tahu paket mana yang dipilih
-      fd.append('catatan', [`Paket ${paket.kredit} kredit`, catatan.trim()].filter(Boolean).join(' — ').slice(0, 300));
-      fd.append('bukti', file);
-      const res = await apiFetch('/api/topup', { method: 'POST', body: fd });
-      const data = await res.json().catch(() => ({}));
-      if (!res.ok) throw new Error(data.error || 'Gagal mengirim bukti.');
-      setMsg({ ok: true, text: data.message || 'Bukti terkirim. Kredit ditambahkan setelah admin memverifikasi.' });
-      setCatatan(''); setFile(null); setFileKey((k) => k + 1);
-      loadRiwayat();
-    } catch (ex: any) {
-      setMsg({ ok: false, text: ex?.message || 'Gagal terhubung ke server.' });
-    } finally { setBusy(false); }
+  const cekSaldo = async () => {
+    setMemuat(true);
+    try { await auth.refreshUser(); } finally { setMemuat(false); }
   };
 
   return (
     <div className="ac-overlay" onClick={onClose}>
       <style>{ACC_CSS}</style>
-      <div className="ac-card" role="dialog" aria-modal="true" aria-label="Akun dan top-up kredit" onClick={(e) => e.stopPropagation()}>
+      <div className="ac-card" role="dialog" aria-modal="true" aria-label="Akun dan kredit" onClick={(e) => e.stopPropagation()}>
         {/* ===== HEADER + SALDO ===== */}
         <div className="ac-hero">
           <div className="ac-hero__top">
@@ -516,114 +453,60 @@ export function AccountModal({ auth, onClose, initialPaket }: { auth: Auth; onCl
         <div className="ac-body">
           {isAdmin && (
             <div className="ac-tabs" role="tablist">
-              <button type="button" role="tab" aria-selected={tab === 'kredit'} className={tab === 'kredit' ? 'on' : ''} onClick={() => setTab('kredit')}>Top-up saya</button>
+              <button type="button" role="tab" aria-selected={tab === 'kredit'} className={tab === 'kredit' ? 'on' : ''} onClick={() => setTab('kredit')}>Beli kredit</button>
               <button type="button" role="tab" aria-selected={tab === 'admin'} className={tab === 'admin' ? 'on' : ''} onClick={() => setTab('admin')}>Panel admin</button>
             </div>
           )}
 
           {tab === 'kredit' ? (
             <>
-              <form onSubmit={kirim}>
-                {/* ===== 1. PILIH PAKET ===== */}
-                <div className="ac-step"><span>1</span>Pilih paket kredit</div>
-                <div className="ac-packs" role="radiogroup" aria-label="Pilih paket kredit">
-                  {PAKET_KREDIT.map((p) => {
-                    const on = p.id === paket.id;
-                    const best = !!p.badge;
-                    const irit = hemat(p) > 0;
-                    return (
-                      <button
-                        type="button" key={p.id} role="radio" aria-checked={on}
-                        className={`ac-pack ${on ? 'on' : ''} ${best ? 'ac-pack--best' : ''}`}
-                        onClick={() => setPaketId(p.id)}
-                      >
-                        {best && <span className="ac-ribbon">{p.badge || 'Hemat'}</span>}
-                        <span className="ac-radio" aria-hidden="true">✓</span>
-                        <span className="ac-pack__bolts" aria-hidden="true">
-                          {Array.from({ length: p.kredit }).map((_, i) => <Bolt key={i} size={p.kredit > 4 ? 17 : 22} />)}
-                        </span>
-                        <span className="ac-pack__qty"><b>{p.kredit}</b><span>kredit</span></span>
-                        <span className="ac-pack__price">
-                          {rupiah(p.harga)}
-                          {irit && <span className="ac-pack__old">{rupiah(p.kredit * HARGA_PER_KREDIT)}</span>}
-                        </span>
-                        <span className="ac-pack__per">≈ {rupiah(Math.round(p.harga / p.kredit))} per kredit</span>
-                        {irit && <span className="ac-save">Hemat {rupiah(hemat(p))}</span>}
-                      </button>
-                    );
-                  })}
+              <div className="ac-step"><span>1</span>Pilih paket, lalu chat admin</div>
+              <div className="ac-packs">
+                {PAKET_KREDIT.map((p) => {
+                  const best = !!p.badge;
+                  const irit = hemat(p) > 0;
+                  return (
+                    <button
+                      type="button" key={p.id}
+                      className={`ac-pack ${best ? 'ac-pack--best' : ''}`}
+                      onClick={() => pesan(p)}
+                      aria-label={`Pesan ${p.kredit} kredit ${rupiah(p.harga)} lewat WhatsApp admin`}
+                    >
+                      {best && <span className="ac-ribbon">{p.badge || 'Hemat'}</span>}
+                      <span className="ac-pack__bolts" aria-hidden="true">
+                        {Array.from({ length: p.kredit }).map((_, i) => <Bolt key={i} size={p.kredit > 4 ? 17 : 22} />)}
+                      </span>
+                      <span className="ac-pack__qty"><b>{p.kredit}</b><span>kredit</span></span>
+                      <span className="ac-pack__price">
+                        {rupiah(p.harga)}
+                        {irit && <span className="ac-pack__old">{rupiah(p.kredit * HARGA_PER_KREDIT)}</span>}
+                      </span>
+                      <span className="ac-pack__per">≈ {rupiah(Math.round(p.harga / p.kredit))} per kredit</span>
+                      {irit && <span className="ac-save">Hemat {rupiah(hemat(p))}</span>}
+                      <span className="ac-pack__go">Pesan lewat WhatsApp</span>
+                    </button>
+                  );
+                })}
+              </div>
+
+              {dipesan && (
+                <div className="ac-msg ac-msg--ok">
+                  WhatsApp admin dibuka untuk paket {dipesan.kredit} kredit ({rupiah(dipesan.harga)}). Jika tidak terbuka,{' '}
+                  <a href={linkWaPaket(dipesan, user)} target="_blank" rel="noopener noreferrer">klik di sini</a>.
                 </div>
-
-                {/* ===== 2. TRANSFER ===== */}
-                <div className="ac-step"><span>2</span>Transfer sesuai nominal</div>
-                <div className="ac-pay">
-                  <div className="ac-pay__total">
-                    <small>Total transfer</small>
-                    <b>{rupiah(paket.harga)}</b>
-                  </div>
-                  <div className="ac-qr">
-                    {qrError ? (
-                      <div className="ac-msg ac-msg--err" style={{ marginTop: 0 }}>
-                        Gambar QR tidak ditemukan. Pastikan berkas <code>qrbayar.jpeg</code> ada di folder <code>public</code>, lalu muat ulang halaman.
-                      </div>
-                    ) : (
-                      <>
-                        <img src={QR_IMAGE} alt={`Kode QR pembayaran ${rupiah(paket.harga)}`} onError={() => setQrError(true)} />
-                        <a className="ac-copy ac-qr__dl" href={QR_IMAGE} download="qr-pembayaran-petakilat.jpeg">Unduh QR</a>
-                      </>
-                    )}
-                  </div>
-                  <p>Pindai kode QR dengan aplikasi bank atau dompet digital, lalu bayar sesuai total di atas. Setelah transfer, unggah bukti di langkah 3. Kredit ditambahkan admin setelah diverifikasi.</p>
-                </div>
-
-                {/* ===== 3. BUKTI ===== */}
-                <div className="ac-step"><span>3</span>Unggah bukti pembayaran</div>
-                <label className={`ac-drop ${file ? 'has' : ''}`}>
-                  <input
-                    key={fileKey} type="file" accept="image/png,image/jpeg,image/webp"
-                    onChange={(e) => setFile(e.target.files?.[0] || null)}
-                  />
-                  <span className="ac-drop__ic" aria-hidden="true">{file ? '✓' : '⬆'}</span>
-                  <span className="ac-drop__t">
-                    <b>{file ? file.name : 'Pilih screenshot bukti transfer'}</b>
-                    <small>{file ? `${(file.size / 1024).toFixed(0)} KB · ketuk untuk mengganti` : 'PNG, JPG, atau WEBP, maksimal 3 MB'}</small>
-                  </span>
-                </label>
-                <input
-                  className="ac-input" maxLength={200} value={catatan}
-                  onChange={(e) => setCatatan(e.target.value)} placeholder="Catatan (opsional), mis. a.n. pengirim"
-                />
-
-                <div className="ac-sum">
-                  <span>Anda akan menerima</span>
-                  <em><Bolt size={16} /> <b>{paket.kredit}</b> kredit</em>
-                </div>
-
-                {msg && <div className={`ac-msg ${msg.ok ? 'ac-msg--ok' : 'ac-msg--err'}`}>{msg.text}</div>}
-                <button className="ac-submit" type="submit" disabled={busy}>
-                  {busy ? 'Mengirim...' : `Kirim bukti · ${rupiah(paket.harga)}`}
-                </button>
-              </form>
-
-              {/* ===== RIWAYAT ===== */}
-              {riwayat.length > 0 && (
-                <>
-                  <div className="ac-h">Riwayat top-up</div>
-                  {riwayat.map((r) => (
-                    <div key={r.id} className={`ac-item ac-item--${r.status}`}>
-                      <div>
-                        <b>{rupiah(r.nominal)}</b>
-                        <small>{r.dibuat}{r.catatan ? ` · ${r.catatan}` : ''}</small>
-                      </div>
-                      <div className="ac-item__r">
-                        {r.status === 'approved' && <em>+{r.kredit_diberikan} kredit</em>}
-                        <span className={`ac-chip ac-chip--${r.status}`}>{STATUS_LABEL[r.status]}</span>
-                      </div>
-                      {r.status === 'rejected' && r.alasan_admin && <p>Alasan: {r.alasan_admin}</p>}
-                    </div>
-                  ))}
-                </>
               )}
+
+              <div className="ac-note">
+                <b>Cara membeli kredit</b>
+                <ol>
+                  <li>Pilih paket. Chat ke admin terbuka dengan pesan yang sudah terisi.</li>
+                  <li>Kirim pesan, lalu ikuti arahan pembayaran dari admin.</li>
+                  <li>Admin menambahkan kredit ke akun <b>{user.email}</b> setelah pembayaran dikonfirmasi.</li>
+                </ol>
+              </div>
+              <button type="button" className="ac-refresh" onClick={cekSaldo} disabled={memuat}>
+                {memuat ? 'Memeriksa...' : 'Cek saldo kredit'}
+              </button>
             </>
           ) : (
             <AdminPanel />
@@ -634,88 +517,165 @@ export function AccountModal({ auth, onClose, initialPaket }: { auth: Auth; onCl
   );
 }
 
-function BuktiImg({ id }: { id: number }) {
-  const [src, setSrc] = useState('');
-  useEffect(() => {
-    let url = '';
-    let dead = false;
-    apiFetch(`/api/admin/topup/${id}/bukti`)
-      .then((r) => (r.ok ? r.blob() : null))
-      .then((b) => { if (b && !dead) { url = URL.createObjectURL(b); setSrc(url); } });
-    return () => { dead = true; if (url) URL.revokeObjectURL(url); };
-  }, [id]);
-  return src ? (
-    <a href={src} target="_blank" rel="noreferrer">
-      <img src={src} alt="Bukti pembayaran" style={{ maxWidth: '100%', maxHeight: 220, borderRadius: 10, border: '1px solid #e2e8f0' }} />
-    </a>
-  ) : <small>Memuat bukti...</small>;
+interface UserHit {
+  id: number;
+  email: string;
+  nama: string;
+  role: string;
+  kredit: number;
 }
 
 function AdminPanel() {
-  const [list, setList] = useState<Topup[]>([]);
-  const [kreditInput, setKreditInput] = useState<Record<number, string>>({});
-  const [msg, setMsg] = useState('');
-  const [mEmail, setMEmail] = useState('');
-  const [mJumlah, setMJumlah] = useState('');
+  const [q, setQ] = useState('');
+  const [hits, setHits] = useState<UserHit[]>([]);
+  const [mencari, setMencari] = useState(false);
+  const [err, setErr] = useState('');
+  const [reload, setReload] = useState(0);
+  const [picked, setPicked] = useState<UserHit | null>(null);
+  const [mode, setMode] = useState<'tambah' | 'kurangi'>('tambah');
+  const [jumlah, setJumlah] = useState('');
+  const [catatan, setCatatan] = useState('');
+  const [msg, setMsg] = useState<{ ok: boolean; text: string } | null>(null);
+  const [busy, setBusy] = useState(false);
 
-  const load = useCallback(async () => {
-    const res = await apiFetch('/api/admin/topup?status=pending');
-    if (res.ok) setList(await res.json());
-  }, []);
-  useEffect(() => { load(); }, [load]);
+  // Cari akun di database (nama atau email). Kolom kosong menampilkan 10 akun terbaru.
+  useEffect(() => {
+    let dead = false;
+    setMencari(true);
+    const t = setTimeout(async () => {
+      try {
+        const res = await apiFetch(`/api/admin/users?q=${encodeURIComponent(q.trim())}`);
+        const data = await res.json().catch(() => null);
+        if (dead) return;
+        if (!res.ok) { setErr(data?.error || 'Gagal mencari akun.'); setHits([]); }
+        else { setErr(''); setHits(data as UserHit[]); }
+      } catch {
+        if (!dead) { setErr('Gagal terhubung ke server.'); setHits([]); }
+      } finally {
+        if (!dead) setMencari(false);
+      }
+    }, q.trim() ? 300 : 0);
+    return () => { dead = true; clearTimeout(t); };
+  }, [q, reload]);
 
-  const approve = async (t: Topup) => {
-    const k = parseInt(kreditInput[t.id] ?? String(hitungKredit(t.nominal)), 10);
-    if (!k || k < 1) { setMsg('Isi jumlah kredit yang valid.'); return; }
-    try { await postJson(`/api/admin/topup/${t.id}/approve`, { kredit: k }); setMsg(`Disetujui: +${k} kredit untuk ${t.email}`); load(); }
-    catch (e: any) { setMsg(e.message); }
-  };
-  const reject = async (t: Topup) => {
-    const alasan = window.prompt('Alasan penolakan (opsional):') ?? '';
-    try { await postJson(`/api/admin/topup/${t.id}/reject`, { alasan }); setMsg('Permintaan ditolak.'); load(); }
-    catch (e: any) { setMsg(e.message); }
-  };
-  const manual = async (e: FormEvent) => {
+  const n = parseInt(jumlah, 10);
+  const angkaValid = Number.isInteger(n) && n > 0 && n <= 100000;
+  const delta = mode === 'tambah' ? n : -n;
+  const sesudah = picked && angkaValid ? picked.kredit + delta : null;
+  const kurangiBerlebih = !!picked && mode === 'kurangi' && angkaValid && n > picked.kredit;
+  const bisaSimpan = !!picked && angkaValid && !kurangiBerlebih && !busy;
+
+  const simpan = async (e: FormEvent) => {
     e.preventDefault();
+    if (!picked || !bisaSimpan) return;
+    const ok = window.confirm(
+      `${mode === 'tambah' ? 'Tambah' : 'Kurangi'} ${n} kredit untuk ${picked.nama} (${picked.email})?\n\nSaldo ${picked.kredit} → ${sesudah}`
+    );
+    if (!ok) return;
+    setBusy(true); setMsg(null);
     try {
-      const d = await postJson('/api/admin/kredit', { email: mEmail, jumlah: parseInt(mJumlah, 10), alasan: 'manual admin' });
-      setMsg(`Berhasil. Saldo ${mEmail} sekarang ${d.saldo}.`); setMEmail(''); setMJumlah('');
-    } catch (ex: any) { setMsg(ex.message); }
+      const alasan = (catatan.trim() || (mode === 'tambah' ? 'tambah manual admin' : 'kurangi manual admin')).slice(0, 100);
+      const d = await postJson('/api/admin/kredit', { user_id: picked.id, jumlah: delta, alasan });
+      setPicked({ ...picked, kredit: d.saldo });
+      setMsg({ ok: true, text: `Berhasil. Saldo ${d.nama} (${d.email}) sekarang ${d.saldo} kredit.` });
+      setJumlah(''); setCatatan('');
+      setReload((k) => k + 1);
+    } catch (ex: any) {
+      setMsg({ ok: false, text: ex?.message || 'Gagal terhubung ke server.' });
+    } finally { setBusy(false); }
   };
 
   return (
     <div>
-      {msg && <div className="ac-msg ac-msg--ok" style={{ marginTop: 0, marginBottom: 12 }}>{msg}</div>}
-      <div className="ac-step" style={{ marginTop: 0 }}><span>{list.length}</span>Menunggu verifikasi</div>
-      {list.length === 0 && <div className="ac-empty">Tidak ada permintaan.</div>}
-      {list.map((t) => (
-        <div key={t.id} className="ac-adm">
-          <div className="ac-adm__top">
-            <b>{t.nama}</b> ({t.email})<br />{t.dibuat} · <b>{rupiah(t.nominal)}</b>
-            {t.catatan && <><br />Catatan: {t.catatan}</>}
-          </div>
-          <BuktiImg id={t.id} />
-          <div className="ac-adm__row">
-            <input
-              className="ac-input" type="number" min={1}
-              value={kreditInput[t.id] ?? String(hitungKredit(t.nominal))}
-              onChange={(e) => setKreditInput((p) => ({ ...p, [t.id]: e.target.value }))}
-            />
-            <span>kredit</span>
-            <button type="button" className="ac-mini ac-mini--ok" onClick={() => approve(t)}>Setujui</button>
-            <button type="button" className="ac-mini ac-mini--no" onClick={() => reject(t)}>Tolak</button>
-          </div>
-        </div>
-      ))}
+      <div className="ac-h">Cari akun user</div>
+      <div className="ac-search">
+        <span className="ac-search__ic" aria-hidden="true">⌕</span>
+        <input
+          className="ac-input" value={q} maxLength={80} autoComplete="off"
+          placeholder="Ketik nama atau email user"
+          aria-label="Cari akun user"
+          onChange={(e) => setQ(e.target.value)}
+        />
+      </div>
+      <p className="ac-hint">{q.trim() ? 'Hasil pencarian dari database akun.' : 'Menampilkan 10 akun terbaru. Ketik untuk mencari akun tertentu.'}</p>
 
-      <form onSubmit={manual} style={{ marginTop: 18, borderTop: '1px solid #e2e8f0', paddingTop: 14 }}>
-        <div className="ac-step" style={{ marginTop: 0 }}>Tambah / kurangi kredit manual</div>
-        <div className="ac-adm__row" style={{ marginTop: 0 }}>
-          <input className="ac-input" type="email" placeholder="email user" style={{ flex: 1, minWidth: 150, width: 'auto', height: 40 }} value={mEmail} onChange={(e) => setMEmail(e.target.value)} required />
-          <input className="ac-input" type="number" placeholder="+/- jumlah" style={{ width: 110, height: 40 }} value={mJumlah} onChange={(e) => setMJumlah(e.target.value)} required />
-          <button className="ac-mini ac-mini--ok" style={{ height: 40 }} type="submit">Simpan</button>
+      {err && <div className="ac-msg ac-msg--err">{err}</div>}
+      {!err && !mencari && hits.length === 0 && <div className="ac-empty" style={{ marginTop: 10 }}>Akun tidak ditemukan. Hanya akun dengan email terverifikasi yang tampil.</div>}
+      {hits.length > 0 && (
+        <div className="ac-ulist" role="listbox" aria-label="Hasil pencarian akun">
+          {hits.map((u) => (
+            <button
+              type="button" key={u.id} role="option" aria-selected={picked?.id === u.id}
+              className={`ac-urow ${picked?.id === u.id ? 'on' : ''}`}
+              onClick={() => { setPicked(u); setMsg(null); setJumlah(''); }}
+            >
+              <span className="ac-urow__t">
+                <b>{u.nama}{u.role === 'admin' ? ' · admin' : ''}</b>
+                <small>{u.email}</small>
+              </span>
+              <span className="ac-urow__k"><Bolt size={14} />{u.kredit}</span>
+            </button>
+          ))}
         </div>
-      </form>
+      )}
+
+      {msg && <div className={`ac-msg ${msg.ok ? 'ac-msg--ok' : 'ac-msg--err'}`}>{msg.text}</div>}
+
+      {picked ? (
+        <form className="ac-form" onSubmit={simpan}>
+          <div className="ac-who">
+            <div className="ac-who__t">
+              <small>Akun terpilih</small>
+              <b>{picked.nama}</b>
+              <small>{picked.email}</small>
+            </div>
+            <div className="ac-who__k">
+              <small>Saldo sekarang</small>
+              <b><Bolt size={18} />{picked.kredit}</b>
+            </div>
+          </div>
+
+          <div className="ac-seg" role="group" aria-label="Jenis perubahan kredit">
+            <button type="button" className={mode === 'tambah' ? 'add' : ''} aria-pressed={mode === 'tambah'} onClick={() => setMode('tambah')}>+ Tambah kredit</button>
+            <button type="button" className={mode === 'kurangi' ? 'sub' : ''} aria-pressed={mode === 'kurangi'} onClick={() => setMode('kurangi')}>− Kurangi kredit</button>
+          </div>
+
+          <label className="ac-lab" htmlFor="ac-jumlah">Jumlah kredit</label>
+          <input
+            id="ac-jumlah" className="ac-input" type="number" min={1} max={100000} inputMode="numeric"
+            style={{ marginTop: 6 }} placeholder="Contoh: 3" value={jumlah}
+            onChange={(e) => setJumlah(e.target.value)}
+          />
+          <div className="ac-chips" aria-label="Jumlah cepat sesuai paket">
+            {PAKET_KREDIT.map((p) => (
+              <button type="button" key={p.id} onClick={() => setJumlah(String(p.kredit))}>{p.kredit} kredit · {rupiah(p.harga)}</button>
+            ))}
+          </div>
+
+          <label className="ac-lab" htmlFor="ac-catatan">Catatan (opsional)</label>
+          <input
+            id="ac-catatan" className="ac-input" style={{ marginTop: 6 }} maxLength={100}
+            placeholder="Contoh: bayar paket 3 kredit via WhatsApp" value={catatan}
+            onChange={(e) => setCatatan(e.target.value)}
+          />
+
+          {sesudah !== null && (
+            <div className={`ac-preview ${kurangiBerlebih ? 'ac-preview--bad' : ''}`}>
+              <span>{kurangiBerlebih ? 'Pengurangan melebihi saldo akun' : 'Saldo setelah disimpan'}</span>
+              {!kurangiBerlebih && <b>{picked.kredit} → {sesudah}</b>}
+            </div>
+          )}
+
+          <button type="submit" className={`ac-go ${mode === 'tambah' ? 'ac-go--add' : 'ac-go--sub'}`} disabled={!bisaSimpan}>
+            {busy ? 'Menyimpan...' : mode === 'tambah' ? 'Tambah kredit' : 'Kurangi kredit'}
+          </button>
+          <div style={{ textAlign: 'center', marginTop: 10 }}>
+            <button type="button" className="ac-linkbtn" onClick={() => { setPicked(null); setJumlah(''); setCatatan(''); }}>Pilih akun lain</button>
+          </div>
+        </form>
+      ) : (
+        <div className="ac-note">Pilih akun dari daftar di atas untuk menambah atau mengurangi kreditnya. Akun dipilih dari database, jadi tidak perlu mengetik email lengkap.</div>
+      )}
     </div>
   );
 }

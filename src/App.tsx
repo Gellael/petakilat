@@ -3,7 +3,7 @@ import * as maplibregl from 'maplibre-gl';
 import 'maplibre-gl/dist/maplibre-gl.css';
 import workerUrl from 'maplibre-gl/dist/maplibre-gl-worker.mjs?url';
 import * as turf from '@turf/turf';
-import { useAuth, AuthModal, AccountModal, apiFetch, PAKET_KREDIT, hemat, rupiah } from './auth';
+import { useAuth, AuthModal, AccountModal, apiFetch, PAKET_KREDIT, hemat, rupiah, linkWaPaket } from './auth';
 maplibregl.setWorkerUrl(workerUrl);
 
 const API= import.meta.env.VITE_API_URL || "http://localhost:8080";
@@ -224,9 +224,6 @@ const BASE_SRC = 'raster-tiles';
 const BASE_LAYER = 'simple-tile-layer';
 const SHEET_W = 1020;
 const SHEET_H = 680;
-// Isi dengan alamat halaman checkout (Midtrans/Xendit/dll) bila pembayaran sudah siap.
-// Selama kosong, tombol paket hanya membuka aplikasi.
-const CHECKOUT_URL = '';
 const SHEET_FONT = "'Times New Roman', Times, 'Liberation Serif', serif";
 const SHEET_SANS = "Arial, Helvetica, 'Liberation Sans', sans-serif";
 const SHEET_MONO = "'Courier New', Courier, 'Liberation Mono', monospace";
@@ -963,7 +960,7 @@ const PLANS = [
     blurb: 'Bayar sesuai pemakaian. Satu kredit untuk satu kali ekspor PNG atau PDF. Menyusun peta tidak mengurangi kredit, tetapi saldo minimal 1 kredit dibutuhkan untuk memilih wilayah.',
     feats: ['Ekspor tanpa watermark', 'Resolusi cetak penuh', 'Kredit berlaku 12 bulan'],
     packs: PACK_ITEMS,
-    cta: 'Pilih paket'
+    cta: 'Pesan lewat WhatsApp'
   }
 ];
 
@@ -985,6 +982,7 @@ const FAQS = [
   { q: 'Daftar provinsi tidak muncul. Apa yang harus dilakukan?', a: 'Aplikasi mengambil data wilayah dari server API. Pastikan server berjalan, lalu tekan Coba lagi di panel pengaturan.' },
   { q: 'Format apa saja yang bisa diunduh?', a: 'PNG resolusi tinggi dan PDF A4 lanskap.' },
   { q: 'Berapa harga kredit?', a: `Satu kredit Rp20.000. Paket yang tersedia: ${RINGKAS_PAKET}. Semakin besar paketnya, semakin murah harga per kredit.` },
+  { q: 'Bagaimana cara membeli kredit?', a: 'Pilih paket di halaman ini atau di dalam akun Anda. Chat WhatsApp ke admin terbuka dengan pesan pesanan yang sudah terisi. Setelah pembayaran dikonfirmasi, admin menambahkan kredit ke akun Anda.' },
   { q: 'Apa yang dihitung sebagai satu kredit?', a: 'Satu kali ekspor PNG atau PDF A4 dari satu lembar peta.' },
   { q: 'Apakah kredit bisa kedaluwarsa?', a: 'Kredit berlaku 12 bulan sejak tanggal pembelian.' }
 ];
@@ -1378,7 +1376,6 @@ export default function App() {
   const auth = useAuth();
   const [showAuth, setShowAuth] = useState<boolean>(false);
   const [showAccount, setShowAccount] = useState<boolean>(false);
-  const [paketAwal, setPaketAwal] = useState<string | undefined>(undefined);
 
   // Judul tab dan favicon petir (tidak perlu mengubah index.html)
   useEffect(() => {
@@ -1586,22 +1583,22 @@ export default function App() {
     setActivePage('admin-map');
   };
 
-  // Pilih paket: arahkan ke checkout bila sudah ada, kalau belum buka aplikasi
+  // Tombol utama di kartu harga: belum login -> form masuk, sudah login -> pesan paket yang ditandai paling hemat
   const choosePlan = (planId: string) => {
-    if (CHECKOUT_URL) {
-      window.location.href = `${CHECKOUT_URL}?paket=${encodeURIComponent(planId)}`;
+    if (planId === 'kredit') {
+      const best = PAKET_KREDIT.find((p) => p.badge) || PAKET_KREDIT[0];
+      pilihPaket(best.id);
       return;
     }
-    if (planId === 'kredit') { pilihPaket('hemat'); return; }
     openApp();
   };
 
-  // Pilih satu paket kredit: belum login -> buka form masuk, sudah login -> buka dashboard top-up dengan paket terpilih
+  // Pilih satu paket kredit: belum login -> buka form masuk, sudah login -> langsung ke WhatsApp admin dengan pesan pesanan terisi
   const pilihPaket = (paketId: string) => {
     setNavOpen(false);
     if (!auth.user) { setShowAuth(true); return; }
-    setPaketAwal(paketId);
-    setShowAccount(true);
+    const p = PAKET_KREDIT.find((x) => x.id === paketId) || PAKET_KREDIT[0];
+    window.open(linkWaPaket(p, auth.user), '_blank', 'noopener,noreferrer');
   };
 
   // Konversi Derajat Desimal ke Format DMS
@@ -2107,8 +2104,8 @@ export default function App() {
       if (res.ok) {
         const me = await res.json();
         if (me.role === 'admin' || me.kredit > 0) { setApiError(''); return true; }
-        setApiError('Kredit Anda habis. Silakan top-up terlebih dahulu untuk mengakses peta.');
-        setShowAccount(true); // buka panel top-up
+        setApiError('Kredit Anda habis. Silakan beli kredit lewat admin (WhatsApp) untuk mengakses peta.');
+        setShowAccount(true); // buka panel beli kredit
         auth.refreshUser();
         return false;
       }
@@ -2150,7 +2147,7 @@ export default function App() {
     const data = await res.json().catch(() => null);
     if (!res.ok) {
       setApiError(data?.error || 'Gagal memuat data desa.');
-      if (res.status === 402) setShowAccount(true); // kredit habis -> buka panel top-up
+      if (res.status === 402) setShowAccount(true); // kredit habis -> buka panel beli kredit
       return null;
     }
     return data;
@@ -3470,7 +3467,7 @@ export default function App() {
         />
       )}
       {showAccount && auth.user && (
-        <AccountModal auth={auth} initialPaket={paketAwal} onClose={() => { setShowAccount(false); setPaketAwal(undefined); }} />
+        <AccountModal auth={auth} onClose={() => setShowAccount(false)} />
       )}
     </div>
   );
