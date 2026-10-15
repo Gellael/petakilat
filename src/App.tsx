@@ -224,9 +224,11 @@ const BASE_SRC = 'raster-tiles';
 const BASE_LAYER = 'simple-tile-layer';
 const SHEET_W = 1020;
 const SHEET_H = 680;
-// Isi dengan alamat halaman checkout (Midtrans/Xendit/dll) bila pembayaran sudah siap.
-// Selama kosong, tombol paket hanya membuka aplikasi.
-const CHECKOUT_URL = '';
+// Pembayaran memakai kode QR statis. Taruh gambarnya di frontend/public/qrbayar.jpeg
+const QR_IMAGE = '/qrbayar.jpeg';
+// Nomor WhatsApp untuk konfirmasi pembayaran, format internasional tanpa + (contoh: 6281234567890).
+// Selama kosong, tombol WhatsApp tidak ditampilkan.
+const KONTAK_WA = '';
 const SHEET_FONT = "'Times New Roman', Times, 'Liberation Serif', serif";
 const SHEET_SANS = "Arial, Helvetica, 'Liberation Sans', sans-serif";
 const SHEET_MONO = "'Courier New', Courier, 'Liberation Mono', monospace";
@@ -985,6 +987,7 @@ const FAQS = [
   { q: 'Daftar provinsi tidak muncul. Apa yang harus dilakukan?', a: 'Aplikasi mengambil data wilayah dari server API. Pastikan server berjalan, lalu tekan Coba lagi di panel pengaturan.' },
   { q: 'Format apa saja yang bisa diunduh?', a: 'PNG resolusi tinggi dan PDF A4 lanskap.' },
   { q: 'Berapa harga kredit?', a: `Satu kredit Rp20.000. Paket yang tersedia: ${RINGKAS_PAKET}. Semakin besar paketnya, semakin murah harga per kredit.` },
+  { q: 'Bagaimana cara membayar?', a: 'Pilih paket, lalu pindai kode QR yang tampil di aplikasi bank atau dompet digital Anda. Setelah membayar, kirim bukti pembayaran beserta email akun ke admin. Kredit ditambahkan setelah pembayaran diperiksa.' },
   { q: 'Apa yang dihitung sebagai satu kredit?', a: 'Satu kali ekspor PNG atau PDF A4 dari satu lembar peta.' },
   { q: 'Apakah kredit bisa kedaluwarsa?', a: 'Kredit berlaku 12 bulan sejak tanggal pembelian.' }
 ];
@@ -1132,6 +1135,27 @@ const APP_CSS = `
 .gl-cardprev__cap--solo{border-radius:7px}
 .gl-cardprev__x{position:absolute;top:8px;right:8px;width:24px;height:24px;display:grid;place-items:center;border:0;border-radius:6px;background:rgba(15,27,45,.72);color:#fff;cursor:pointer}
 .gl-cardprev__x:hover{background:var(--danger)}
+
+/* ---------- jendela pembayaran QR ---------- */
+.gl-qr__overlay{position:fixed;inset:0;z-index:200;display:grid;place-items:center;padding:16px;background:rgba(8,26,38,.6);backdrop-filter:blur(3px)}
+.gl-qr{width:min(460px,100%);max-height:calc(100vh - 32px);max-height:calc(100dvh - 32px);display:flex;flex-direction:column;border-radius:18px;background:#fff;color:var(--ink,#0f1b2d);box-shadow:0 30px 70px rgba(0,0,0,.45);overflow:hidden;font-family:Inter,system-ui,sans-serif}
+.gl-qr__head{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:14px 16px;border-bottom:1px solid #dde4ea}
+.gl-qr__head h3{display:flex;align-items:center;gap:8px;margin:0;font-size:16px;font-weight:700}
+.gl-qr__head h3 svg{fill:#facc15;stroke:#f59e0b}
+.gl-qr__body{display:flex;flex-direction:column;gap:14px;padding:16px;overflow-y:auto}
+.gl-qr__packs{display:flex;flex-direction:column;gap:8px}
+.gl-qr__pack{display:flex;align-items:center;justify-content:space-between;gap:12px;width:100%;padding:11px 14px;border:1px solid #dde4ea;border-radius:12px;background:#fff;font:inherit;font-size:14px;color:inherit;text-align:left;cursor:pointer}
+.gl-qr__pack:hover{background:#eef2f5}
+.gl-qr__pack.is-on{border:2px solid #0e7490;background:#e0f4f8;padding:10px 13px}
+.gl-qr__pack span{display:flex;flex-wrap:wrap;align-items:center;gap:8px;font-weight:600}
+.gl-qr__pack i{font-style:normal;font-size:11px;font-weight:800;padding:2px 8px;border-radius:999px;background:#facc15;color:#422006}
+.gl-qr__img{display:flex;justify-content:center;padding:12px;border:1px solid #dde4ea;border-radius:14px;background:#fff}
+.gl-qr__img img{display:block;width:100%;max-width:280px;height:auto;max-height:46vh;object-fit:contain}
+.gl-qr__total{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px 14px;border-radius:12px;background:#f3f6f8;font-size:14px}
+.gl-qr__total b{font-size:20px;font-weight:700;font-variant-numeric:tabular-nums}
+.gl-qr__steps{margin:0;padding-left:20px;display:flex;flex-direction:column;gap:6px;font-size:13px;line-height:1.5;color:#334155}
+.gl-qr__actions{display:flex;flex-wrap:wrap;gap:8px}
+.gl-qr__actions .gl-btn{flex:1 1 150px;text-decoration:none}
 
 /* ---------- area peta ---------- */
 .gl-stage{flex:1;min-width:0;display:flex;flex-direction:column;background:var(--paper)}
@@ -1378,7 +1402,9 @@ export default function App() {
   const auth = useAuth();
   const [showAuth, setShowAuth] = useState<boolean>(false);
   const [showAccount, setShowAccount] = useState<boolean>(false);
-  const [paketAwal, setPaketAwal] = useState<string | undefined>(undefined);
+  const [showQr, setShowQr] = useState<boolean>(false);
+  const [qrPaketId, setQrPaketId] = useState<string>('');
+  const [qrError, setQrError] = useState<boolean>(false);
 
   // Judul tab dan favicon petir (tidak perlu mengubah index.html)
   useEffect(() => {
@@ -1586,22 +1612,25 @@ export default function App() {
     setActivePage('admin-map');
   };
 
-  // Pilih paket: arahkan ke checkout bila sudah ada, kalau belum buka aplikasi
-  const choosePlan = (planId: string) => {
-    if (CHECKOUT_URL) {
-      window.location.href = `${CHECKOUT_URL}?paket=${encodeURIComponent(planId)}`;
-      return;
-    }
-    if (planId === 'kredit') { pilihPaket('hemat'); return; }
-    openApp();
+  // Buka jendela pembayaran QR. paketId opsional; bila kosong dipakai paket yang ditandai paling hemat.
+  const bukaBayarQr = (paketId?: string) => {
+    setNavOpen(false);
+    const awal = PAKET_KREDIT.find((p) => p.id === paketId) || PAKET_KREDIT.find((p) => p.badge) || PAKET_KREDIT[0];
+    setQrPaketId(awal ? awal.id : '');
+    setQrError(false);
+    setShowQr(true);
   };
 
-  // Pilih satu paket kredit: belum login -> buka form masuk, sudah login -> buka dashboard top-up dengan paket terpilih
-  const pilihPaket = (paketId: string) => {
+  // Pilih satu paket kredit: belum login -> buka form masuk, sudah login -> tampilkan QR pembayaran
+  const pilihPaket = (paketId?: string) => {
     setNavOpen(false);
     if (!auth.user) { setShowAuth(true); return; }
-    setPaketAwal(paketId);
-    setShowAccount(true);
+    bukaBayarQr(paketId);
+  };
+
+  const choosePlan = (planId: string) => {
+    if (planId === 'kredit') { pilihPaket(); return; }
+    openApp();
   };
 
   // Konversi Derajat Desimal ke Format DMS
@@ -2107,8 +2136,8 @@ export default function App() {
       if (res.ok) {
         const me = await res.json();
         if (me.role === 'admin' || me.kredit > 0) { setApiError(''); return true; }
-        setApiError('Kredit Anda habis. Silakan top-up terlebih dahulu untuk mengakses peta.');
-        setShowAccount(true); // buka panel top-up
+        setApiError('Kredit Anda habis. Silakan bayar lewat kode QR untuk menambah kredit.');
+        bukaBayarQr(); // kredit habis -> tampilkan QR pembayaran
         auth.refreshUser();
         return false;
       }
@@ -2150,7 +2179,7 @@ export default function App() {
     const data = await res.json().catch(() => null);
     if (!res.ok) {
       setApiError(data?.error || 'Gagal memuat data desa.');
-      if (res.status === 402) setShowAccount(true); // kredit habis -> buka panel top-up
+      if (res.status === 402) bukaBayarQr(); // kredit habis -> tampilkan QR pembayaran
       return null;
     }
     return data;
@@ -2476,7 +2505,7 @@ export default function App() {
   if (res.ok) { auth.refreshUser(); return true; } // kredit -1 terjadi di server saat ekspor
   const d = await res.json().catch(() => null);
   alert(d?.error || 'Tidak dapat mengekspor.');
-  if (res.status === 402) setShowAccount(true);
+  if (res.status === 402) bukaBayarQr();
   return false;
 };
   const handleExportPNG = async () => {
@@ -3470,8 +3499,74 @@ export default function App() {
         />
       )}
       {showAccount && auth.user && (
-        <AccountModal auth={auth} initialPaket={paketAwal} onClose={() => { setShowAccount(false); setPaketAwal(undefined); }} />
+        <AccountModal auth={auth} onClose={() => setShowAccount(false)} />
       )}
+      {showQr && auth.user && (() => {
+        const paket = PAKET_KREDIT.find((p) => p.id === qrPaketId) || PAKET_KREDIT[0];
+        const pesanWa = paket
+          ? `Halo, saya sudah bayar paket ${paket.kredit} kredit (${rupiah(paket.harga)}) untuk akun ${auth.user.email}. Berikut bukti pembayarannya.`
+          : '';
+        return (
+          <div className="gl-qr__overlay" role="presentation" onClick={() => setShowQr(false)}>
+            <div className="gl-qr" role="dialog" aria-modal="true" aria-labelledby="gl-qr-title" onClick={(e) => e.stopPropagation()}>
+              <div className="gl-qr__head">
+                <h3 id="gl-qr-title"><Icon name="bolt" size={16} /> Bayar dengan kode QR</h3>
+                <button type="button" className="gl-iconbtn" onClick={() => setShowQr(false)} aria-label="Tutup"><Icon name="x" size={18} /></button>
+              </div>
+
+              <div className="gl-qr__body">
+                <div className="gl-qr__packs" role="group" aria-label="Pilih paket kredit">
+                  {PAKET_KREDIT.map((p) => (
+                    <button type="button" key={p.id} className={`gl-qr__pack ${p.id === paket?.id ? 'is-on' : ''}`} aria-pressed={p.id === paket?.id} onClick={() => setQrPaketId(p.id)}>
+                      <span>{p.kredit} kredit{hemat(p) > 0 && <i>Hemat {rupiah(hemat(p))}</i>}</span>
+                      <b>{rupiah(p.harga)}</b>
+                    </button>
+                  ))}
+                </div>
+
+                <div className="gl-qr__img">
+                  {qrError ? (
+                    <div className="gl-note gl-note--err">Gambar QR tidak ditemukan. Pastikan berkas <code>qrbayar.jpeg</code> ada di folder <code>public</code> frontend, lalu muat ulang halaman.</div>
+                  ) : (
+                    <img src={QR_IMAGE} alt={`Kode QR pembayaran${paket ? ` ${rupiah(paket.harga)}` : ''}`} onError={() => setQrError(true)} />
+                  )}
+                </div>
+
+                {paket && (
+                  <div className="gl-qr__total">
+                    <span>Total yang dibayar</span>
+                    <b>{rupiah(paket.harga)}</b>
+                  </div>
+                )}
+
+                <ol className="gl-qr__steps">
+                  <li>Buka aplikasi bank atau dompet digital, lalu pindai kode QR di atas.</li>
+                  <li>Masukkan nominal <b>{paket ? rupiah(paket.harga) : 'sesuai paket'}</b> lalu selesaikan pembayaran.</li>
+                  <li>Simpan bukti pembayaran, lalu kirim ke admin bersama email akun <b>{auth.user.email}</b>.</li>
+                  <li>Kredit ditambahkan setelah pembayaran diperiksa. Muat ulang halaman bila saldo belum berubah.</li>
+                </ol>
+
+                <div className="gl-qr__actions">
+                  {KONTAK_WA && (
+                    <a className="gl-btn gl-btn--primary" href={`https://wa.me/${KONTAK_WA}?text=${encodeURIComponent(pesanWa)}`} target="_blank" rel="noopener noreferrer">
+                      Kirim bukti lewat WhatsApp
+                    </a>
+                  )}
+                  {!qrError && (
+                    <a className="gl-btn" href={QR_IMAGE} download="qr-pembayaran-petakilat.jpeg">
+                      <Icon name="download" size={16} /> Unduh QR
+                    </a>
+                  )}
+                  <button type="button" className="gl-btn" onClick={() => { auth.refreshUser(); }}>
+                    <Icon name="rotate" size={16} /> Cek saldo kredit
+                  </button>
+                </div>
+                <div className="gl-note">Pembayaran lewat QR diperiksa manual, jadi kredit tidak masuk seketika. Sertakan bukti pembayaran agar prosesnya cepat.</div>
+              </div>
+            </div>
+          </div>
+        );
+      })()}
     </div>
   );
 }
