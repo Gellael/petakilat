@@ -5,7 +5,7 @@ const TOKEN_KEY = 'gl_token';
 
 // ====== ISI SESUAI KEBUTUHAN ANDA ======
 /** Nomor WhatsApp admin (format internasional tanpa +). Kredit dibeli lewat chat ke nomor ini. */
-export const ADMIN_WA = '6283176819739';
+export const ADMIN_WA = '6283176819738';
 
 /** Harga satuan: 1 kredit = Rp20.000. */
 export const HARGA_PER_KREDIT = 20000;
