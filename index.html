@@ -1,17 +1,113 @@
 <!doctype html>
-<html lang="en">
+<html lang="id">
   <head>
     <meta charset="UTF-8" />
-    <link rel="icon" type="image/svg+xml" href="/vite.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>GeoLayout</title>
-    
-    <!-- Tambahkan CDN untuk Ekspor PNG & PDF Kartografi -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+
+    <!-- ===== SEO dasar ===== -->
+    <title>Petakilat | Pembuat Peta Administrasi Desa &amp; Kelurahan Online</title>
+    <meta name="description" content="Buat peta administrasi desa dan kelurahan siap cetak dengan batas wilayah resmi BIG, skala, legenda, arah utara, dan foto lapangan. Ekspor PNG dan PDF A4." />
+    <meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1" />
+    <link rel="canonical" href="https://petakilat.pages.dev/" />
+    <meta name="application-name" content="Petakilat" />
+    <meta name="apple-mobile-web-app-title" content="Petakilat" />
+    <meta name="theme-color" content="#0c3447" />
+    <meta name="author" content="Petakilat" />
+
+    <!-- ===== Ikon ===== -->
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+
+    <!-- ===== Open Graph (Facebook, WhatsApp, LinkedIn, Telegram) ===== -->
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="Petakilat" />
+    <meta property="og:locale" content="id_ID" />
+    <meta property="og:url" content="https://petakilat.pages.dev/" />
+    <meta property="og:title" content="Petakilat | Pembuat Peta Administrasi Desa &amp; Kelurahan Online" />
+    <meta property="og:description" content="Pilih wilayah, atur tampilan, unduh peta administrasi desa siap cetak lengkap dengan skala, legenda, dan arah utara. PNG dan PDF A4." />
+    <meta property="og:image" content="https://petakilat.pages.dev/og-image.png" />
+    <meta property="og:image:type" content="image/png" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:image:alt" content="Petakilat, pembuat peta administrasi desa dan kelurahan siap cetak" />
+
+    <!-- ===== Twitter / X ===== -->
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="Petakilat | Pembuat Peta Administrasi Desa &amp; Kelurahan Online" />
+    <meta name="twitter:description" content="Pilih wilayah, atur tampilan, unduh peta administrasi desa siap cetak. PNG dan PDF A4." />
+    <meta name="twitter:image" content="https://petakilat.pages.dev/og-image.png" />
+    <meta name="twitter:image:alt" content="Petakilat, pembuat peta administrasi desa dan kelurahan siap cetak" />
+
+    <!-- ===== Percepat pemuatan font (dipakai oleh halaman utama) ===== -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+
+    <!-- ===== Data terstruktur (JSON-LD) ===== -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@graph": [
+        {
+          "@type": "WebSite",
+          "@id": "https://petakilat.pages.dev/#website",
+          "url": "https://petakilat.pages.dev/",
+          "name": "Petakilat",
+          "alternateName": "Petakilat Pembuat Peta Administrasi Desa",
+          "inLanguage": "id-ID",
+          "description": "Aplikasi web untuk membuat peta administrasi desa dan kelurahan siap cetak."
+        },
+        {
+          "@type": "WebApplication",
+          "@id": "https://petakilat.pages.dev/#app",
+          "name": "Petakilat",
+          "url": "https://petakilat.pages.dev/",
+          "image": "https://petakilat.pages.dev/og-image.png",
+          "description": "Petakilat menyusun lembar peta administrasi desa atau kelurahan lengkap dengan judul, arah utara, skala, legenda, metadata, dan peta inset. Hasilnya dapat diunduh sebagai PNG resolusi tinggi atau PDF A4 lanskap.",
+          "applicationCategory": "UtilitiesApplication",
+          "applicationSubCategory": "Sistem Informasi Geografis (WebGIS)",
+          "operatingSystem": "Semua sistem operasi dengan browser web",
+          "browserRequirements": "Memerlukan browser modern dengan JavaScript dan WebGL",
+          "inLanguage": "id-ID",
+          "isPartOf": { "@id": "https://petakilat.pages.dev/#website" },
+          "featureList": [
+            "Pilihan wilayah bertingkat: provinsi, kabupaten/kota, desa atau kelurahan",
+            "Batas administrasi desa dari Badan Informasi Geospasial (BIG)",
+            "Lembar peta otomatis dengan judul, arah utara, skala, legenda, dan metadata",
+            "Banyak pilihan peta dasar: citra satelit, peta terang, mode gelap, jalan, dan topografi",
+            "Titik AOI dengan foto lapangan dan garis penunjuk",
+            "Peta inset letak desa",
+            "Ekspor PNG resolusi tinggi dan PDF A4 lanskap"
+          ],
+          "offers": {
+            "@type": "Offer",
+            "price": "20000",
+            "priceCurrency": "IDR",
+            "description": "Paket kredit mulai Rp20.000. Satu kredit untuk satu kali ekspor PNG atau PDF tanpa watermark.",
+            "availability": "https://schema.org/InStock",
+            "url": "https://petakilat.pages.dev/"
+          }
+        }
+      ]
+    }
+    </script>
   </head>
   <body>
     <div id="root"></div>
+
+    <!-- Konten cadangan bagi pengunjung dan crawler tanpa JavaScript -->
+    <noscript>
+      <main style="font-family:Arial,Helvetica,sans-serif;max-width:720px;margin:40px auto;padding:0 16px;line-height:1.6;color:#17303f">
+        <h1>Petakilat: Pembuat Peta Administrasi Desa dan Kelurahan</h1>
+        <p>Petakilat adalah aplikasi web untuk menyusun peta administrasi desa dan kelurahan siap cetak, lengkap dengan judul, arah utara, skala, legenda, dan metadata. Pilih provinsi, kabupaten/kota, dan desa, atur tampilan, lalu unduh hasilnya sebagai PNG atau PDF A4.</p>
+        <ul>
+          <li>Batas administrasi desa dari Badan Informasi Geospasial (BIG)</li>
+          <li>Banyak pilihan peta dasar: citra satelit, peta terang, mode gelap, jalan, dan topografi</li>
+          <li>Titik AOI dengan foto lapangan dan peta inset</li>
+          <li>Ekspor PNG resolusi tinggi dan PDF A4 lanskap</li>
+        </ul>
+        <p>Aktifkan JavaScript di browser Anda untuk menggunakan Petakilat.</p>
+      </main>
+    </noscript>
+
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>
