@@ -3,6 +3,8 @@ import * as maplibregl from 'maplibre-gl';
 import 'maplibre-gl/dist/maplibre-gl.css';
 import workerUrl from 'maplibre-gl/dist/maplibre-gl-worker.mjs?url';
 import * as turf from '@turf/turf';
+import { useHomeMotion, useHeroMap } from './motion';
+import { UserCircle} from 'lucide-react';
 import { useAuth, AuthModal, AccountModal, apiFetch, PAKET_KREDIT, hemat, rupiah, linkWaPaket } from './auth';
 maplibregl.setWorkerUrl(workerUrl);
 
@@ -732,8 +734,11 @@ const RangeField = ({ label, value, min, max, step, display, onChange }: {
   </label>
 );
 
-function SearchSelect({ label, value, options, placeholder, disabled, onChange, onBeforeOpen }: {
-  label: string; value: string; options: string[]; placeholder: string; disabled?: boolean; onChange: (v: string) => void;
+function SearchSelect({ label, value, options, placeholder, disabled, loading, onChange, onBeforeOpen }: {
+  label: string; value: string; options: string[]; placeholder: string; disabled?: boolean;
+  /** Data pilihan sedang dimuat: tampilkan skeleton sebagai pengganti kolom. */
+  loading?: boolean;
+  onChange: (v: string) => void;
   /** Dipanggil saat user mengklik untuk membuka daftar. Kembalikan false untuk membatalkan pembukaan. */
   onBeforeOpen?: () => boolean | Promise<boolean>;
 }) {
@@ -764,12 +769,16 @@ function SearchSelect({ label, value, options, placeholder, disabled, onChange, 
   };
 
   return (
-    <div className="gl-field" ref={ref}>
+    <div className="gl-field" ref={ref} aria-busy={loading || undefined}>
       <span className="gl-label">{label}</span>
-      <button type="button" className={`gl-select ${open ? 'is-open' : ''}`} disabled={disabled} onClick={toggle} aria-haspopup="listbox" aria-expanded={open}>
-        <span className={value ? 'gl-select__val' : 'gl-select__ph'}>{value || placeholder}</span>
-        <Icon name="chevron" size={16} />
-      </button>
+      {loading ? (
+        <Skel className="gl-skel--field" />
+      ) : (
+        <button type="button" className={`gl-select ${open ? 'is-open' : ''}`} disabled={disabled} onClick={toggle} aria-haspopup="listbox" aria-expanded={open}>
+          <span className={value ? 'gl-select__val' : 'gl-select__ph'}>{value || placeholder}</span>
+          <Icon name="chevron" size={16} />
+        </button>
+      )}
       {open && (
         <div className="gl-pop" role="listbox">
           <div className="gl-pop__search">
@@ -789,6 +798,44 @@ function SearchSelect({ label, value, options, placeholder, disabled, onChange, 
     </div>
   );
 }
+
+// ===================== SKELETON LOADING =====================
+const Skel = ({ w, h, flex, className = '' }: { w?: number | string; h?: number | string; flex?: number; className?: string }) => (
+  <span className={`gl-skel ${className}`} style={{ width: w, height: h, flex: flex !== undefined ? `${flex} 1 0` : undefined }} aria-hidden="true" />
+);
+
+/** Pengganti isi panel samping saat sesi masuk sedang diperiksa. */
+const SideSkeleton = () => (
+  <div role="status" aria-label="Memuat panel pengaturan" style={{ display: 'contents' }}>
+    <div className="gl-skelsec">
+      <div className="gl-skelsec__head"><Skel w={24} h={24} className="gl-skel--circle" /><Skel h={14} flex={1} /></div>
+      <Skel className="gl-skel--field" />
+      <Skel className="gl-skel--field" />
+      <Skel className="gl-skel--field" />
+    </div>
+    {[0, 1, 2, 3, 4].map((i) => (
+      <div className="gl-skelsec" key={i}>
+        <div className="gl-skelsec__head"><Skel w={24} h={24} className="gl-skel--circle" /><Skel h={14} flex={1} /></div>
+      </div>
+    ))}
+  </div>
+);
+
+/** Bayangan lembar peta: kolom peta di kiri, kotak informasi di kanan. */
+const SheetSkeleton = ({ w, h }: { w: number; h: number }) => (
+  <div className="gl-skelov" role="status" aria-label="Memuat peta">
+    <div className="gl-skelsheet" style={{ width: w, height: h }}>
+      <Skel h="100%" />
+      <div className="gl-skelsheet__col">
+        <Skel flex={1} />
+        <Skel flex={1} />
+        <Skel flex={2.2} />
+        <Skel flex={1.6} />
+        <Skel flex={1.8} />
+      </div>
+    </div>
+  </div>
+);
 
 // Pola watermark pratinjau: teks miring berulang (ubin SVG). Memuat email user agar screenshot bisa dilacak.
 const escXml = (s: string) => s.replace(/[<>&"']/g, (c) => ({ '<': '&lt;', '>': '&gt;', '&': '&amp;', '"': '&quot;', "'": '&apos;' } as Record<string, string>)[c]);
@@ -840,15 +887,18 @@ const HeroSheet = () => (
       <text x="382" y="366" textAnchor="end">{'102° 22\' 36" BT'}</text>
     </g>
 
-    <g clipPath="url(#glmapclip)">
-      <rect x="10" y="24" width="380" height="332" fill="#243f38" />
+    <g className="hm-clip" clipPath="url(#glmapclip)">
+      <g className="hm-pan">
+      <rect x="-120" y="-100" width="640" height="560" fill="#243f38" />
+      <g className="hm-far">
       <ellipse cx="70" cy="90" rx="90" ry="50" fill="#2f5a43" opacity=".8" />
       <ellipse cx="340" cy="320" rx="110" ry="60" fill="#33604a" opacity=".85" />
       <ellipse cx="330" cy="70" rx="70" ry="40" fill="#3b6b4e" opacity=".6" />
+      </g>
       <rect x="30" y="250" width="140" height="100" fill="#6b6f6a" opacity=".5" />
       <rect x="30" y="250" width="140" height="100" fill="url(#glroads)" />
-      <path d="M10 300 C90 280 130 230 190 250 S300 330 390 290" stroke="#6fbfdc" strokeWidth="5" fill="none" opacity=".8" />
-      <g fill="rgba(255,255,255,.05)" stroke="#d5dee5" strokeWidth="1" strokeDasharray="4 3">
+      <path className="hm-river" d="M-60 312 C90 280 130 230 190 250 S300 330 390 290" stroke="#6fbfdc" strokeWidth="5" fill="none" opacity=".8" />
+      <g className="hm-neigh" fill="rgba(255,255,255,.05)" stroke="#d5dee5" strokeWidth="1" strokeDasharray="4 3">
         <polygon points="20,60 110,40 150,95 100,150 30,140" />
         <polygon points="300,40 385,50 385,150 330,130" />
         <polygon points="30,260 100,250 140,300 120,350 25,350" />
@@ -856,32 +906,47 @@ const HeroSheet = () => (
       </g>
       <polygon className="gl-fillin" points="125,105 205,72 285,92 335,150 325,230 275,292 200,312 140,272 98,200" fill="rgba(123,227,180,.34)" />
       <polygon className="gl-draw" pathLength={1} points="125,105 205,72 285,92 335,150 325,230 275,292 200,312 140,272 98,200" fill="none" stroke="#dc2626" strokeWidth="2.4" strokeLinejoin="round" />
-      <rect x="172" y="184" width="76" height="18" rx="9" fill="#fff" />
-      <text x="210" y="196.5" textAnchor="middle" fontFamily={SHEET_SANS} fontSize="8" fontWeight="bold" fill="#0f172a" letterSpacing=".5">BETUNGAN</text>
-      <line x1="64" y1="96" x2="140" y2="150" stroke="#2f9e6b" strokeWidth="1.4" strokeDasharray="4 3" />
-      <circle cx="140" cy="150" r="7" fill="#0b7a56" stroke="#fff" strokeWidth="2" />
+      <g className="hm-label">
+        <rect x="172" y="184" width="76" height="18" rx="9" fill="#fff" />
+        <text x="210" y="196.5" textAnchor="middle" fontFamily={SHEET_SANS} fontSize="8" fontWeight="bold" fill="#0f172a" letterSpacing=".5">BETUNGAN</text>
+      </g>
+      <line className="hm-line" x1="64" y1="96" x2="140" y2="150" stroke="#2f9e6b" strokeWidth="1.4" strokeDasharray="4 3" />
+      <circle className="hm-ring" cx="140" cy="150" r="7" fill="none" stroke="#0b7a56" strokeWidth="1.5" />
+      <g className="hm-pin"><circle cx="140" cy="150" r="7" fill="#0b7a56" stroke="#fff" strokeWidth="2" /></g>
+      <g className="hm-card">
       <rect x="26" y="34" width="76" height="62" rx="4" fill="#2f9e6b" />
       <rect x="29" y="37" width="70" height="40" fill="url(#glsun)" />
       <rect x="29" y="77" width="70" height="16" fill="#fff" />
       <text x="64" y="88.5" textAnchor="middle" fontFamily={SHEET_SANS} fontSize="6.5" fontWeight="bold" fill="#0f172a">AOI 1</text>
+      </g>
+      </g>
       <rect x="14" y="336" width="60" height="14" fill="#fff" fillOpacity=".85" stroke="#000" strokeWidth=".6" />
       <text x="18" y="346" fontFamily={SHEET_MONO} fontSize="6" fontWeight="bold" fill="#0f172a">500 m</text>
+      <g className="hm-hint" pointerEvents="none">
+        <rect x="282" y="30" width="102" height="15" rx="7.5" fill="#fff" fillOpacity=".93" />
+        <text x="333" y="40.3" textAnchor="middle" fontFamily={SHEET_SANS} fontSize="6.2" fontWeight="bold" fill="#0f172a">Seret untuk menggeser</text>
+      </g>
     </g>
 
     {/* kolom informasi */}
     <g fontFamily={SHEET_FONT} fill="#000">
+      <g className="hm-panel">
       <rect x="404" y="16" width="140" height="50" fill="#fff" stroke="#000" strokeWidth="1.2" />
       <text x="474" y="29" textAnchor="middle" fontSize="6.6" fontWeight="bold">PETA ADMINISTRASI DESA</text>
       <text x="474" y="46" textAnchor="middle" fontSize="11" fontWeight="bold">BETUNGAN</text>
       <line x1="410" y1="50" x2="538" y2="50" stroke="#000" strokeWidth="1" />
       <text x="474" y="59" textAnchor="middle" fontSize="4.3" fill="#333">KECAMATAN SELEBAR - KABUPATEN KOTA BENGKULU</text>
+      </g>
 
+      <g className="hm-panel">
       <rect x="404" y="72" width="38" height="46" fill="#fff" stroke="#000" strokeWidth="1.2" />
       <text x="423" y="82" textAnchor="middle" fontSize="5" fontWeight="bold">UTARA</text>
       <circle cx="423" cy="101" r="12" fill="none" stroke="#000" strokeWidth="1" />
       <polygon points="423,90 420,101 423,99" fill="#000" /><polygon points="423,90 426,101 423,99" fill="#fff" stroke="#000" strokeWidth=".5" />
       <polygon points="423,112 426,101 423,103" fill="#000" /><polygon points="423,112 420,101 423,103" fill="#fff" stroke="#000" strokeWidth=".5" />
+      </g>
 
+      <g className="hm-panel">
       <rect x="448" y="72" width="96" height="46" fill="#fff" stroke="#000" strokeWidth="1.2" />
       <text x="496" y="82" textAnchor="middle" fontSize="5" fontWeight="bold">SKALA PETA</text>
       <text x="496" y="94" textAnchor="middle" fontSize="7" fontWeight="bold" fontFamily={SHEET_MONO}>1 : 63.179</text>
@@ -890,7 +955,9 @@ const HeroSheet = () => (
       <g fontFamily={SHEET_SANS} fontSize="4.5" fontWeight="bold">
         <text x="462" y="110">0</text><text x="496" y="110" textAnchor="middle">2 km</text><text x="530" y="110" textAnchor="end">4 km</text>
       </g>
+      </g>
 
+      <g className="hm-panel">
       <rect x="404" y="124" width="140" height="94" fill="#fff" stroke="#000" strokeWidth="1.2" />
       <text x="474" y="135" textAnchor="middle" fontSize="6" fontWeight="bold">LEGENDA</text>
       <line x1="410" y1="138" x2="538" y2="138" stroke="#ccc" strokeWidth=".8" />
@@ -903,7 +970,9 @@ const HeroSheet = () => (
         <text x="430" y="183" fill="#334155">AOI 1</text>
         <text x="410" y="203" fontSize="4.6" fill="#64748b">Peta Dasar: Citra Satelit</text>
       </g>
+      </g>
 
+      <g className="hm-panel">
       <rect x="404" y="224" width="140" height="66" fill="#fff" stroke="#000" strokeWidth="1.2" />
       <text x="474" y="235" textAnchor="middle" fontSize="5.2" fontWeight="bold">KETERANGAN &amp; METADATA</text>
       <g fontFamily={SHEET_SANS} fontSize="5">
@@ -912,7 +981,9 @@ const HeroSheet = () => (
         <text x="410" y="266" fill="#64748b">Proyeksi:</text><text x="452" y="266">Geografis (WGS 84)</text>
         <text x="410" y="275" fill="#64748b">Sumber:</text><text x="452" y="275">BIG &amp; WebGIS PostGIS</text>
       </g>
+      </g>
 
+      <g className="hm-panel">
       <rect x="404" y="296" width="140" height="68" fill="#e8f0eb" stroke="#000" strokeWidth="1.2" />
       <g fill="#fff" stroke="#94a3b8" strokeWidth=".8">
         <polygon points="410,302 450,300 462,330 430,358 410,350" />
@@ -921,6 +992,7 @@ const HeroSheet = () => (
         <polygon points="430,358 462,330 504,340 490,360" />
       </g>
       <polygon points="466,318 484,314 496,328 488,344 470,346 460,332" fill="#7dd3e8" stroke="#dc2626" strokeWidth="1.6" />
+      </g>
     </g>
   </svg>
 );
@@ -1009,7 +1081,6 @@ const APP_CSS = `
 /* ---------- tombol ---------- */
 .gl-btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;height:40px;padding:0 16px;border-radius:10px;border:1px solid var(--line);background:var(--surface);color:var(--ink);font-size:13px;font-weight:600;cursor:pointer;transition:background .15s,border-color .15s,transform .1s;white-space:nowrap}
 .gl-btn:hover{background:var(--line-2)}
-.gl-btn:active{transform:translateY(1px)}
 .gl-btn:disabled{opacity:.55;cursor:not-allowed}
 .gl-btn--primary{background:var(--brand);border-color:var(--brand);color:#fff}
 .gl-btn--primary:hover{background:var(--brand-d)}
@@ -1216,10 +1287,10 @@ const APP_CSS = `
 .gl-hero__facts svg{color:var(--h-aqua)}
 .gl-sheet{width:100%;max-width:660px;justify-self:end;border-radius:6px;background:#fff;box-shadow:0 30px 70px rgba(0,0,0,.45),0 0 0 1px rgba(255,255,255,.14);overflow:hidden}
 .gl-sheet svg{display:block;width:100%;height:auto}
-@keyframes gl-draw{from{stroke-dashoffset:1}to{stroke-dashoffset:0}}
-@keyframes gl-fillin{from{opacity:0}to{opacity:1}}
-.gl-draw{stroke-dasharray:1;stroke-dashoffset:0;animation:gl-draw 1.8s .4s cubic-bezier(.4,0,.2,1) both}
-.gl-fillin{animation:gl-fillin .9s 1.5s ease both}
+.gl-draw{stroke-dasharray:1;stroke-dashoffset:0}
+.hm-clip{cursor:grab}
+.hm-card,.hm-label{cursor:grab}
+.gl-sheet svg{touch-action:none;user-select:none;-webkit-user-select:none}
 
 .gl-sect{scroll-margin-top:72px;padding:clamp(56px,8vw,104px) clamp(16px,5vw,64px)}
 .gl-sect--tint{background:var(--h-paper)}
@@ -1388,13 +1459,6 @@ const APP_CSS = `
    ===================================================================== */
 .gl-root{--ease:cubic-bezier(.77,0,.18,1);--ease-out:cubic-bezier(.16,1,.3,1);--jade-ink:#07241c}
 
-@keyframes gl-iris{from{clip-path:circle(0% at 50% 46%)}to{clip-path:circle(150% at 50% 46%)}}
-@keyframes gl-curtain{from{clip-path:inset(0 0 100% 0 round 14px)}to{clip-path:inset(0 0 0 0 round 14px)}}
-@keyframes gl-wipe-x{from{clip-path:inset(0 100% 0 0)}to{clip-path:inset(0 0 0 0)}}
-@keyframes gl-wipe-y{from{clip-path:inset(0 0 100% 0)}to{clip-path:inset(0 0 0 0)}}
-@keyframes gl-wipe-up{from{clip-path:inset(100% 0 0 0)}to{clip-path:inset(0 0 0 0)}}
-@keyframes gl-rise{from{transform:translateY(110%)}to{transform:none}}
-
 /* --- panel samping: kepala gelap jade --- */
 .gl-side{border-right-color:#c9ddd2}
 .gl-side__head{padding:16px 14px;color:#fff;border-bottom:0;background:linear-gradient(160deg,#06211a 0%,#0b3a2e 65%,#0f4a3a 100%)}
@@ -1408,51 +1472,17 @@ const APP_CSS = `
 .gl-side__foot{background:#fff;border-top-color:#d5e3db}
 
 /* --- kartu bagian --- */
-.gl-sec{border-color:#d5e3db;transition:border-color .35s,box-shadow .35s}
+.gl-sec{border-color:#d5e3db}
 .gl-sec.is-open{border-color:#b4d9c5;box-shadow:0 10px 26px -14px rgba(11,122,86,.45)}
 .gl-sec__title{letter-spacing:-.005em}
 .gl-sec__step{font-family:'Newsreader','Cormorant Garamond',Georgia,serif;font-size:14px;font-weight:600}
 
 /* --- toolbar dan area peta --- */
-.gl-toolbar{min-height:64px;background:rgba(255,255,255,.86);-webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px)}
+.gl-toolbar{min-height:64px;background:var(--surface)}
 .gl-toolbar__title{font-family:'Newsreader','Cormorant Garamond',Georgia,serif;font-size:21px;font-weight:500;line-height:1.25;letter-spacing:-.01em}
 .gl-toolbar__sub{font-size:12.5px}
 .gl-chip{background:var(--brand-soft);border-color:#c4e3d3;color:var(--brand-d)}
-.gl-paper{position:relative;--mx:50%;--my:50%;background-color:#e3ede7;background-image:radial-gradient(#c3d6cb 1px,transparent 1px);background-size:18px 18px}
-.gl-paper::before{content:'';position:absolute;inset:0;z-index:0;pointer-events:none;
-  background-image:radial-gradient(rgba(11,122,86,.7) 1.4px,transparent 1.7px);background-size:18px 18px;
-  -webkit-mask-image:radial-gradient(260px circle at var(--mx) var(--my),#000 0,rgba(0,0,0,.35) 45%,transparent 72%);
-  mask-image:radial-gradient(260px circle at var(--mx) var(--my),#000 0,rgba(0,0,0,.35) 45%,transparent 72%)}
-.gl-paper>div{position:relative;z-index:1}
-@media (hover:none){.gl-paper::before{display:none}}
-
-/* --- masking teks: naik dari balik garis potong --- */
-.gl-mask{display:block;overflow:hidden;padding-bottom:.16em;margin-bottom:-.16em}
-.gl-mask__in{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;animation:gl-rise .8s var(--ease-out) backwards}
-.gl-toolbar__sub .gl-mask__in{animation-delay:.08s}
-
-/* --- satu urutan pembuka saat dashboard dibuka ---
-   fill-mode "backwards": setelah selesai tidak ada clip-path tersisa,
-   jadi ekspor PNG/PDF dan popover dropdown tidak terpengaruh. */
-.gl-app .gl-paper>div{animation:gl-iris 1.3s var(--ease) .2s backwards}
-.gl-app .gl-toolbar{animation:gl-wipe-x 1s var(--ease) .05s backwards}
-.gl-app .gl-chip{animation:gl-wipe-x .7s var(--ease) .6s backwards}
-.gl-app .gl-chip+.gl-chip{animation-delay:.7s}
-.gl-app .gl-side__head{animation:gl-wipe-y .9s var(--ease) backwards}
-.gl-app .gl-side__title,.gl-app .gl-side__sub{animation:gl-wipe-x .85s var(--ease) .3s backwards}
-.gl-app .gl-side__sub{animation-delay:.4s}
-.gl-app .gl-side__body>.gl-sec{animation:gl-curtain .95s var(--ease) backwards}
-.gl-app .gl-side__body>.gl-sec:nth-child(1){animation-delay:.30s}
-.gl-app .gl-side__body>.gl-sec:nth-child(2){animation-delay:.37s}
-.gl-app .gl-side__body>.gl-sec:nth-child(3){animation-delay:.44s}
-.gl-app .gl-side__body>.gl-sec:nth-child(4){animation-delay:.51s}
-.gl-app .gl-side__body>.gl-sec:nth-child(5){animation-delay:.58s}
-.gl-app .gl-side__body>.gl-sec:nth-child(6){animation-delay:.65s}
-.gl-app .gl-side__body>.gl-sec:nth-child(n+7){animation-delay:.72s}
-.gl-app .gl-side__foot{animation:gl-wipe-up .9s var(--ease) .75s backwards}
-
-/* --- respons terhadap aksi: isi bagian terbuka disapu dari atas --- */
-.gl-sec__body{animation:gl-wipe-y .55s var(--ease-out) backwards}
+.gl-paper{position:relative;background-color:#e3ede7;background-image:radial-gradient(#c3d6cb 1px,transparent 1px);background-size:18px 18px}
 
 /* --- tipografi halaman utama --- */
 .gl-home h1{font-weight:500;letter-spacing:-.02em}
@@ -1463,8 +1493,53 @@ const APP_CSS = `
 
 @media (max-width:900px){
   .gl-toolbar__title{font-size:18px}
-  .gl-app .gl-paper>div{animation-duration:1s}
 }
+
+/* =====================================================================
+   PENYEMPURNAAN TAMPILAN DASHBOARD: gaya diam, tanpa animasi
+   ===================================================================== */
+
+/* panel samping: judul bagian bergaya serif, lebih tenang dari kartu bergaris tebal */
+.gl-sec{position:relative;border-radius:14px;border-color:#dbe8e0}
+.gl-sec::before{content:'';position:absolute;left:0;top:14px;bottom:14px;width:3px;border-radius:0 3px 3px 0;
+  background:linear-gradient(180deg,var(--bolt-d),var(--brand));transform:scaleY(0);transform-origin:top}
+.gl-sec.is-open::before{transform:scaleY(1)}
+.gl-sec__head{padding:14px 16px}
+.gl-sec__head:hover .gl-sec__title{color:var(--brand-d)}
+.gl-sec__title{font-family:'Newsreader','Cormorant Garamond',Georgia,serif;font-size:17px;font-weight:500;letter-spacing:-.01em}
+.gl-sec__step{width:auto;height:auto;background:none;border-radius:0;color:var(--brand);font-size:19px;font-weight:500;font-variant-numeric:lining-nums;min-width:14px}
+.gl-sec__body{padding:2px 16px 16px}
+
+/* subjudul kelompok: huruf biasa, bukan kapital berjarak */
+.gl-subhead{font-size:12px;font-weight:600;letter-spacing:0;text-transform:none;color:var(--ink-2)}
+
+/* tombol utama: sedikit kedalaman, tanpa gradasi dekoratif */
+.gl-btn--primary{box-shadow:inset 0 1px 0 rgba(255,255,255,.16),0 8px 18px -10px rgba(11,122,86,.85)}
+.gl-btn--dark{box-shadow:inset 0 1px 0 rgba(255,255,255,.08),0 8px 18px -10px rgba(7,36,28,.8)}
+.gl-btn--primary:hover,.gl-btn--dark:hover{box-shadow:inset 0 1px 0 rgba(255,255,255,.2),0 12px 22px -10px rgba(11,122,86,.7)}
+
+/* toolbar dan scrollbar */
+.gl-toolbar{border-bottom:0;box-shadow:0 1px 0 #d5e3db,0 10px 30px -22px rgba(12,31,25,.5)}
+.gl-side__body{scrollbar-color:#b9d0c5 transparent}
+.gl-paper::-webkit-scrollbar{width:10px;height:10px}
+.gl-paper::-webkit-scrollbar-thumb{background:#b9d0c5;border-radius:10px;border:2px solid #e3ede7}
+
+/* ---------- skeleton loading (hanya transform, ringan) ---------- */
+.gl-skel{display:block;position:relative;overflow:hidden;border-radius:8px;background:#dce8e1}
+.gl-skel::after{content:'';position:absolute;inset:0;transform:translateX(-100%);
+  background:linear-gradient(90deg,transparent,rgba(255,255,255,.6),transparent);animation:gl-skel 1.4s ease-in-out infinite}
+@keyframes gl-skel{to{transform:translateX(100%)}}
+.gl-skel--field{height:38px;border-radius:10px}
+.gl-skel--circle{border-radius:50%}
+.gl-skelsec{display:flex;flex-direction:column;gap:12px;padding:14px 16px;background:var(--surface);border:1px solid #dbe8e0;border-radius:14px;flex-shrink:0}
+.gl-skelsec__head{display:flex;align-items:center;gap:12px}
+.gl-skelov{position:absolute;inset:0;z-index:5;display:grid;place-items:center;background:#e3ede7}
+.gl-skelsheet{display:grid;grid-template-columns:1fr 26%;gap:8px;padding:8px;background:#fff;border:2px solid #cfdad4;box-shadow:0 18px 50px rgba(12,31,25,.18)}
+.gl-skelsheet .gl-skel{border-radius:3px}
+.gl-skelsheet__col{display:flex;flex-direction:column;gap:8px;min-height:0}
+
+/* kartu peta dasar: pilihan aktif lebih jelas */
+.gl-basemap.is-on{box-shadow:0 0 0 2px rgba(11,122,86,.35),0 10px 20px -12px rgba(11,122,86,.6)}
 `;
 
 // ===================== APLIKASI =====================
@@ -1513,6 +1588,8 @@ export default function App() {
   const [exportDpi, setExportDpi] = useState<number>(300);
   const [apiError, setApiError] = useState<string>('');
   const [loadingKab, setLoadingKab] = useState<boolean>(false);
+  const [loadingProv, setLoadingProv] = useState<boolean>(true); // daftar provinsi
+  const [loadingKabList, setLoadingKabList] = useState<boolean>(false); // daftar kabupaten/kota
   const [sheetScale, setSheetScale] = useState<number>(1);
 
   // --- IDENTITAS & KARTOGRAFI ---
@@ -1627,6 +1704,10 @@ export default function App() {
   const sheetRef = useRef<HTMLDivElement>(null);
   const scalerRef = useRef<HTMLDivElement>(null);
   const paperRef = useRef<HTMLDivElement>(null);
+  const homeRef = useRef<HTMLDivElement>(null);
+  // Animasi GSAP hanya di halaman beranda (lihat motion.tsx)
+  useHomeMotion(homeRef, activePage === 'home');
+  useHeroMap(homeRef, activePage === 'home');
   const currentGeoJsonRef = useRef<any>(null);
   const selectedFeatureRef = useRef<any>(null);
 
@@ -1771,6 +1852,7 @@ export default function App() {
   // ---------- Muat daftar provinsi (sekali, saat pertama membuka aplikasi peta) ----------
   const loadProvinsi = () => {
     setApiError('');
+    setLoadingProv(true);
     fetch(`${API}/api/get-wilayah`)
       .then((res) => {
         if (!res.ok) throw new Error(String(res.status));
@@ -1779,7 +1861,8 @@ export default function App() {
       .then((provinces) => {
         if (Array.isArray(provinces)) setListProvinsi(provinces);
       })
-      .catch(() => setApiError('Server data wilayah tidak dapat dihubungi.'));
+      .catch(() => setApiError('Server data wilayah tidak dapat dihubungi.'))
+      .finally(() => setLoadingProv(false));
   };
 
   useEffect(() => {
@@ -2236,12 +2319,14 @@ export default function App() {
     setListDesa([]);
     if (!prov) return;
 
+    setLoadingKabList(true);
     fetch(`${API}/api/get-wilayah?provinsi=${encodeURIComponent(prov)}`)
       .then((res) => res.json())
       .then((kabupatens) => {
         if (Array.isArray(kabupatens)) setListKabupaten(kabupatens);
       })
-      .catch(() => setApiError('Gagal memuat daftar kabupaten/kota.'));
+      .catch(() => setApiError('Gagal memuat daftar kabupaten/kota.'))
+      .finally(() => setLoadingKabList(false));
   };
 
   const handleSelectKabupaten = (kab: string) => {
@@ -2651,7 +2736,7 @@ export default function App() {
 
       {/* ----------------- HALAMAN UTAMA ----------------- */}
       {activePage === 'home' && (
-        <div className="gl-home" onScroll={(e) => setNavSolid(e.currentTarget.scrollTop > 24)}>
+        <div className="gl-home" ref={homeRef} onScroll={(e) => setNavSolid(e.currentTarget.scrollTop > 24)}>
           <header className={`gl-nav ${navSolid || navOpen ? 'is-solid' : ''}`}>
             <button type="button" className="gl-brand" onClick={() => document.querySelector('.gl-home')?.scrollTo({ top: 0, behavior: 'smooth' })} aria-label="Petakilat, kembali ke atas">
               <span className="gl-brand__mark gl-bolt-anim"><Icon name="bolt" size={20} /></span>
@@ -2671,14 +2756,17 @@ export default function App() {
               <button type="button" className="gl-link" onClick={() => goTo('harga')}>Harga</button>
               <button type="button" className="gl-link" onClick={() => goTo('metodologi')}>Metodologi</button>
               <button type="button" className="gl-link" onClick={() => goTo('faq')}>FAQ</button>
-              {auth.user ? (
-                <button type="button" className="gl-link gl-credit" onClick={() => setShowAccount(true)}>
-                  <Icon name="bolt" size={14} /> {auth.user.nama} · {auth.user.role === 'admin' ? '∞' : auth.user.kredit} kredit
-                </button>
-              ) : (
-                <button type="button" className="gl-link" onClick={() => setShowAuth(true)}>Masuk</button>
-              )}
-              <button type="button" className="gl-btn gl-btn--light" onClick={openApp}>Buka aplikasi</button>
+            {auth.user ? (
+              <button
+                type="button"
+                className="gl-link gl-credit"
+                onClick={() => setShowAccount(true)}
+              >
+                <UserCircle size={30} /> {auth.user.nama}
+              </button>
+            ) : (
+              <button type="button" className="gl-link" onClick={() => setShowAuth(true)}>Masuk</button>
+            )}
             </nav>
           </header>
 
@@ -2695,8 +2783,13 @@ export default function App() {
               <h1>Susun peta administrasi desa yang siap cetak</h1>
               <p>Petakilat menyusun lembar peta desa atau kelurahan lengkap dengan judul, arah utara, skala, legenda, dan metadata. Pilih wilayah, atur tampilan, lalu unduh sebagai PNG atau PDF A4.</p>
               <div className="gl-cta">
-                <button type="button" className="gl-btn gl-btn--white" onClick={openApp}>Buat peta sekarang</button>
-                <button type="button" className="gl-btn gl-btn--outline" onClick={() => goTo('harga')}>Lihat harga</button>
+                <button
+                  type="button"
+                  className={`gl-btn gl-btn--white gl-btn--highlight`}
+                  onClick={openApp}
+                >
+                  Buat peta sekarang
+                </button>
               </div>
               <ul className="gl-hero__facts">
                 <li><Icon name="check" size={16} /> Koordinat WGS 84</li>
@@ -2872,7 +2965,8 @@ export default function App() {
             </button>
           </div>
 
-          <div className="gl-side__body">
+          <div className="gl-side__body" aria-busy={auth.loading || undefined}>
+            {auth.loading ? <SideSkeleton /> : (<>
             {/* 1. LOKASI */}
             <Section step={1} title="Lokasi wilayah" open={!!openSec.lokasi} onToggle={() => toggleSec('lokasi')}>
               {apiError && (
@@ -2883,9 +2977,9 @@ export default function App() {
                   </button>
                 </div>
               )}
-              <SearchSelect label="Provinsi" value={selectedProv} options={listProvinsi} placeholder="Pilih provinsi" onChange={handleSelectProvinsi} onBeforeOpen={cekKreditProvinsi} />
-              <SearchSelect label="Kabupaten / kota" value={selectedKab} options={listKabupaten} disabled={!selectedProv} placeholder={selectedProv ? 'Pilih kabupaten / kota' : 'Pilih provinsi dahulu'} onChange={handleSelectKabupaten} />
-              <SearchSelect label="Desa / kelurahan" value={selectedDesa} options={listDesa} disabled={!selectedKab || loadingKab} placeholder={loadingKab ? 'Memuat data desa...' : selectedKab ? 'Pilih desa / kelurahan' : 'Pilih kabupaten dahulu'} onChange={handleSelectDesa} />
+              <SearchSelect label="Provinsi" value={selectedProv} options={listProvinsi} loading={loadingProv} placeholder="Pilih provinsi" onChange={handleSelectProvinsi} onBeforeOpen={cekKreditProvinsi} />
+              <SearchSelect label="Kabupaten / kota" value={selectedKab} options={listKabupaten} loading={loadingKabList} disabled={!selectedProv} placeholder={selectedProv ? 'Pilih kabupaten / kota' : 'Pilih provinsi dahulu'} onChange={handleSelectKabupaten} />
+              <SearchSelect label="Desa / kelurahan" value={selectedDesa} options={listDesa} loading={loadingKab} disabled={!selectedKab || loadingKab} placeholder={loadingKab ? 'Memuat data desa...' : selectedKab ? 'Pilih desa / kelurahan' : 'Pilih kabupaten dahulu'} onChange={handleSelectDesa} />
             </Section>
 
             {/* 2. PETA DASAR */}
@@ -3272,6 +3366,7 @@ export default function App() {
                 </>
               )}
             </Section>
+            </>)}
           </div>
 
           <div className="gl-side__foot">
@@ -3299,8 +3394,8 @@ export default function App() {
               <Icon name="sliders" size={14} /> Pengaturan
             </button>
             <div className="gl-toolbar__text">
-              <div className="gl-toolbar__title"><span className="gl-mask"><span key={regionTitle} className="gl-mask__in">{regionTitle}</span></span></div>
-              <div className="gl-toolbar__sub"><span className="gl-mask"><span key={regionSub} className="gl-mask__in">{regionSub}</span></span></div>
+              <div className="gl-toolbar__title">{regionTitle}</div>
+              <div className="gl-toolbar__sub">{regionSub}</div>
             </div>
             <div className="gl-toolbar__chips">
               <span className="gl-chip">Zoom {zoom}</span>
@@ -3311,12 +3406,8 @@ export default function App() {
           <div
             className="gl-paper"
             ref={paperRef}
-            onPointerMove={(e) => {
-              const r = e.currentTarget.getBoundingClientRect();
-              e.currentTarget.style.setProperty('--mx', `${e.clientX - r.left + e.currentTarget.scrollLeft}px`);
-              e.currentTarget.style.setProperty('--my', `${e.clientY - r.top + e.currentTarget.scrollTop}px`);
-            }}
           >
+            {(loadingKab || auth.loading) && <SheetSkeleton w={SHEET_W * sheetScale} h={SHEET_H * sheetScale} />}
             <div style={{ width: SHEET_W * sheetScale, height: SHEET_H * sheetScale }}>
               <div ref={scalerRef} style={{ width: SHEET_W, height: SHEET_H, transform: `scale(${sheetScale})`, transformOrigin: 'top left' }}>
 

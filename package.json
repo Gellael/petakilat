@@ -14,9 +14,12 @@
     "@tiptap/react": "^3.31.4",
     "@tiptap/starter-kit": "^3.31.4",
     "@turf/turf": "^7.4.0",
+    "gsap": "^3.15.0",
+    "lucide-react": "^1.57.0",
     "maplibre-gl": "^6.14.0",
     "react": "^19.2.8",
-    "react-dom": "^19.2.8"
+    "react-dom": "^19.2.8",
+    "dev": "nodemon app.js"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
@@ -28,6 +31,7 @@
     "eslint-plugin-react-hooks": "^7.1.1",
     "eslint-plugin-react-refresh": "^0.5.6",
     "globals": "^17.12.0",
+    "nodemon": "^3.1.14",
     "typescript": "~6.0.2",
     "typescript-eslint": "^8.69.0",
     "vite": "^8.3.0"

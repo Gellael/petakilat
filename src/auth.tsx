@@ -149,6 +149,20 @@ const Bolt = ({ size = 18 }: { size?: number }) => (
   </svg>
 );
 
+// ===================== SKELETON LOADING =====================
+const SKEL_CSS = `
+.ak-skel{display:inline-block;position:relative;overflow:hidden;vertical-align:middle;border-radius:8px;background:#dce8e1}
+.ak-skel::after{content:'';position:absolute;inset:0;transform:translateX(-100%);background:linear-gradient(90deg,transparent,rgba(255,255,255,.6),transparent);animation:ak-skel 1.4s ease-in-out infinite}
+.ak-skel--dark{background:rgba(255,255,255,.18)}
+.ak-skel--dark::after{background:linear-gradient(90deg,transparent,rgba(255,255,255,.34),transparent)}
+@keyframes ak-skel{to{transform:translateX(100%)}}
+@media (prefers-reduced-motion:reduce){.ak-skel::after{animation:none}}
+`;
+/** Blok abu berkilau sebagai pengganti teks atau angka yang sedang dimuat. */
+const Skel = ({ w, h, dark, style }: { w?: number | string; h?: number | string; dark?: boolean; style?: CSSProperties }) => (
+  <span className={`ak-skel${dark ? ' ak-skel--dark' : ''}`} style={{ width: w, height: h, ...style }} aria-hidden="true" />
+);
+
 export function AuthModal({ auth, onClose, onSuccess }: { auth: Auth; onClose: () => void; onSuccess: () => void }) {
   const [mode, setMode] = useState<'login' | 'daftar'>('login');
   const [nama, setNama] = useState('');
@@ -224,6 +238,7 @@ export function AuthModal({ auth, onClose, onSuccess }: { auth: Auth; onClose: (
     return (
       <div style={overlay} onClick={onClose}>
         <form style={card} onClick={(e) => e.stopPropagation()} onSubmit={submitCode}>
+          <style>{SKEL_CSS}</style>
           {header('Verifikasi email')}
           {info && <div className="gl-note" style={{ marginBottom: 10 }}><span>{info}</span></div>}
           <label className="gl-field">
@@ -237,8 +252,8 @@ export function AuthModal({ auth, onClose, onSuccess }: { auth: Auth; onClose: (
             />
           </label>
           {err && <div className="gl-note gl-note--err" style={{ marginTop: 10 }}><span>{err}</span></div>}
-          <button className="gl-btn gl-btn--primary" type="submit" disabled={busy || code.length !== 6} style={{ width: '100%', marginTop: 12 }}>
-            {busy ? 'Memverifikasi...' : 'Verifikasi & masuk'}
+          <button className="gl-btn gl-btn--primary" type="submit" disabled={busy || code.length !== 6} aria-busy={busy} aria-label={busy ? 'Memverifikasi' : undefined} style={{ width: '100%', marginTop: 12 }}>
+            {busy ? <Skel w={110} h={12} dark /> : 'Verifikasi & masuk'}
           </button>
           <div style={{ textAlign: 'center', marginTop: 10, fontSize: 13 }}>
             {cooldown > 0 ? (
@@ -258,6 +273,7 @@ export function AuthModal({ auth, onClose, onSuccess }: { auth: Auth; onClose: (
   return (
     <div style={overlay} onClick={onClose}>
       <form style={card} onClick={(e) => e.stopPropagation()} onSubmit={submit}>
+        <style>{SKEL_CSS}</style>
         {header(mode === 'login' ? 'Masuk ke Petakilat' : 'Daftar di Petakilat')}
         {mode === 'daftar' && (
           <label className="gl-field">
@@ -274,8 +290,8 @@ export function AuthModal({ auth, onClose, onSuccess }: { auth: Auth; onClose: (
           <input className="gl-input" type="password" value={password} onChange={(e) => setPassword(e.target.value)} required minLength={mode === 'daftar' ? 8 : 1} />
         </label>
         {err && <div className="gl-note gl-note--err" style={{ marginTop: 10 }}><span>{err}</span></div>}
-        <button className="gl-btn gl-btn--primary" type="submit" disabled={busy} style={{ width: '100%', marginTop: 12 }}>
-          {busy ? 'Memproses...' : mode === 'login' ? 'Masuk' : 'Daftar'}
+        <button className="gl-btn gl-btn--primary" type="submit" disabled={busy} aria-busy={busy} aria-label={busy ? 'Memproses' : undefined} style={{ width: '100%', marginTop: 12 }}>
+          {busy ? <Skel w={80} h={12} dark /> : mode === 'login' ? 'Masuk' : 'Daftar'}
         </button>
         <div style={{ textAlign: 'center', marginTop: 10, fontSize: 13 }}>
           {mode === 'login' ? 'Belum punya akun? ' : 'Sudah punya akun? '}
@@ -290,13 +306,8 @@ export function AuthModal({ auth, onClose, onSuccess }: { auth: Auth; onClose: (
 
 // ===================== STYLE DASHBOARD AKUN =====================
 const ACC_CSS = `
-@keyframes ac-fade{from{opacity:0}to{opacity:1}}
-@keyframes ac-unveil{from{clip-path:inset(0 0 100% 0 round 24px)}to{clip-path:inset(0 0 0 0 round 24px)}}
-@keyframes ac-pop{from{opacity:0;transform:translateY(14px) scale(.97)}to{opacity:1;transform:none}}
-@keyframes ac-glow{0%,100%{box-shadow:0 0 0 0 rgba(123,227,180,.45)}50%{box-shadow:0 0 0 8px rgba(123,227,180,0)}}
-@keyframes ac-shine{from{transform:translateX(-120%) skewX(-20deg)}to{transform:translateX(320%) skewX(-20deg)}}
-.ac-overlay{position:fixed;inset:0;z-index:9999;display:flex;align-items:center;justify-content:center;padding:16px;background:rgba(4,22,17,.62);backdrop-filter:blur(6px);animation:ac-fade .2s ease}
-.ac-card{width:100%;max-width:580px;max-height:92vh;overflow-y:auto;border-radius:24px;background:#fff;color:#0c1f19;box-shadow:0 30px 80px rgba(0,0,0,.45);animation:ac-unveil .65s cubic-bezier(.77,0,.18,1) backwards;font-family:Inter,system-ui,sans-serif}
+.ac-overlay{position:fixed;inset:0;z-index:9999;display:flex;align-items:center;justify-content:center;padding:16px;background:rgba(4,22,17,.62)}
+.ac-card{width:100%;max-width:580px;max-height:92vh;overflow-y:auto;border-radius:24px;background:#fff;color:#0c1f19;box-shadow:0 30px 80px rgba(0,0,0,.45);font-family:Inter,system-ui,sans-serif}
 .ac-hero{position:relative;overflow:hidden;padding:20px 22px 24px;color:#fff;background:radial-gradient(120% 140% at 100% 0%,rgba(123,227,180,.55) 0%,transparent 55%),radial-gradient(80% 90% at 0% 100%,rgba(123,227,180,.18) 0%,transparent 60%),linear-gradient(135deg,#08211a,#0b3a2e 55%,#115240)}
 .ac-hero__top{display:flex;align-items:center;justify-content:space-between;gap:12px}
 .ac-user{display:flex;align-items:center;gap:12px;min-width:0}
@@ -322,8 +333,8 @@ const ACC_CSS = `
 .ac-step:first-child{margin-top:0}
 .ac-step span{display:grid;place-items:center;width:24px;height:24px;border-radius:50%;background:#0b7a56;color:#fff;font-size:12px;font-weight:700}
 .ac-packs{display:grid;grid-template-columns:1fr 1fr;gap:12px}
-.ac-pack{position:relative;overflow:hidden;display:flex;flex-direction:column;align-items:flex-start;gap:6px;padding:18px 16px 16px;border-radius:18px;border:2px solid #d5e3db;background:#fff;color:#0c1f19;font:inherit;text-align:left;cursor:pointer;transition:transform .18s,border-color .18s,box-shadow .18s,background .18s}
-.ac-pack:hover{transform:translateY(-3px);border-color:#7be3b4;box-shadow:0 12px 28px rgba(11,58,46,.12)}
+.ac-pack{position:relative;overflow:hidden;display:flex;flex-direction:column;align-items:flex-start;gap:6px;padding:18px 16px 16px;border-radius:18px;border:2px solid #d5e3db;background:#fff;color:#0c1f19;font:inherit;text-align:left;cursor:pointer;transition:border-color .15s,box-shadow .15s}
+.ac-pack:hover{border-color:#7be3b4;box-shadow:0 12px 28px rgba(11,58,46,.12)}
 .ac-pack:focus-visible{outline:3px solid rgba(11,122,86,.35);outline-offset:2px}
 .ac-pack--best{border-color:#3fc08b;background:linear-gradient(160deg,#f3fbf7,#d9f2e6)}
 .ac-pack--best:hover{border-color:#0b7a56}
@@ -364,6 +375,9 @@ const ACC_CSS = `
 .ac-ulist{display:flex;flex-direction:column;gap:6px;margin-top:10px}
 .ac-urow{display:flex;align-items:center;justify-content:space-between;gap:10px;width:100%;padding:10px 12px;border-radius:12px;border:1px solid #e0e9e4;background:#fff;color:#0c1f19;font:inherit;text-align:left;cursor:pointer;transition:background .15s,border-color .15s}
 .ac-urow:hover{background:#f1f9f5;border-color:#9ccbb5}
+.ac-urow--skel{cursor:default}
+.ac-urow--skel:hover{background:#fff;border-color:#e0e9e4}
+.ac-urow--skel .ac-urow__t{flex:1}
 .ac-urow.on{border:2px solid #0b7a56;background:#dcf1e7;padding:9px 11px}
 .ac-urow__t{display:flex;flex-direction:column;min-width:0}
 .ac-urow__t b{font-size:14px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
@@ -400,7 +414,6 @@ const ACC_CSS = `
   .ac-balance p{text-align:left;max-width:none}
   .ac-balance__num{font-size:48px}
 }
-@media (prefers-reduced-motion:reduce){.ac-overlay,.ac-card,.ac-pack--best.on::after{animation:none}}
 `;
 
 export function AccountModal({ auth, onClose }: { auth: Auth; onClose: () => void }) {
@@ -408,9 +421,9 @@ export function AccountModal({ auth, onClose }: { auth: Auth; onClose: () => voi
   const isAdmin = user.role === 'admin';
   const [tab, setTab] = useState<'kredit' | 'admin'>('kredit');
   const [dipesan, setDipesan] = useState<PaketKredit | null>(null);
-  const [memuat, setMemuat] = useState(false);
+  const [memuat, setMemuat] = useState(true); // saldo sedang disegarkan
 
-  useEffect(() => { auth.refreshUser(); /* eslint-disable-next-line */ }, []);
+  useEffect(() => { auth.refreshUser().finally(() => setMemuat(false)); /* eslint-disable-next-line */ }, []);
 
   // Pilih paket -> langsung membuka chat WhatsApp admin dengan pesan pesanan yang sudah terisi
   const pesan = (p: PaketKredit) => {
@@ -425,7 +438,7 @@ export function AccountModal({ auth, onClose }: { auth: Auth; onClose: () => voi
 
   return (
     <div className="ac-overlay" onClick={onClose}>
-      <style>{ACC_CSS}</style>
+      <style>{ACC_CSS}{SKEL_CSS}</style>
       <div className="ac-card" role="dialog" aria-modal="true" aria-label="Akun dan kredit" onClick={(e) => e.stopPropagation()}>
         {/* ===== HEADER + SALDO ===== */}
         <div className="ac-hero">
@@ -445,7 +458,7 @@ export function AccountModal({ auth, onClose }: { auth: Auth; onClose: () => voi
           <div className="ac-balance">
             <div>
               <div className="ac-balance__label"><Bolt size={14} /> Saldo kredit</div>
-              <div className="ac-balance__num">{isAdmin ? '∞' : user.kredit}</div>
+              <div className="ac-balance__num" aria-busy={memuat}>{memuat ? <Skel w={92} h={48} dark style={{ borderRadius: 12 }} /> : isAdmin ? '∞' : user.kredit}</div>
             </div>
             <p>1 kredit dipakai untuk 1 kali ekspor PNG atau PDF tanpa watermark. Saldo minimal 1 kredit dibutuhkan untuk memilih wilayah.</p>
           </div>
@@ -602,7 +615,19 @@ function AdminPanel() {
 
       {err && <div className="ac-msg ac-msg--err">{err}</div>}
       {!err && !mencari && hits.length === 0 && <div className="ac-empty" style={{ marginTop: 10 }}>Akun tidak ditemukan. Hanya akun dengan email terverifikasi yang tampil.</div>}
-      {hits.length > 0 && (
+      {mencari ? (
+        <div className="ac-ulist" aria-busy="true" aria-label="Memuat hasil pencarian">
+          {[0, 1, 2].map((i) => (
+            <div className="ac-urow ac-urow--skel" key={i}>
+              <span className="ac-urow__t">
+                <Skel w="55%" h={14} />
+                <Skel w="78%" h={11} style={{ marginTop: 6 }} />
+              </span>
+              <Skel w={34} h={16} />
+            </div>
+          ))}
+        </div>
+      ) : hits.length > 0 && (
         <div className="ac-ulist" role="listbox" aria-label="Hasil pencarian akun">
           {hits.map((u) => (
             <button
