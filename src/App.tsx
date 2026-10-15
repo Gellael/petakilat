@@ -1570,13 +1570,12 @@ export default function App() {
 
   // Judul tab dan favicon petir (tidak perlu mengubah index.html)
   useEffect(() => {
-    document.title = 'Petakilat | Pembuat Peta Administrasi Desa';
-    const svg = "<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'><rect width='64' height='64' rx='14' fill='#0a2e25'/><path d='M36 6 14 36h14l-4 22 26-33H35z' fill='#7be3b4'/></svg>";
-    let link = document.querySelector<HTMLLinkElement>("link[rel~='icon']");
-    if (!link) { link = document.createElement('link'); link.rel = 'icon'; document.head.appendChild(link); }
-    link.type = 'image/svg+xml';
-    link.href = 'data:image/svg+xml,' + encodeURIComponent(svg);
-  }, []);
+  document.title = 'Petakilat ';
+  let link = document.querySelector<HTMLLinkElement>("link[rel~='icon']");
+  if (!link) { link = document.createElement('link'); link.rel = 'icon'; document.head.appendChild(link); }
+  link.type = 'image/png';
+  link.href = `${import.meta.env.BASE_URL}logo1.png`;
+}, []);
 
   // Kalau belum login tapi membuka #/peta langsung, kembalikan ke beranda + tampilkan form login
   useEffect(() => {
