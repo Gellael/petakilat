@@ -6,12 +6,12 @@ import { ADMIN_WA } from './auth';
 // WhatsApp otomatis memakai nomor ADMIN_WA dari auth.tsx.
 const SOSMED = {
   // Sementara mengarah ke beranda platform. Ganti dengan akun Anda, mis. 'https://instagram.com/akunanda'
-  instagram: 'https://www.instagram.com/',
-  tiktok: 'https://www.tiktok.com/',
+  instagram: 'https://www.instagram.com/kalibata.project',
+  tiktok: 'https://www.tiktok.com/@petakilat.id',
   youtube: '',
   facebook: '',
   github: '',
-  email: '', // contoh: 'halo@petakilat.id'
+  email: 'kilatpeta@gmail.com', // contoh: 'halo@petakilat.id'
 };
 
 type FooterTarget = 'fitur' | 'harga' | 'faq';
