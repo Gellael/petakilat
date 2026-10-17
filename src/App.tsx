@@ -1615,7 +1615,7 @@ export default function App() {
 
   // Judul tab dan favicon petir (tidak perlu mengubah index.html)
   useEffect(() => {
-  document.title = 'Petakilat ';
+  document.title = 'Peta Kilat ';
   let link = document.querySelector<HTMLLinkElement>("link[rel~='icon']");
   if (!link) { link = document.createElement('link'); link.rel = 'icon'; document.head.appendChild(link); }
   link.type = 'image/png';
