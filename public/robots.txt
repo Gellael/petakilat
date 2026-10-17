@@ -1,4 +1,4 @@
 User-agent: *
 Allow: /
 
-Sitemap: https://petakilat.pages.dev/sitemap.xml
+Sitemap: https://petakilat.my.id/sitemap.xml

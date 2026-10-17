@@ -4,13 +4,13 @@
 
 ## Halaman utama
 
-- [Beranda](https://petakilat.pages.dev/): Ringkasan aplikasi dan tombol untuk mulai membuat peta.
-- [Fitur](https://petakilat.pages.dev/#fitur): Pilihan wilayah bertingkat, banyak peta dasar, titik AOI dengan foto lapangan, peta inset, dan ekspor.
-- [Cara kerja](https://petakilat.pages.dev/#cara-kerja): Empat langkah dari memilih wilayah sampai mengunduh peta.
-- [Harga](https://petakilat.pages.dev/#harga): Sistem kredit, satu kredit untuk satu kali ekspor tanpa watermark.
-- [Data dan metodologi](https://petakilat.pages.dev/#metodologi): Sumber data, sistem koordinat WGS 84, dan cara skala serta luas dihitung.
-- [Pertanyaan umum (FAQ)](https://petakilat.pages.dev/#faq): Jawaban seputar data, skala, ekspor, dan kredit.
+- [Beranda](https://petakilat.my.id/): Ringkasan aplikasi dan tombol untuk mulai membuat peta.
+- [Fitur](https://petakilat.my.id/#fitur): Pilihan wilayah bertingkat, banyak peta dasar, titik AOI dengan foto lapangan, peta inset, dan ekspor.
+- [Cara kerja](https://petakilat.my.id/#cara-kerja): Empat langkah dari memilih wilayah sampai mengunduh peta.
+- [Harga](https://petakilat.my.id/#harga): Sistem kredit, satu kredit untuk satu kali ekspor tanpa watermark.
+- [Data dan metodologi](https://petakilat.my.id/#metodologi): Sumber data, sistem koordinat WGS 84, dan cara skala serta luas dihitung.
+- [Pertanyaan umum (FAQ)](https://petakilat.my.id/#faq): Jawaban seputar data, skala, ekspor, dan kredit.
 
 ## Teknis
 
-- [Sitemap](https://petakilat.pages.dev/sitemap.xml): Daftar halaman situs.
+- [Sitemap](https://petakilat.my.id/sitemap.xml): Daftar halaman situs.
