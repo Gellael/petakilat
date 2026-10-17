@@ -14,11 +14,27 @@ const SOSMED = {
   email: 'kilatpeta@gmail.com', // contoh: 'halo@petakilat.id'
 };
 
-type FooterTarget = 'fitur' | 'harga' | 'faq';
+type FooterTarget = 'fitur' | 'cara-kerja' | 'harga' | 'metodologi' | 'faq';
 
 const Ico = ({ children }: { children: ReactNode }) => (
   <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" focusable="false">
     {children}
+  </svg>
+);
+
+/** Garis kontur peta yang samar di latar footer, selaras dengan panel masuk. */
+const FooterContours = () => (
+  <svg className="gf__map" viewBox="-150 -150 300 300" aria-hidden="true" focusable="false">
+    <g fill="none" stroke="rgba(123,227,180,.16)" strokeWidth={1}>
+      {Array.from({ length: 13 }).map((_, i) => (
+        <path
+          key={i}
+          vectorEffect="non-scaling-stroke"
+          transform={`rotate(${i * 5}) scale(${(0.18 + i * 0.13).toFixed(2)})`}
+          d="M10,-100 C70,-96 110,-40 96,12 C84,64 30,104 -26,94 C-84,84 -112,30 -92,-26 C-74,-76 -30,-104 10,-100Z"
+        />
+      ))}
+    </g>
   </svg>
 );
 
@@ -56,41 +72,48 @@ const DAFTAR_SOSMED: Sosmed[] = [
 ].filter((s) => s.href);
 
 const FOOT_CSS = `
-.gf{background:linear-gradient(160deg,#08211a,#0b3a2e 70%,#0d4636);color:rgba(255,255,255,.78);font-family:Inter,system-ui,sans-serif}
+.gf{position:relative;overflow:hidden;background:linear-gradient(160deg,#08211a,#0b3a2e 70%,#0d4636);color:rgba(255,255,255,.78);font-family:'Plus Jakarta Sans',Inter,system-ui,-apple-system,'Segoe UI',sans-serif;-webkit-font-smoothing:antialiased}
 .gf *,.gf *::before,.gf *::after{box-sizing:border-box}
-.gf__inner{display:grid;grid-template-columns:1.5fr 1fr 1fr;gap:36px 48px;max-width:1120px;margin:0 auto;padding:56px 24px 40px}
-.gf__logo{display:block;margin:0 0 10px;font-family:'Newsreader','Cormorant Garamond',Georgia,serif;font-size:28px;font-weight:500;color:#fff}
+.gf__map{position:absolute;z-index:0;right:-12%;top:-45%;width:min(720px,75%);height:auto;pointer-events:none}
+.gf__inner,.gf__bar{position:relative;z-index:1}
+.gf__inner{display:grid;grid-template-columns:1.5fr 1fr 1fr;gap:40px 56px;max-width:1120px;margin:0 auto;padding:64px 24px 44px}
+.gf__logo{display:block;margin:0 0 6px;font-family:'Bricolage Grotesque','Plus Jakarta Sans',system-ui,sans-serif;font-size:32px;font-weight:700;letter-spacing:-.025em;line-height:1.1;color:#fff}
 .gf__acc{color:#7be3b4}
-.gf__tag{margin:0 0 20px;max-width:34ch;font-size:14px;line-height:1.6}
+.gf__slogan{margin:0 0 14px;font-size:14px;font-weight:600;color:#b4f0d3}
+.gf__tag{margin:0 0 24px;max-width:36ch;font-size:14px;line-height:1.7}
 .gf__social{display:flex;flex-wrap:wrap;gap:10px;margin:0;padding:0;list-style:none}
 .gf__ic{display:grid;place-items:center;width:44px;height:44px;border:1px solid rgba(255,255,255,.22);border-radius:50%;color:#fff;transition:background .15s,color .15s,border-color .15s}
 .gf__ic:hover{background:#7be3b4;border-color:#7be3b4;color:#06281d}
-.gf__h{margin:0 0 14px;font-size:14px;font-weight:700;color:#fff}
-.gf__list{display:grid;gap:10px;margin:0;padding:0;list-style:none}
-.gf__link{display:inline;padding:0;border:0;background:none;color:inherit;font:inherit;font-size:14px;text-decoration:none;cursor:pointer;transition:color .15s}
-.gf__link:hover{color:#fff;text-decoration:underline;text-underline-offset:3px}
-.gf__cta{display:inline-flex;align-items:center;justify-content:center;height:44px;margin-top:20px;padding:0 20px;border:0;border-radius:12px;background:#7be3b4;color:#06281d;font:inherit;font-size:14px;font-weight:700;cursor:pointer;transition:filter .15s}
+.gf .gf__h{margin:0 0 16px;font-family:'Bricolage Grotesque','Plus Jakarta Sans',system-ui,sans-serif;font-size:16px;font-weight:600;letter-spacing:-.01em;color:#fff}
+.gf__list{display:grid;gap:8px;margin:0;padding:0;list-style:none}
+.gf__link{display:inline-block;padding:3px 0;border:0;background:none;color:inherit;font:inherit;font-size:14px;text-decoration:none;cursor:pointer;transition:color .15s}
+.gf__link:hover{color:#fff;text-decoration:underline;text-underline-offset:4px}
+.gf__cta{display:inline-flex;align-items:center;justify-content:center;height:46px;margin-top:22px;padding:0 22px;border:0;border-radius:12px;background:#7be3b4;color:#06281d;font:inherit;font-size:14px;font-weight:700;cursor:pointer;box-shadow:0 12px 24px -14px rgba(123,227,180,.8);transition:filter .15s}
 .gf__cta:hover{filter:brightness(1.06)}
-.gf a:focus-visible,.gf button:focus-visible{outline:2px solid #7be3b4;outline-offset:3px}
+.gf a:focus-visible,.gf button:focus-visible{outline:2px solid #7be3b4;outline-offset:3px;border-radius:8px}
 .gf__bar{border-top:1px solid rgba(255,255,255,.14)}
 .gf__bar>div{display:flex;flex-wrap:wrap;justify-content:space-between;gap:6px 24px;max-width:1120px;margin:0 auto;padding:18px 24px calc(22px + env(safe-area-inset-bottom,0px));font-size:13px;color:rgba(255,255,255,.62)}
 @media (max-width:760px){
-  .gf__inner{grid-template-columns:1fr 1fr;gap:32px 24px;padding:44px 20px 32px}
+  .gf__inner{grid-template-columns:1fr 1fr;gap:32px 24px;padding:48px 20px 32px}
   .gf__brand{grid-column:1 / -1}
   .gf__bar>div{padding-left:20px;padding-right:20px}
+  .gf__map{right:-40%;top:-20%;width:120%}
 }
 @media (max-width:420px){
   .gf__inner{grid-template-columns:1fr}
 }
+@media (prefers-reduced-motion:reduce){.gf__ic,.gf__link,.gf__cta{transition:none}}
 `;
 
 export function SiteFooter({ goTo, openApp }: { goTo: (id: FooterTarget) => void; openApp: () => void }) {
   return (
     <footer className="gf">
       <style>{FOOT_CSS}</style>
+      <FooterContours />
       <div className="gf__inner">
         <div className="gf__brand">
           <b className="gf__logo">Peta<span className="gf__acc">kilat</span></b>
+          <p className="gf__slogan">Buat Peta Secepat Kilat</p>
           <p className="gf__tag">Ekspor peta wilayah ke PNG atau PDF tanpa watermark.</p>
           <ul className="gf__social" aria-label="Sosial media Petakilat">
             {DAFTAR_SOSMED.map((s) => (
@@ -107,7 +130,9 @@ export function SiteFooter({ goTo, openApp }: { goTo: (id: FooterTarget) => void
           <h3 className="gf__h">Jelajahi</h3>
           <ul className="gf__list">
             <li><button type="button" className="gf__link" onClick={() => goTo('fitur')}>Fitur</button></li>
+            <li><button type="button" className="gf__link" onClick={() => goTo('cara-kerja')}>Cara kerja</button></li>
             <li><button type="button" className="gf__link" onClick={() => goTo('harga')}>Harga</button></li>
+            <li><button type="button" className="gf__link" onClick={() => goTo('metodologi')}>Metodologi</button></li>
             <li><button type="button" className="gf__link" onClick={() => goTo('faq')}>FAQ</button></li>
           </ul>
         </nav>
