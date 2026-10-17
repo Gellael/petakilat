@@ -328,13 +328,12 @@ const GEE_LEGEND: Record<string, { label: string; box: CSSProperties }> = {
   sungai: { label: 'Aliran air', box: { height: '0px', borderTop: '2px solid #2563eb' } },
   jalan: { label: 'Jalan', box: { height: '0px', borderTop: '2px solid #334155' } },
 };
-
-const GEE_MASK_SRC = 'gee-mask-src';
-const GEE_MASK_LAYER = 'gee-mask-layer';
 const geeSrcId = (key: string) => `gee-src-${key}`;
 const geeLayerId = (key: string) => `gee-layer-${key}`;
+const DIM_SRC = 'dim-mask-src';
+const DIM_LAYER = 'dim-mask-layer';
 // Layer peta yang harus tetap berada DI ATAS layer GEE
-const GEE_ABOVE = [GEE_MASK_LAYER, 'wilayah-fill', 'neighbor-desa-layer', 'selected-desa-layer'];
+const GEE_ABOVE = [DIM_LAYER, 'wilayah-fill', 'neighbor-desa-layer', 'selected-desa-layer'];
 
 const removeGeeLayer = (map: maplibregl.Map | null, key: string) => {
   if (!map) return;
@@ -363,29 +362,29 @@ const addGeeLayer = (map: maplibregl.Map, key: string, tileUrl: string, opacity:
   );
 };
 
-// Penutup putih di luar batas desa terpilih, supaya layer GEE hanya terlihat di dalam desa
-const updateGeeMask = (map: maplibregl.Map | null, feature: any, on: boolean) => {
+// Gelapkan semua area di luar desa terpilih (hitam transparan, tingkatnya diatur slider)
+const updateDimMask = (map: maplibregl.Map | null, feature: any, on: boolean, level: number) => {
   if (!map) return;
   try {
-    if (map.getLayer(GEE_MASK_LAYER)) map.removeLayer(GEE_MASK_LAYER);
+    if (map.getLayer(DIM_LAYER)) map.removeLayer(DIM_LAYER);
     if (!on || !feature) {
-      if (map.getSource(GEE_MASK_SRC)) map.removeSource(GEE_MASK_SRC);
+      if (map.getSource(DIM_SRC)) map.removeSource(DIM_SRC);
       return;
     }
     const masked = turf.mask(feature, turf.bboxPolygon([-180, -85, 180, 85]) as any);
-    const src = map.getSource(GEE_MASK_SRC) as maplibregl.GeoJSONSource | undefined;
+    const src = map.getSource(DIM_SRC) as maplibregl.GeoJSONSource | undefined;
     if (src) src.setData(masked as any);
-    else map.addSource(GEE_MASK_SRC, { type: 'geojson', data: masked as any });
-    const before = ['wilayah-fill', 'neighbor-desa-layer', 'selected-desa-layer'].find((id) => map.getLayer(id));
+    else map.addSource(DIM_SRC, { type: 'geojson', data: masked as any });
+    // Di bawah desa terpilih, di atas peta dasar, layer GEE, dan desa sekitar
+    const before = ['selected-desa-layer', 'wilayah-fill'].find((id) => map.getLayer(id));
     map.addLayer(
-      { id: GEE_MASK_LAYER, type: 'fill', source: GEE_MASK_SRC, paint: { 'fill-color': '#ffffff', 'fill-opacity': 1 } },
+      { id: DIM_LAYER, type: 'fill', source: DIM_SRC, paint: { 'fill-color': '#000000', 'fill-opacity': level } },
       before
     );
   } catch (e) {
-    console.warn('Gagal membuat penutup di luar desa:', e);
+    console.warn('Gagal membuat penggelap di luar desa:', e);
   }
 };
-
 // ===================== HELPER EKSPOR =====================
 const ensureScript = (globalName: string, src: string): Promise<boolean> =>
   new Promise((resolve) => {
@@ -1620,6 +1619,8 @@ export default function App() {
   const [geeLoading, setGeeLoading] = useState<Record<string, boolean>>({});
   const [geeOpacity, setGeeOpacity] = useState<number>(0.8);
   const [geeMask, setGeeMask] = useState<boolean>(true);
+  const [dimOn, setDimOn] = useState<boolean>(false);
+  const [dimLevel, setDimLevel] = useState<number>(0.6);
   const [geeMsg, setGeeMsg] = useState<string>('');
   const [geeErr, setGeeErr] = useState<boolean>(false);
   const geeActiveRef = useRef<Record<string, boolean>>({});
@@ -1627,41 +1628,6 @@ export default function App() {
   const geeOpacityRef = useRef<number>(geeOpacity);
   geeOpacityRef.current = geeOpacity;
   const geeTileUrlRef = useRef<Record<string, string>>({});
-
-  const toggleGeeLayer = async (key: string, on: boolean) => {
-    const map = mapInstance.current;
-    if (!on) {
-      setGeeActive((p) => ({ ...p, [key]: false }));
-      delete geeTileUrlRef.current[key];
-      removeGeeLayer(map, key);
-      return;
-    }
-    if (!map) {
-      setGeeErr(true);
-      setGeeMsg('Peta belum siap. Coba lagi sebentar.');
-      return;
-    }
-    setGeeActive((p) => ({ ...p, [key]: true }));
-    setGeeLoading((p) => ({ ...p, [key]: true }));
-    setGeeMsg('');
-    setGeeErr(false);
-    try {
-      const res = await apiFetch(`/api/gee-tiles?layer=${encodeURIComponent(key)}`);
-      if (!res.ok) throw new Error(String(res.status));
-      const data = await res.json();
-      if (!data.tileUrl) throw new Error('tileUrl kosong');
-      geeTileUrlRef.current[key] = data.tileUrl;
-      if (!geeActiveRef.current[key]) return; // sempat dimatikan saat memuat
-      runWhenReady(map, () => addGeeLayer(map, key, data.tileUrl, geeOpacityRef.current));
-    } catch (e) {
-      console.error('Gagal memuat layer Earth Engine:', key, e);
-      setGeeActive((p) => ({ ...p, [key]: false }));
-      setGeeErr(true);
-      setGeeMsg(`Gagal memuat layer "${GEE_LAYERS.find((l) => l.key === key)?.label || key}". Periksa server API dan Vercel Logs.`);
-    } finally {
-      setGeeLoading((p) => ({ ...p, [key]: false }));
-    }
-  };
 
   useEffect(() => {
     const map = mapInstance.current;
@@ -1713,13 +1679,91 @@ export default function App() {
   const currentGeoJsonRef = useRef<any>(null);
   const selectedFeatureRef = useRef<any>(null);
 
-  // Penutup di luar batas desa untuk layer GEE (ikut berubah saat desa dipilih ulang)
-  useEffect(() => {
+  const geeMaskRef = useRef<boolean>(geeMask);
+  geeMaskRef.current = geeMask;
+  const geeReqRef = useRef<Record<string, number>>({});
+
+  // Geometri desa terpilih (disederhanakan agar ringan dikirim) untuk di-clip di server
+  const geometriKlip = () => {
+    const f = selectedFeatureRef.current;
+    if (!geeMaskRef.current || !f) return null;
+    try {
+      const s: any = turf.simplify(turf.truncate(f, { precision: 5 }), { tolerance: 0.00003, highQuality: false });
+      return s.geometry;
+    } catch (_) {
+      return f.geometry;
+    }
+  };
+
+  const muatGeeLayer = async (key: string) => {
     const map = mapInstance.current;
-    if (!map) return;
-    const anyOn = Object.values(geeActive).some(Boolean);
-    updateGeeMask(map, selectedFeatureRef.current, geeMask && anyOn);
-  }, [geeMask, geeActive, selectedDesa]);
+    if (!map) {
+      setGeeErr(true);
+      setGeeMsg('Peta belum siap. Coba lagi sebentar.');
+      return;
+    }
+    const reqId = (geeReqRef.current[key] = (geeReqRef.current[key] || 0) + 1);
+    setGeeLoading((p) => ({ ...p, [key]: true }));
+    setGeeMsg('');
+    setGeeErr(false);
+    try {
+      const res = await apiFetch(`/api/gee-tiles?layer=${encodeURIComponent(key)}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ geometry: geometriKlip() })
+      });
+      if (!res.ok) throw new Error(String(res.status));
+      const data = await res.json();
+      if (!data.tileUrl) throw new Error('tileUrl kosong');
+      if (reqId !== geeReqRef.current[key] || !geeActiveRef.current[key]) return;
+      geeTileUrlRef.current[key] = data.tileUrl;
+      runWhenReady(map, () => addGeeLayer(map, key, data.tileUrl, geeOpacityRef.current));
+    } catch (e) {
+      console.error('Gagal memuat layer Earth Engine:', key, e);
+      if (reqId === geeReqRef.current[key]) {
+        setGeeActive((p) => ({ ...p, [key]: false }));
+        delete geeTileUrlRef.current[key];
+        removeGeeLayer(map, key);
+        setGeeErr(true);
+        setGeeMsg(`Gagal memuat layer "${GEE_LAYERS.find((l) => l.key === key)?.label || key}". Periksa server API dan Vercel Logs.`);
+      }
+    } finally {
+      if (reqId === geeReqRef.current[key]) setGeeLoading((p) => ({ ...p, [key]: false }));
+    }
+  };
+
+  const toggleGeeLayer = async (key: string, on: boolean) => {
+    const map = mapInstance.current;
+    if (!on) {
+      geeReqRef.current[key] = (geeReqRef.current[key] || 0) + 1;
+      setGeeActive((p) => ({ ...p, [key]: false }));
+      delete geeTileUrlRef.current[key];
+      removeGeeLayer(map, key);
+      return;
+    }
+    geeActiveRef.current = { ...geeActiveRef.current, [key]: true };
+    setGeeActive((p) => ({ ...p, [key]: true }));
+    await muatGeeLayer(key);
+  };
+
+  // Desa berganti atau opsi "hanya di dalam batas desa" diubah -> muat ulang layer aktif
+  useEffect(() => {
+    Object.keys(geeActiveRef.current)
+      .filter((k) => geeActiveRef.current[k])
+      .forEach((k) => { void muatGeeLayer(k); });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedDesa, geeMask]);
+  // Penggelap di luar desa: bangun ulang saat fitur dinyalakan atau desa berganti
+useEffect(() => {
+  updateDimMask(mapInstance.current, selectedFeatureRef.current, dimOn, dimLevel);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+}, [dimOn, selectedDesa]);
+
+// Ubah tingkat gelap tanpa membangun ulang layer
+useEffect(() => {
+  const map = mapInstance.current;
+  if (map && map.getLayer(DIM_LAYER)) map.setPaintProperty(DIM_LAYER, 'fill-opacity', dimLevel);
+}, [dimLevel]);
   const labelMarkerRef = useRef<maplibregl.Marker | null>(null);
 
   // --- TITIK AOI & FOTO DOKUMENTASI ---
@@ -3046,6 +3090,22 @@ export default function App() {
                 </button>
               )}
               <Toggle label="Tampilkan grid dan koordinat" checked={showCoordinateGrid} onChange={setShowCoordinateGrid} />
+              <div className="gl-divider" />
+                <Toggle label="Gelapkan area di luar desa" checked={dimOn} onChange={setDimOn} />
+                {dimOn && (
+                  <RangeField
+                    label="Tingkat gelap"
+                    value={dimLevel}
+                    min={0.1}
+                    max={0.95}
+                    step={0.05}
+                    display={`${Math.round(dimLevel * 100)}%`}
+                    onChange={setDimLevel}
+                  />
+                )}
+                {dimOn && !selectedDesa && (
+                  <div className="gl-note">Pilih desa dulu agar area di luar desa bisa digelapkan.</div>
+                )}
             </Section>
 
             {/* 4. LAYER GOOGLE EARTH ENGINE */}
