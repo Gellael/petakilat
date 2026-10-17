@@ -4,6 +4,7 @@ import 'maplibre-gl/dist/maplibre-gl.css';
 import workerUrl from 'maplibre-gl/dist/maplibre-gl-worker.mjs?url';
 import * as turf from '@turf/turf';
 import { useHomeMotion, useHeroMap } from './motion';
+import { useHomeFx } from './Homefx';
 import { UserCircle} from 'lucide-react';
 import { SiteFooter } from './SiteFooter';
 import { useAuth, AuthModal, AccountModal, apiFetch, PAKET_KREDIT, hemat, rupiah, linkWaPaket } from './auth';
@@ -1061,7 +1062,7 @@ const FAQS = [
 
 // ===================== STYLESHEET =====================
 const APP_CSS = `
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Poppins:wght@500;600;700&family=Newsreader:opsz,wght@6..72,400;6..72,500;6..72,600&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Poppins:wght@500;600;700&family=Newsreader:opsz,wght@6..72,400;6..72,500;6..72,600&family=Bricolage+Grotesque:opsz,wght@12..96,500..800&family=Plus+Jakarta+Sans:wght@400..800&display=swap');
 
 .gl-root{
   --ink:#0c1f19; --ink-2:#2f4a40; --muted:#647a70; --line:#d5e3db; --line-2:#e8f0eb;
@@ -1226,11 +1227,13 @@ const APP_CSS = `
 
 /* ---------- halaman utama ---------- */
 .gl-home{
+  --f-display:'Bricolage Grotesque','Plus Jakarta Sans',system-ui,sans-serif;
+  --f-body:'Plus Jakarta Sans',Inter,system-ui,-apple-system,'Segoe UI',sans-serif;
   --h-ink:#08211a; --h-sea:#0b3a2e; --h-sea2:#115240; --h-teal:#0b7a56; --h-aqua:#7be3b4;
   --h-paper:#f1f6f3; --h-line:#d5e3db; --h-text:#173329; --h-mute:#566e63; --h-red:#dc2626; --h-green:#2f9e6b;
-  position:absolute;inset:0;overflow-x:hidden;overflow-y:auto;background:#fff;color:var(--h-text);scroll-behavior:smooth
+  position:absolute;inset:0;overflow-x:hidden;overflow-y:auto;background:#fff;color:var(--h-text);scroll-behavior:smooth;font-family:var(--f-body);-webkit-font-smoothing:antialiased
 }
-.gl-home h1,.gl-home h2,.gl-home h3,.gl-brand__name{font-family:'Newsreader','Cormorant Garamond',Georgia,serif}
+.gl-home h1,.gl-home h2,.gl-home h3,.gl-brand__name{font-family:var(--f-display)}
 .gl-nav{position:sticky;top:0;z-index:40;height:72px;display:flex;align-items:center;justify-content:space-between;gap:24px;padding:0 clamp(16px,5vw,64px);color:#fff;transition:background .2s,box-shadow .2s}
 .gl-nav.is-solid{background:rgba(7,32,26,.94);backdrop-filter:blur(10px);box-shadow:0 1px 0 rgba(255,255,255,.08)}
 .gl-brand{display:flex;align-items:center;gap:10px;padding:0;border:0;background:none;color:inherit;text-align:left;cursor:pointer}
@@ -1348,9 +1351,9 @@ const APP_CSS = `
 .gl-plan--hi{background:var(--h-sea);border-color:var(--h-sea);color:#fff;box-shadow:0 24px 50px rgba(11,58,46,.28)}
 .gl-plan h3{margin:0;font-size:18px;font-weight:700;color:var(--h-ink)}
 .gl-plan--hi h3{color:#fff}
-.gl-plan__price{font-family:'Newsreader','Cormorant Garamond',Georgia,serif;font-size:34px;font-weight:500;letter-spacing:-.02em;line-height:1.1;color:var(--h-ink)}
+.gl-plan__price{font-family:var(--f-display);font-size:34px;font-weight:700;letter-spacing:-.03em;line-height:1.1;color:var(--h-ink)}
 .gl-plan--hi .gl-plan__price{color:#fff}
-.gl-plan__unit{font-size:14px;font-weight:500;color:var(--h-mute);font-family:Inter,system-ui,sans-serif;letter-spacing:0}
+.gl-plan__unit{font-size:14px;font-weight:500;color:var(--h-mute);font-family:var(--f-body);letter-spacing:0}
 .gl-plan--hi .gl-plan__unit{color:rgba(255,255,255,.7)}
 .gl-plan__blurb{margin:0;font-size:15px;line-height:1.55;color:var(--h-mute)}
 .gl-plan--hi .gl-plan__blurb{color:rgba(255,255,255,.8)}
@@ -1375,7 +1378,7 @@ const APP_CSS = `
 .gl-pack--best:hover{border-color:#b4f0d3;background:linear-gradient(135deg,rgba(123,227,180,.34),rgba(123,227,180,.1))}
 .gl-pack__n{display:flex;flex-wrap:wrap;align-items:center;gap:8px;font-weight:600}
 .gl-pack__n i{font-style:normal;font-size:11px;font-weight:800;padding:3px 9px;border-radius:999px;background:#7be3b4;color:#06281d}
-.gl-pack b{font-family:'Newsreader','Cormorant Garamond',Georgia,serif;font-size:18px;font-weight:500}
+.gl-pack b{font-family:var(--f-display);font-size:18px;font-weight:700}
 .gl-plan .gl-btn{margin-top:auto;height:46px;border-radius:12px}
 
 .gl-faq{max-width:780px}
@@ -1393,7 +1396,7 @@ const APP_CSS = `
 .gl-spec dd{margin:0;font-size:15px;line-height:1.6;color:var(--h-mute)}
 
 .gl-foot{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:20px;padding:40px clamp(16px,5vw,64px);background:#07201a;color:#bcd9cc}
-.gl-foot b{display:block;color:#fff;font-family:'Newsreader','Cormorant Garamond',Georgia,serif;font-weight:500;font-size:18px}
+.gl-foot b{display:block;color:#fff;font-family:var(--f-display);font-weight:700;font-size:18px}
 .gl-foot span{font-size:14px}
 .gl-foot__links{display:flex;flex-wrap:wrap;gap:6px 22px}
 .gl-foot__links .gl-link{font-size:14px;color:#bcd9cc}
@@ -1487,9 +1490,10 @@ const APP_CSS = `
 .gl-paper{position:relative;background-color:#e3ede7;background-image:radial-gradient(#c3d6cb 1px,transparent 1px);background-size:18px 18px}
 
 /* --- tipografi halaman utama --- */
-.gl-home h1{font-weight:500;letter-spacing:-.02em}
-.gl-home h2,.gl-home h3{font-weight:500;letter-spacing:-.012em}
-.gl-brand__name{font-weight:600}
+.gl-home h1{font-weight:700;letter-spacing:-.028em;line-height:1.04;text-wrap:balance}
+.gl-home h2{font-weight:650;letter-spacing:-.022em;line-height:1.1;text-wrap:balance}
+.gl-home h3{font-weight:600;letter-spacing:-.012em}
+.gl-brand__name{font-weight:700}
 .gl-brand__mark{background:linear-gradient(135deg,#b4f0d3,#3fc08b);box-shadow:0 0 0 1px rgba(123,227,180,.5),0 0 18px rgba(123,227,180,.4)}
 .gl-hero__tag{border-color:rgba(123,227,180,.45);background:rgba(123,227,180,.12);color:#b4f0d3}
 
@@ -1542,6 +1546,49 @@ const APP_CSS = `
 
 /* kartu peta dasar: pilihan aktif lebih jelas */
 .gl-basemap.is-on{box-shadow:0 0 0 2px rgba(11,122,86,.35),0 10px 20px -12px rgba(11,122,86,.6)}
+
+/* =====================================================================
+   PENYEMPURNAAN BERANDA
+   ===================================================================== */
+.gl-home ::selection{background:#7be3b4;color:#06281d}
+.gl-home{scrollbar-width:thin;scrollbar-color:#9fc4b4 transparent}
+
+/* aksesibilitas: fokus keyboard terlihat jelas */
+.gl-home :is(button,summary):focus-visible{outline:2px solid var(--h-teal);outline-offset:3px;border-radius:8px}
+.gl-nav :is(button,summary):focus-visible,.gl-hero :is(button,summary):focus-visible{outline-color:#7be3b4}
+
+/* navigasi: garis progres scroll (digerakkan GSAP, hanya transform) */
+.gl-progress{position:absolute;left:0;right:0;bottom:0;height:2px;background:linear-gradient(90deg,#3fc08b,#7be3b4);transform:scaleX(0);transform-origin:0 50%;pointer-events:none}
+.gl-link{transition:border-color .2s,opacity .2s}
+
+/* hero: sudut bawah membulat agar peralihan ke bagian putih lebih lembut */
+.gl-hero{border-radius:0 0 clamp(24px,4vw,56px) clamp(24px,4vw,56px)}
+.gl-hero p{line-height:1.7}
+
+/* lembar peta di hero: bayangan lebih dalam dengan cahaya hijau lembut */
+.gl-hero .gl-sheet{box-shadow:0 40px 80px -20px rgba(0,0,0,.55),0 0 0 1px rgba(255,255,255,.14),0 0 70px -10px rgba(123,227,180,.22)}
+
+/* poin singkat di hero menjadi pil kecil */
+.gl-hero__facts{gap:10px}
+.gl-hero__facts li{padding:7px 14px 7px 11px;border-radius:999px;border:1px solid rgba(255,255,255,.16);background:rgba(255,255,255,.06);font-size:13.5px;font-weight:500}
+
+/* kartu fitur */
+.gl-tile{transition:border-color .25s,box-shadow .25s}
+.gl-tile:hover{border-color:#a9d3bf;box-shadow:0 20px 40px -28px rgba(11,58,46,.5)}
+.gl-tile--dark{background:radial-gradient(90% 120% at 100% 0%,rgba(123,227,180,.2),transparent 60%),var(--h-sea)}
+.gl-tile--dark:hover{border-color:var(--h-sea)}
+.gl-tile--tint:hover{border-color:#9ccab4}
+
+/* langkah cara kerja */
+.gl-step__n{width:34px;height:34px;font-size:15px;box-shadow:0 0 0 5px #fff}
+.gl-flow li{padding-top:52px}
+.gl-flow li::before{top:16px;left:46px}
+
+/* FAQ */
+.gl-faq summary{transition:color .2s}
+.gl-faq summary:hover{color:var(--h-teal)}
+
+@media (prefers-reduced-motion:reduce){.gl-tile,.gl-link,.gl-faq summary{transition:none}}
 `;
 
 // ===================== APLIKASI =====================
@@ -1676,6 +1723,7 @@ export default function App() {
   // Animasi GSAP hanya di halaman beranda (lihat motion.tsx)
   useHomeMotion(homeRef, activePage === 'home');
   useHeroMap(homeRef, activePage === 'home');
+  useHomeFx(homeRef, activePage === 'home');
   const currentGeoJsonRef = useRef<any>(null);
   const selectedFeatureRef = useRef<any>(null);
 
@@ -2784,6 +2832,7 @@ useEffect(() => {
       {activePage === 'home' && (
         <div className="gl-home" ref={homeRef} onScroll={(e) => setNavSolid(e.currentTarget.scrollTop > 24)}>
           <header className={`gl-nav ${navSolid || navOpen ? 'is-solid' : ''}`}>
+            <span className="gl-progress" data-fx="progress" aria-hidden="true" />
             <button type="button" className="gl-brand" onClick={() => document.querySelector('.gl-home')?.scrollTo({ top: 0, behavior: 'smooth' })} aria-label="Petakilat, kembali ke atas">
               <span className="gl-brand__mark2">
                 <img
@@ -2842,6 +2891,9 @@ useEffect(() => {
                   onClick={openApp}
                 >
                   Buat peta sekarang
+                </button>
+                <button type="button" className="gl-btn gl-btn--outline" onClick={() => goTo('cara-kerja')}>
+                  Lihat cara kerja
                 </button>
               </div>
               <ul className="gl-hero__facts">

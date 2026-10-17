@@ -409,14 +409,14 @@ const onGoogle = async () => {
         <button type="button" className="au-close" aria-label="Tutup" onClick={onClose}>✕</button>
         <aside className="au-brand">
           <Contours />
-          <div className="au-logo"><Bolt size={22} /><span>Petakilat</span></div>
+          <span className="gl-brand__name" style={{ display: 'block' }}>Peta<em className="gl-brand__acc">kilat</em></span>
           <div className="au-brand__copy">
             <h2 id="au-title">{title}</h2>
             <p>{lead}</p>
           </div>
           <ul className="au-points">
-            <li><Bolt size={14} />Ekspor peta PNG atau PDF tanpa watermark</li>
-            <li><Bolt size={14} />1 kredit = 1 kali ekspor, dibeli lewat WhatsApp admin</li>
+            <li>* Ekspor peta PNG atau PDF tanpa watermark</li>
+            <li>* 1 kredit = 1 kali ekspor, dibeli lewat WhatsApp admin</li>
           </ul>
         </aside>
         <div className="au-panel">{body}</div>
@@ -746,7 +746,7 @@ export function AccountModal({ auth, onClose }: { auth: Auth; onClose: () => voi
           </div>
           <div className="ac-balance">
             <div>
-              <div className="ac-balance__label"><Bolt size={14} /> Saldo kredit</div>
+              <div className="ac-balance__label"> Saldo kredit</div>
               <div className="ac-balance__num" aria-busy={memuat}>{memuat ? <Skel w={92} h={48} dark style={{ borderRadius: 12 }} /> : isAdmin ? '∞' : user.kredit}</div>
             </div>
             <p>1 kredit dipakai untuk 1 kali ekspor PNG atau PDF tanpa watermark. Saldo minimal 1 kredit dibutuhkan untuk memilih wilayah.</p>
