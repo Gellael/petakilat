@@ -1261,7 +1261,6 @@ const APP_CSS = `
     linear-gradient(90deg,rgba(255,255,255,.035) 1px,transparent 1px) 0 0/64px 64px,
     radial-gradient(60% 70% at 85% 40%,rgba(123,227,180,.2),transparent 70%),
     linear-gradient(rgba(7,32,26,.88),rgba(7,32,26,.88)),
-    url('/hero.jpg') center/cover no-repeat,
     linear-gradient(160deg,#07201a 0%,#0b3a2e 60%,#0f4a3a 100%)}
 .gl-hero__copy{max-width:560px}
 .gl-hero h1{margin:0 0 18px;font-size:clamp(34px,4.6vw,58px);font-weight:700;line-height:1.06;letter-spacing:-.02em}
