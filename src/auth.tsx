@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState, type CSSProperties, type FormEvent, type ReactNode } from 'react';
+import { firebaseReady, googleIdToken } from './firebase';
 
 const API: string = import.meta.env.VITE_API_URL || 'http://localhost:8080';
 const TOKEN_KEY = 'gl_token';
@@ -113,6 +114,7 @@ export function useAuth() {
     loading,
     refreshUser,
     login: (email: string, password: string) => authenticate('/api/auth/login', { email, password }),
+    loginGoogle: (idToken: string) => authenticate('/api/auth/google', { id_token: idToken }),
     register: (nama: string, email: string, password: string) =>
       authenticate('/api/auth/register', { nama, email, password }),
     verifyEmail: (email: string, code: string) => authenticate('/api/auth/verify', { email, code }),
@@ -222,6 +224,13 @@ const AUTH_CSS = `
   .au-panel{padding:20px 20px calc(24px + env(safe-area-inset-bottom,0px))}
 }
 @media (prefers-reduced-motion:reduce){.au-dialog{animation:none}}
+
+/* Login dengan Google */
+.au-or{display:flex;align-items:center;gap:12px;margin-top:18px;font-size:12px;color:var(--au-muted)}
+.au-or::before,.au-or::after{content:'';flex:1;height:1px;background:var(--au-line)}
+.au-gbtn{display:flex;align-items:center;justify-content:center;gap:10px;width:100%;height:48px;margin-top:14px;border:1px solid var(--au-line);border-radius:12px;background:#fff;color:var(--au-ink);font:inherit;font-size:15px;font-weight:600;cursor:pointer;transition:background .15s}
+.au-gbtn:hover:not(:disabled){background:#f4f8f6}
+.au-gbtn:disabled{opacity:.55;cursor:not-allowed}
 `;
 
 /** Garis kontur peta: satu bentuk yang diperbesar bertahap, seperti kontur ketinggian. */
@@ -237,6 +246,15 @@ const Contours = () => (
         />
       ))}
     </g>
+  </svg>
+);
+
+const GoogleG = () => (
+  <svg width="18" height="18" viewBox="0 0 48 48" aria-hidden="true" focusable="false">
+    <path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z" />
+    <path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z" />
+    <path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z" />
+    <path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z" />
   </svg>
 );
 
@@ -274,6 +292,18 @@ export function AuthModal({ auth, onClose, onSuccess }: { auth: Auth; onClose: (
       document.body.style.overflow = prev;
     };
   }, [onClose]);
+
+const onGoogle = async () => {
+  setErr(''); setInfo(''); setBusy(true);
+  try {
+    const idToken = await googleIdToken();
+    if (!idToken) return; // popup ditutup user, bukan error
+    await auth.loginGoogle(idToken);
+    onSuccess();
+  } catch (ex: any) {
+    setErr(ex?.message || 'Gagal terhubung ke server.');
+  } finally { setBusy(false); }
+};
 
   const submit = async (e: FormEvent) => {
     e.preventDefault();
@@ -539,9 +569,19 @@ export function AuthModal({ auth, onClose, onSuccess }: { auth: Auth; onClose: (
       </div>
 
       {err && <div className="au-note au-note--err" role="alert">{err}</div>}
-      <button className="au-btn" type="submit" disabled={busy} aria-busy={busy} aria-label={busy ? 'Memproses' : undefined}>
+           <button className="au-btn" type="submit" disabled={busy} aria-busy={busy} aria-label={busy ? 'Memproses' : undefined}>
         {busy ? <Skel w={80} h={12} dark /> : mode === 'login' ? 'Masuk' : 'Daftar'}
       </button>
+
+      {firebaseReady && (
+        <>
+          <div className="au-or"><span>atau</span></div>
+          <button type="button" className="au-gbtn" onClick={onGoogle} disabled={busy}>
+            <GoogleG /> Lanjutkan dengan Google
+          </button>
+        </>
+      )}
+
       <div className="au-alt">
         <span>{mode === 'login' ? 'Belum punya akun?' : 'Sudah punya akun?'}</span>
         <button type="button" className="au-link" onClick={() => switchMode(mode === 'login' ? 'daftar' : 'login')}>
