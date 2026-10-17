@@ -2815,7 +2815,7 @@ export default function App() {
               <div>
                 <h2>Tentang Petakilat</h2>
                 <p className="gl-lead">Petakilat adalah aplikasi web untuk membuat peta administrasi desa dan kelurahan dengan tata letak kartografi, mengikuti gaya lembar peta cetak seperti pada QGIS Print Composer.</p>
-                <p className="gl-lead">Seluruh proses berjalan di browser: dari memilih wilayah, mengatur simbologi, menambahkan foto lapangan, sampai mengunduh hasilnya. Proyek S1 Informatika, Universitas Bengkulu.</p>
+                <p className="gl-lead">Seluruh proses berjalan di browser: dari memilih wilayah, mengatur simbologi, menambahkan foto lapangan, sampai mengunduh hasilnya. </p>
               </div>
               <dl className="gl-facts">
                 <div><dt>Koordinat</dt><dd>Geografis WGS 84</dd></div>
