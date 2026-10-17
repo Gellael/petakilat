@@ -667,7 +667,8 @@ const ACC_CSS = `
 export function AccountModal({ auth, onClose }: { auth: Auth; onClose: () => void }) {
   const user = auth.user!;
   const isAdmin = user.role === 'admin';
-  const [tab, setTab] = useState<'kredit' | 'admin'>('kredit');
+  // Admin tidak membeli kredit (saldo tak terbatas), jadi langsung ke panel admin.
+  const tab: 'kredit' | 'admin' = isAdmin ? 'admin' : 'kredit';
   const [dipesan, setDipesan] = useState<PaketKredit | null>(null);
   const [memuat, setMemuat] = useState(true); // saldo sedang disegarkan
 
@@ -713,13 +714,6 @@ export function AccountModal({ auth, onClose }: { auth: Auth; onClose: () => voi
         </div>
 
         <div className="ac-body">
-          {isAdmin && (
-            <div className="ac-tabs" role="tablist">
-              <button type="button" role="tab" aria-selected={tab === 'kredit'} className={tab === 'kredit' ? 'on' : ''} onClick={() => setTab('kredit')}>Beli kredit</button>
-              <button type="button" role="tab" aria-selected={tab === 'admin'} className={tab === 'admin' ? 'on' : ''} onClick={() => setTab('admin')}>Panel admin</button>
-            </div>
-          )}
-
           {tab === 'kredit' ? (
             <>
               <div className="ac-step"><span>1</span>Pilih paket, lalu chat admin</div>
