@@ -1574,7 +1574,7 @@ export default function App() {
   let link = document.querySelector<HTMLLinkElement>("link[rel~='icon']");
   if (!link) { link = document.createElement('link'); link.rel = 'icon'; document.head.appendChild(link); }
   link.type = 'image/png';
-  link.href = `${import.meta.env.BASE_URL}logo1.png`;
+  link.href = `${import.meta.env.BASE_URL}logo1.svg`;
 }, []);
 
   // Kalau belum login tapi membuka #/peta langsung, kembalikan ke beranda + tampilkan form login
