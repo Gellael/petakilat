@@ -39,20 +39,46 @@ export interface Penandatangan {
   nip: string;     // NIP / NIM / keterangan lain (opsional)
 }
 
-const AOI_ICONS: { emoji: string; label: string }[] = [
-  { emoji: '📍', label: 'Pin Lokasi' },
-  { emoji: '📷', label: 'Kamera / Foto' },
-  { emoji: '🏥', label: 'Fasilitas Kesehatan' },
-  { emoji: '🏫', label: 'Fasilitas Pendidikan' },
-  { emoji: '⚠️', label: 'Peringatan / Masalah' },
-  { emoji: '🌊', label: 'Badan Air / Sungai' },
-  { emoji: '🌿', label: 'Vegetasi / Lahan Hijau' },
-  { emoji: '🏗️', label: 'Konstruksi / Bangunan' },
-  { emoji: '🛣️', label: 'Jalan / Infrastruktur' },
-  { emoji: '⭐', label: 'Titik Penting' },
-  { emoji: '🔴', label: 'Titik Merah' },
-  { emoji: '🔵', label: 'Titik Biru' },
+// Simbol AOI: glyph garis (SVG) bergaya simbol peta, bukan emoji.
+// Digambar pada kisi 24x24, hanya memakai stroke/fill "currentColor" supaya warna mengikuti konteks.
+const AOI_ICONS: { id: string; label: string; legacy: string[]; svg: string }[] = [
+  { id: 'titik', label: 'Titik Lokasi', legacy: ['📍'],
+    svg: '<circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="2.6" fill="currentColor" stroke="none"/>' },
+  { id: 'foto', label: 'Titik Foto / Dokumentasi', legacy: ['📷'],
+    svg: '<path d="M3.5 8h3.2l1.6-2.4h7.4L17.3 8h3.2v11.5h-17z"/><circle cx="12" cy="13.4" r="3.6"/>' },
+  { id: 'kesehatan', label: 'Fasilitas Kesehatan', legacy: ['🏥'],
+    svg: '<path d="M9.5 3.5h5v6h6v5h-6v6h-5v-6h-6v-5h6z"/>' },
+  { id: 'pendidikan', label: 'Fasilitas Pendidikan', legacy: ['🏫'],
+    svg: '<path d="M3.5 5.5h6a2.5 2.5 0 0 1 2.5 2.5v12a2.5 2.5 0 0 0-2.5-2.5h-6z"/><path d="M20.5 5.5h-6A2.5 2.5 0 0 0 12 8v12a2.5 2.5 0 0 1 2.5-2.5h6z"/>' },
+  { id: 'bangunan', label: 'Bangunan / Konstruksi', legacy: ['🏗️'],
+    svg: '<path d="M3.5 11.5 12 4l8.5 7.5"/><path d="M5.5 10v10h13V10"/><path d="M10 20v-5.5h4V20"/>' },
+  { id: 'peringatan', label: 'Peringatan / Masalah', legacy: ['⚠️'],
+    svg: '<path d="M12 3.5 21.5 20h-19z"/><path d="M12 10v4.5"/><circle cx="12" cy="17.2" r=".9" fill="currentColor" stroke="none"/>' },
+  { id: 'air', label: 'Badan Air / Sungai', legacy: ['🌊'],
+    svg: '<path d="M3 8.5c2.4-2 4.6-2 6 0s3.6 2 6 0 4.6-2 6 0"/><path d="M3 13.5c2.4-2 4.6-2 6 0s3.6 2 6 0 4.6-2 6 0"/><path d="M3 18.5c2.4-2 4.6-2 6 0s3.6 2 6 0 4.6-2 6 0"/>' },
+  { id: 'vegetasi', label: 'Vegetasi / Lahan Hijau', legacy: ['🌿'],
+    svg: '<path d="M5 19.5C5 11 10.5 5 20 4.5c0 9.5-5.5 15-14 15"/><path d="M5 19.5 14 10.5"/>' },
+  { id: 'jalan', label: 'Jalan / Infrastruktur', legacy: ['🛣️'],
+    svg: '<path d="M8.5 3 5 21"/><path d="M15.5 3 19 21"/><path d="M12 5v3.5"/><path d="M12 11v3"/><path d="M12 16.5V20"/>' },
+  { id: 'bendera', label: 'Titik Penting', legacy: ['⭐'],
+    svg: '<path d="M6 21V3.5"/><path d="M6 4.5h12l-2.6 4 2.6 4H6"/>' },
+  { id: 'patok', label: 'Patok / Titik Ukur', legacy: ['🔴'],
+    svg: '<rect x="4.5" y="4.5" width="15" height="15" rx="1.5"/><circle cx="12" cy="12" r="2.2" fill="currentColor" stroke="none"/>' },
+  { id: 'polos', label: 'Titik Polos', legacy: ['🔵'],
+    svg: '<circle cx="12" cy="12" r="6" fill="currentColor" stroke="none"/>' },
 ];
+const DEFAULT_AOI_ICON = 'titik';
+
+// Nilai ikon lama (emoji) tetap terbaca dan dipetakan ke glyph yang setara
+const resolveAoiIcon = (value?: string) =>
+  AOI_ICONS.find((ic) => ic.id === value || ic.legacy.includes(value || '')) || AOI_ICONS[0];
+
+const aoiGlyphSvg = (value: string | undefined, px: number, strokeWidth: number = 2) =>
+  `<svg width="${px}" height="${px}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="${strokeWidth}" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false" style="display:block;flex-shrink:0;">${resolveAoiIcon(value).svg}</svg>`;
+
+const AoiGlyph = ({ icon, size = 18, strokeWidth = 2 }: { icon?: string; size?: number; strokeWidth?: number }) => (
+  <span style={{ display: 'inline-flex', lineHeight: 0 }} dangerouslySetInnerHTML={{ __html: aoiGlyphSvg(icon, size, strokeWidth) }} />
+);
 
 const CARTO_KEY: string = ((import.meta as any).env?.VITE_CARTO_KEY as string | undefined) || '';
 
@@ -580,7 +606,7 @@ const overlayMapSnapshot = async (selector: string, url: string): Promise<() => 
 const buildPinHtml = (aoi: AoiItem) => {
   const head = aoi.iconImageUrl
     ? `<div style="background:#fff;width:32px;height:32px;border:2.5px solid #fff;border-radius:50%;box-shadow:0 3px 10px rgba(0,0,0,.35);display:flex;align-items:center;justify-content:center;overflow:hidden;"><img src="${aoi.iconImageUrl}" alt="" style="width:100%;height:100%;object-fit:contain;display:block;" /></div>`
-    : `<div style="background:${aoi.color};color:#fff;font-size:18px;width:32px;height:32px;border:2.5px solid #fff;border-radius:50%;box-shadow:0 3px 10px rgba(0,0,0,.35);display:flex;align-items:center;justify-content:center;">${aoi.icon || '📍'}</div>`;
+    : `<div style="background:${aoi.color};color:#fff;width:32px;height:32px;border:2.5px solid #fff;border-radius:50%;box-shadow:0 3px 10px rgba(0,0,0,.35);display:flex;align-items:center;justify-content:center;">${aoiGlyphSvg(aoi.icon, 17, 2.2)}</div>`;
   return `
   ${head}
   <div style="width:0;height:0;border-left:5px solid transparent;border-right:5px solid transparent;border-top:7px solid ${aoi.color};margin-top:-1px;"></div>
@@ -665,14 +691,14 @@ const LegendSymbol = ({ aoi, size = 16 }: { aoi: AoiItem; size?: number }) => (
       alignItems: 'center',
       justifyContent: 'center',
       overflow: 'hidden',
-      fontSize: Math.round(size * 0.55),
+      color: '#fff',
       lineHeight: 1
     }}
   >
     {aoi.iconImageUrl ? (
       <img src={aoi.iconImageUrl} alt="" style={{ width: '100%', height: '100%', objectFit: 'contain', display: 'block' }} />
     ) : (
-      aoi.icon || '📍'
+      <AoiGlyph icon={aoi.icon} size={Math.round(size * 0.62)} strokeWidth={size < 24 ? 2.6 : 2.2} />
     )}
   </span>
 );
@@ -1180,7 +1206,7 @@ const APP_CSS = `
 .gl-aoi__name{flex:1;min-width:0;font-size:13px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .gl-aoi__body{display:flex;flex-direction:column;gap:14px;padding:12px;border-top:1px solid var(--line-2)}
 .gl-icons{display:grid;grid-template-columns:repeat(6,1fr);gap:6px}
-.gl-icons button{display:grid;place-items:center;aspect-ratio:1;border:1px solid var(--line);border-radius:10px;background:#fff;font-size:18px;cursor:pointer;transition:background .15s}
+.gl-icons button{display:grid;place-items:center;aspect-ratio:1;border:1px solid var(--line);border-radius:10px;background:#fff;color:var(--ink-2);cursor:pointer;transition:background .15s,color .15s}
 .gl-icons button:hover{background:var(--line-2)}
 .gl-icons button.is-on{border-width:2px}
 .gl-icons__up{display:grid;place-items:center;aspect-ratio:1;border:1px dashed var(--muted);border-radius:10px;background:#fff;color:var(--muted);cursor:pointer;overflow:hidden}
@@ -2014,7 +2040,7 @@ useEffect(() => {
         lng,
         lat,
         color: '#dc2626',
-        icon: '📍',
+        icon: DEFAULT_AOI_ICON,
         imageUrl: '',
         imageCaption: '',
         calloutLng: Number((lng + 0.0035).toFixed(6)),
@@ -3201,7 +3227,7 @@ useEffect(() => {
                     <div key={aoi.id} className={`gl-aoi ${isOpen ? 'is-open' : ''}`}>
                       <div className="gl-aoi__head">
                         <button type="button" className="gl-aoi__toggle" onClick={() => setSelectedAoiId(isOpen ? null : aoi.id)} aria-expanded={isOpen}>
-                          <span className="gl-aoi__chip" style={{ background: aoi.color }}>{aoi.icon || '📍'}</span>
+                          <span className="gl-aoi__chip" style={{ background: aoi.color }}><AoiGlyph icon={aoi.icon} size={16} strokeWidth={2.2} /></span>
                           <span className="gl-aoi__name">{aoi.title || `Titik ${index + 1}`}</span>
                           {aoi.imageUrl && <span className="gl-badge">Foto</span>}
                         </button>
@@ -3224,19 +3250,19 @@ useEffect(() => {
                             <span className="gl-label">Ikon</span>
                             <div className="gl-icons">
                               {AOI_ICONS.map((ic) => {
-                                const on = !aoi.iconImageUrl && aoi.icon === ic.emoji;
+                                const on = !aoi.iconImageUrl && resolveAoiIcon(aoi.icon).id === ic.id;
                                 return (
                                   <button
-                                    key={ic.emoji}
+                                    key={ic.id}
                                     type="button"
                                     title={ic.label}
                                     aria-label={ic.label}
                                     aria-pressed={on}
                                     className={on ? 'is-on' : ''}
-                                    style={on ? { borderColor: aoi.color, background: `${aoi.color}18` } : undefined}
-                                    onClick={() => patchAoi(aoi.id, { icon: ic.emoji, iconImageUrl: '' })}
+                                    style={on ? { borderColor: aoi.color, background: `${aoi.color}18`, color: aoi.color } : undefined}
+                                    onClick={() => patchAoi(aoi.id, { icon: ic.id, iconImageUrl: '' })}
                                   >
-                                    {ic.emoji}
+                                    <AoiGlyph icon={ic.id} size={20} />
                                   </button>
                                 );
                               })}
