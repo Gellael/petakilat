@@ -472,7 +472,7 @@ const waitMapIdle = (map: maplibregl.Map | null, timeoutMs: number = 25000): Pro
   });
 
 // ===== Ekspor resolusi tinggi: tile detail asli + pixelRatio tinggi =====
-const MAP_EXPORT_MAX_RATIO = 4;      // batas pixel ratio kanvas peta
+const MAP_EXPORT_MAX_RATIO = 8;      // batas pixel ratio kanvas peta (sama dengan batas dpiToPixelRatio)
 const EXPORT_MAX_TILE_ZOOM = 18;     // turunkan ke 17 bila muncul tile "Map data not yet available"
 const EXPORT_MAX_CANVAS_PX = 8192;   // batas aman ukuran kanvas WebGL
 
@@ -500,8 +500,8 @@ const prepareMapsForExport = async (
   );
   const ratio = Math.max(1, Math.min(MAP_EXPORT_MAX_RATIO, sheetPr, EXPORT_MAX_CANVAS_PX / maxCss));
 
-  // Kelipatan detail tile: 1x, 2x, atau 4x (tileSize 256, 128, 64)
-  const factor = ratio > 2 ? 4 : ratio > 1 ? 2 : 1;
+  // Kelipatan detail tile: 1x, 2x, 4x, atau 8x (tileSize 256, 128, 64, 32)
+  const factor = ratio > 4 ? 8 : ratio > 2 ? 4 : ratio > 1 ? 2 : 1;
   const tileSize = 256 / factor;
   const cap = factor > 1 ? EXPORT_MAX_TILE_ZOOM : undefined;
 
