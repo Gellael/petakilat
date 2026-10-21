@@ -1152,20 +1152,20 @@ const PLANS = [
 
 const SPECS = [
   { k: 'Batas wilayah', v: 'Batas administrasi desa/kelurahan dari Badan Informasi Geospasial (BIG).' },
-  { k: 'Penyimpanan data', v: 'PostgreSQL/PostGIS di Aiven, diakses melalui server API.' },
-  { k: 'Peta dasar', v: 'Esri (citra, jalan, topografi, kanvas abu-abu), OpenStreetMap, OpenTopoMap, serta Carto (Positron, Voyager, Dark Matter) bila memakai API key.' },
+  { k: 'Penyimpanan data', v: 'Google Earth Engine (GEE).' },
+  { k: 'Peta dasar', v: 'Esri (citra, jalan, topografi, kanvas abu-abu), OpenStreetMap, OpenTopoMap, serta Carto (Positron, Voyager, Dark Matter).' },
   { k: 'Penggambaran peta', v: 'MapLibre GL JS. Luas dan batas tampilan dihitung dengan Turf.js.' },
-  { k: 'Koordinat', v: 'Geografis WGS 84, ditulis dalam derajat, menit, dan detik.' },
-  { k: 'Skala', v: 'Dihitung dari zoom dan lintang dengan asumsi layar 96 DPI. Anggap sebagai perkiraan.' },
-  { k: 'Luas wilayah', v: 'Memakai atribut LUAS bila tersedia. Jika tidak, dihitung dari geometri.' },
-  { k: 'Ekspor', v: 'PNG lewat html-to-image (cadangan html2canvas), PDF A4 lanskap lewat jsPDF.' }
+  { k: 'Koordinat', v: 'Geografis WGS 84.' },
+  { k: 'Skala', v: 'Dihitung dari zoom dan lintang dengan asumsi layar 96 DPI.' },
+  { k: 'Luas wilayah', v: 'Memakai atribut LUAS.' },
+  { k: 'Ekspor', v: 'PNG lewat html-to-image, PDF A4 lanskap lewat jsPDF.' }
 ];
 
 const FAQS = [
-  { q: 'Apakah titik AOI dan foto saya tersimpan?', a: 'Belum. Titik, foto, dan pengaturan hanya ada di browser selama halaman terbuka. Ekspor ke PNG atau PDF sebelum menutup atau memuat ulang halaman.' },
-  { q: 'Seberapa akurat skala pada peta?', a: 'Skala dihitung dari zoom dan lintang peta dengan asumsi layar 96 DPI, jadi bersifat perkiraan. Ukuran akhir di kertas bergantung pada hasil ekspor dan pengaturan cetak.' },
-  { q: 'Dari mana data batas desa berasal?', a: 'Dari Badan Informasi Geospasial (BIG), disimpan di basis data PostGIS dan disajikan lewat server API.' },
-  { q: 'Daftar provinsi tidak muncul. Apa yang harus dilakukan?', a: 'Aplikasi mengambil data wilayah dari server API. Pastikan server berjalan, lalu tekan Coba lagi di panel pengaturan.' },
+  { q: 'Apakah titik AOI dan foto saya tersimpan?', a: 'Tidak. Titik, foto, dan pengaturan hanya ada di browser selama halaman terbuka. Ekspor ke PNG atau PDF sebelum menutup atau memuat ulang halaman.' },
+  { q: 'Seberapa akurat skala pada peta?', a: 'Skala dihitung dari zoom dan lintang peta dengan asumsi layar 96 DPI. Ukuran akhir di kertas bergantung pada hasil ekspor dan pengaturan cetak.' },
+  { q: 'Dari mana data batas desa berasal?', a: 'Dari Badan Informasi Geospasial (BIG), disimpan di GEE dan disajikan lewat server API.' },
+  { q: 'Daftar provinsi tidak muncul. Apa yang harus dilakukan?', a: 'Aplikasi mengambil data wilayah dari server API. Pastikan internet anda berjalan lancar, lalu tekan coba lagi atau refresh browser anda.' },
   { q: 'Format apa saja yang bisa diunduh?', a: 'PNG resolusi tinggi dan PDF A4 lanskap.' },
   { q: 'Berapa harga kredit?', a: `Satu kredit Rp20.000. Paket yang tersedia: ${RINGKAS_PAKET}. Semakin besar paketnya, semakin murah harga per kredit.` },
   { q: 'Bagaimana cara membeli kredit?', a: 'Pilih paket di halaman ini atau di dalam akun Anda. Chat WhatsApp ke admin terbuka dengan pesan pesanan yang sudah terisi. Setelah pembayaran dikonfirmasi, admin menambahkan kredit ke akun Anda.' },
@@ -1328,6 +1328,12 @@ const APP_CSS = `
 .gl-compassopt{display:flex;flex-direction:column;align-items:center;gap:4px;padding:8px 4px 6px;border:1px solid var(--line);border-radius:12px;background:#fff;cursor:pointer;font-size:11px;font-weight:600;color:var(--ink-2);transition:border-color .15s,box-shadow .15s,background .15s}
 .gl-compassopt:hover{border-color:var(--brand)}
 .gl-compassopt.is-on{border-color:var(--brand);background:var(--brand-soft);box-shadow:0 0 0 2px var(--brand-soft)}
+.gl-scaleopts{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.gl-scaleopts .gl-compassopt{flex-direction:row;justify-content:center;padding:9px 6px;font-size:12px}
+.gl-scalerow{display:flex;gap:8px;align-items:center}
+.gl-scalerow .gl-input{font-variant-numeric:tabular-nums}
+.gl-scalepre{display:flex;flex-wrap:wrap;gap:6px}
+.gl-scalepre button{cursor:pointer}
 .gl-menu-btn{display:none}
 .gl-paper{flex:1;min-height:0;overflow:auto;display:grid;place-items:center;padding:20px;background-color:#e4ede8;background-image:radial-gradient(#c3d6cb 1px,transparent 1px);background-size:18px 18px}
 .gl-backdrop{display:none}
@@ -1779,6 +1785,16 @@ export default function App() {
   const [insetBasemapKey, setInsetBasemapKey] = useState<string>(DEFAULT_INSET_BASEMAP);
   const [showInsetContext, setShowInsetContext] = useState<boolean>(true); // garis desa sekitar di peta inset
   const [compassStyle, setCompassStyle] = useState<CompassStyle>('klasik'); // gaya arah mata angin di lembar peta
+  // Skala peta: 'auto' ikut zoom peta (bawaan), 'manual' dikunci ke angka yang diinput
+  const [scaleMode, setScaleMode] = useState<'auto' | 'manual'>('auto');
+  const [manualScale, setManualScale] = useState<number>(25000);
+  const [scaleInput, setScaleInput] = useState<string>('25.000');
+  const [scaleError, setScaleError] = useState<string>('');
+  const scaleModeRef = useRef<'auto' | 'manual'>('auto');
+  const manualScaleRef = useRef<number>(25000);
+  const applyScaleRef = useRef<(force?: boolean) => void>(() => {});
+  scaleModeRef.current = scaleMode;
+  manualScaleRef.current = manualScale;
 
   // --- LAYER GOOGLE EARTH ENGINE ---
   const [geeActive, setGeeActive] = useState<Record<string, boolean>>({});
@@ -1970,6 +1986,63 @@ useEffect(() => {
 
   const toggleSec = (k: string) => setOpenSec((p) => ({ ...p, [k]: !p[k] }));
 
+  // ---------- Skala manual: zoom peta dikunci agar sesuai angka skala ----------
+  const zoomForScale = (scale: number, lat: number) =>
+    Math.log2((156543.03392 * Math.cos((lat * Math.PI) / 180)) / (scale * 0.000264583));
+
+  const applyManualScale = (force = false) => {
+    const map = mapInstance.current;
+    if (!map) return;
+    if (scaleModeRef.current !== 'manual') {
+      if (force) { map.setMinZoom(0); map.setMaxZoom(22); }
+      return;
+    }
+    const z = zoomForScale(manualScaleRef.current, map.getCenter().lat);
+    if (!isFinite(z)) return;
+    // Setelah geser/pilih wilayah, lintang berubah sedikit. Koreksi hanya bila selisihnya terasa.
+    if (!force && Math.abs(map.getZoom() - z) < 0.02) return;
+    map.setMinZoom(0);
+    map.setMaxZoom(22);
+    map.jumpTo({ zoom: z });
+    map.setMinZoom(z);
+    map.setMaxZoom(z);
+  };
+  applyScaleRef.current = applyManualScale;
+
+  const parseScaleInput = (raw: string): number => {
+    const digits = raw.replace(/[^0-9]/g, '');
+    return digits ? parseInt(digits, 10) : NaN;
+  };
+
+  const commitManualScale = (value: number) => {
+    const map = mapInstance.current;
+    if (!isFinite(value) || value < 100) { setScaleError('Masukkan angka skala, misalnya 25.000.'); return; }
+    const z = map ? zoomForScale(value, map.getCenter().lat) : 12;
+    if (z < 1 || z > 21) { setScaleError('Skala ini di luar jangkauan peta. Coba antara 1.000 dan 10.000.000.'); return; }
+    setScaleError('');
+    manualScaleRef.current = value;
+    scaleModeRef.current = 'manual';
+    setManualScale(value);
+    setScaleMode('manual');
+    setScaleInput(value.toLocaleString('id-ID'));
+    applyManualScale(true);
+  };
+
+  const chooseScaleMode = (mode: 'auto' | 'manual') => {
+    if (mode === 'auto') {
+      scaleModeRef.current = 'auto';
+      setScaleMode('auto');
+      setScaleError('');
+      applyManualScale(true);
+      return;
+    }
+    // Masuk ke manual: mulai dari skala yang sedang tampil (dibulatkan)
+    const start = Math.max(100, Math.round(mapScale / 100) * 100);
+    commitManualScale(start);
+  };
+
+  const displayScale = scaleMode === 'manual' ? manualScale : mapScale;
+
   const addTtd = () =>
     setPenandatangan((p) => [...p, { id: `ttd-${Date.now()}-${p.length}`, jabatan: '', nama: '', nip: '' }]);
   const patchTtd = (id: string, patch: Partial<Penandatangan>) =>
@@ -2117,6 +2190,7 @@ useEffect(() => {
     map.addControl(new maplibregl.ScaleControl(), 'bottom-left');
 
     map.on('move', () => updateMapMetrics(map));
+    map.on('moveend', () => applyScaleRef.current());
 
     map.on('load', () => {
       map.resize();
@@ -3242,7 +3316,7 @@ useEffect(() => {
                     );
                   })}
                 </div>
-                <div className="gl-note">Peta inset di lembar peta bebas dipilih terpisah dari peta utama. Bawaannya peta terang tanpa label, seperti peta letak pada umumnya.</div>
+                <div className="gl-note">Peta inset di layout peta bebas dipilih terpisah dari peta utama.</div>
                 <Toggle label="Tampilkan garis batas desa sekitar di inset" checked={showInsetContext} onChange={setShowInsetContext} />
               </div>
             </Section>
@@ -3267,6 +3341,48 @@ useEffect(() => {
                 </button>
               )}
               <Toggle label="Tampilkan grid dan koordinat" checked={showCoordinateGrid} onChange={setShowCoordinateGrid} />
+              <div className="gl-divider" />
+              <div className="gl-bmgroup">
+                <div className="gl-subhead">Skala peta</div>
+                <div className="gl-scaleopts" role="group" aria-label="Mode skala peta">
+                  <button type="button" className={`gl-compassopt ${scaleMode === 'auto' ? 'is-on' : ''}`} onClick={() => chooseScaleMode('auto')} aria-pressed={scaleMode === 'auto'}>
+                    Otomatis
+                  </button>
+                  <button type="button" className={`gl-compassopt ${scaleMode === 'manual' ? 'is-on' : ''}`} onClick={() => chooseScaleMode('manual')} aria-pressed={scaleMode === 'manual'}>
+                    Atur manual
+                  </button>
+                </div>
+                {scaleMode === 'manual' && (
+                  <>
+                    <label className="gl-field">
+                      <span className="gl-label">Skala 1 :</span>
+                      <div className="gl-scalerow">
+                        <input
+                          type="text" inputMode="numeric" className="gl-input" placeholder="25.000"
+                          value={scaleInput}
+                          onChange={(e) => { setScaleInput(e.target.value); setScaleError(''); }}
+                          onBlur={() => { const v = parseScaleInput(scaleInput); if (isFinite(v) && v !== manualScale) commitManualScale(v); else setScaleInput(manualScale.toLocaleString('id-ID')); }}
+                          onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); commitManualScale(parseScaleInput(scaleInput)); } }}
+                        />
+                        <button type="button" className="gl-btn gl-btn--sm" onClick={() => commitManualScale(parseScaleInput(scaleInput))}>Terapkan</button>
+                      </div>
+                    </label>
+                    <div className="gl-scalepre">
+                      {[5000, 10000, 25000, 50000, 100000].map((v) => (
+                        <button type="button" key={v} className="gl-chip" onClick={() => commitManualScale(v)} aria-pressed={manualScale === v}
+                          style={manualScale === v ? { borderColor: 'var(--brand)', fontWeight: 700 } : undefined}>
+                          1 : {v.toLocaleString('id-ID')}
+                        </button>
+                      ))}
+                    </div>
+                    {scaleError && <div className="gl-note" style={{ color: '#b91c1c' }}>{scaleError}</div>}
+                    <div className="gl-note">Zoom peta dikunci sesuai skala ini, jadi angka di lembar peta selalu cocok. Peta tetap bisa digeser. Pilih "Otomatis" untuk membuka kunci zoom.</div>
+                  </>
+                )}
+                {scaleMode === 'auto' && (
+                  <div className="gl-note">Skala mengikuti zoom peta secara otomatis.</div>
+                )}
+              </div>
               <div className="gl-divider" />
               <div className="gl-bmgroup">
                 <div className="gl-subhead">Arah mata angin</div>
@@ -3319,7 +3435,7 @@ useEffect(() => {
                 <div className="gl-note">Pilih desa dulu agar layer dipotong mengikuti batas desa.</div>
               )}
               {geeMsg && <div className={`gl-note ${geeErr ? 'gl-note--err' : ''}`}>{geeMsg}</div>}
-              <div className="gl-note">Saat dipotong ke batas desa, area di luar desa tampil putih (peta dasar disembunyikan). Matikan opsi itu untuk melihat peta dasar utuh. Kurangi "Opasitas isi" di bagian Simbologi bila warna isi desa menutupi layer.</div>
+              <div className="gl-note">Harap tunggu sesaat saat menggunakan fitur ini.</div>
             </Section>
 
             {/* 5. AOI */}
@@ -3548,7 +3664,7 @@ useEffect(() => {
               onToggle={() => toggleSec('layout')}
               badge={(logoInstansi || logoMitra || showTtd) ? <span className="gl-badge">aktif</span> : <span className="gl-badge">opsional</span>}
             >
-              <div className="gl-label">Logo di kop peta</div>
+              <div className="gl-label">Logo di layout peta</div>
               <div className="gl-row">
                 {([
                   { label: 'Logo instansi', val: logoInstansi, set: setLogoInstansi },
@@ -3582,7 +3698,7 @@ useEffect(() => {
                   </div>
                 ))}
               </div>
-              <div className="gl-note">Satu logo tampil di tengah, di atas judul peta. Bila dua logo terisi, judul berada di antara kedua logo. Gunakan PNG transparan agar rapi.</div>
+              <div className="gl-note">Jika hanya satu logo, logo tampil di tengah diatas judul peta. Bila dua logo terisi, judul berada di antara kedua logo. Gunakan PNG transparan agar rapi.</div>
 
               <div className="gl-divider" />
 
@@ -3650,7 +3766,7 @@ useEffect(() => {
             </div>
             <div className="gl-toolbar__chips">
               <span className="gl-chip">Zoom {zoom}</span>
-              <span className="gl-chip">1 : {mapScale.toLocaleString('id-ID')}</span>
+              <span className="gl-chip">1 : {displayScale.toLocaleString('id-ID')}</span>
             </div>
           </div>
 
@@ -3782,7 +3898,7 @@ useEffect(() => {
                       )}
 
                       <Panel title="Skala Peta" bodyStyle={{ display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', gap: '4px' }}>
-                        <div style={{ fontSize: '11px', fontWeight: 'bold', fontFamily: SHEET_MONO }}>1 : {mapScale.toLocaleString('id-ID')}</div>
+                        <div style={{ fontSize: '11px', fontWeight: 'bold', fontFamily: SHEET_MONO }}>1 : {displayScale.toLocaleString('id-ID')}</div>
                         <div style={{ width: '128px' }}>
                           <div style={{ display: 'flex', height: '5px', border: '1px solid #000' }}>
                             <div style={{ flex: 1, backgroundColor: '#000' }} />
