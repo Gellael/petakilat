@@ -878,6 +878,93 @@ const previewWatermarkBg = (email: string): string => {
 };
 
 // Panel formal pada lembar peta cetak (tidak diubah)
+// ===================== ARAH MATA ANGIN (BISA DIPILIH) =====================
+type CompassStyle = 'klasik' | 'bintang' | 'panah' | 'lingkaran' | 'minimal' | 'none';
+const COMPASS_CHOICES: { key: CompassStyle; name: string }[] = [
+  { key: 'klasik', name: 'Klasik' },
+  { key: 'bintang', name: 'Bintang 8' },
+  { key: 'panah', name: 'Panah' },
+  { key: 'lingkaran', name: 'Lingkaran' },
+  { key: 'minimal', name: 'Minimal' },
+  { key: 'none', name: 'Tanpa arah' }
+];
+
+const CompassRose = ({ variant, size = 38 }: { variant: CompassStyle; size?: number }) => {
+  const f = 'Arial, Helvetica, sans-serif';
+  if (variant === 'none') {
+    return (
+      <svg width={size} height={size} viewBox="0 0 100 100" aria-hidden="true">
+        <circle cx="50" cy="50" r="34" fill="none" stroke="#94a3b8" strokeWidth="3" strokeDasharray="6,5" />
+        <line x1="26" y1="74" x2="74" y2="26" stroke="#94a3b8" strokeWidth="3" />
+      </svg>
+    );
+  }
+  if (variant === 'bintang') {
+    const cx = 50, cy = 56;
+    const pts = Array.from({ length: 16 }, (_, i) => {
+      const a = ((i * 22.5) - 90) * Math.PI / 180;
+      const r = i % 2 === 1 ? 10 : (i % 4 === 0 ? 36 : 24);
+      return [cx + r * Math.cos(a), cy + r * Math.sin(a)] as [number, number];
+    });
+    const str = (arr: [number, number][]) => arr.map((q) => `${q[0].toFixed(1)},${q[1].toFixed(1)}`).join(' ');
+    return (
+      <svg width={size} height={size} viewBox="0 0 100 100">
+        <circle cx={cx} cy={cy} r="40" fill="none" stroke="#000" strokeWidth="1" />
+        <polygon points={str(pts)} fill="#fff" stroke="#000" strokeWidth="1.2" strokeLinejoin="miter" />
+        {[0, 4, 8, 12].map((i) => (
+          <polygon key={i} points={str([pts[i], pts[(i + 1) % 16], [cx, cy]])} fill="#000" />
+        ))}
+        <polygon points={str([pts[0], pts[15], [cx, cy]])} fill="#fff" stroke="#000" strokeWidth="0.6" />
+        <text x="50" y="12" fontSize="15" fontWeight="bold" textAnchor="middle" fill="#000" fontFamily={f}>U</text>
+      </svg>
+    );
+  }
+  if (variant === 'panah') {
+    return (
+      <svg width={size} height={size} viewBox="0 0 100 100">
+        <text x="50" y="17" fontSize="17" fontWeight="bold" textAnchor="middle" fill="#000" fontFamily={f}>U</text>
+        <polygon points="50,24 33,90 50,74" fill="#000" stroke="#000" strokeWidth="1" strokeLinejoin="round" />
+        <polygon points="50,24 67,90 50,74" fill="#fff" stroke="#000" strokeWidth="2" strokeLinejoin="round" />
+      </svg>
+    );
+  }
+  if (variant === 'lingkaran') {
+    return (
+      <svg width={size} height={size} viewBox="0 0 100 100">
+        <circle cx="50" cy="54" r="40" fill="#fff" stroke="#000" strokeWidth="3" />
+        <polygon points="50,22 36,76 50,66" fill="#000" stroke="#000" strokeWidth="1" strokeLinejoin="round" />
+        <polygon points="50,22 64,76 50,66" fill="#fff" stroke="#000" strokeWidth="2" strokeLinejoin="round" />
+        <text x="50" y="13" fontSize="15" fontWeight="bold" textAnchor="middle" fill="#000" fontFamily={f}>U</text>
+      </svg>
+    );
+  }
+  if (variant === 'minimal') {
+    return (
+      <svg width={size} height={size} viewBox="0 0 100 100">
+        <text x="50" y="26" fontSize="22" fontWeight="bold" textAnchor="middle" fill="#000" fontFamily={f}>N</text>
+        <line x1="50" y1="92" x2="50" y2="40" stroke="#000" strokeWidth="5" />
+        <polygon points="50,30 36,54 64,54" fill="#000" />
+      </svg>
+    );
+  }
+  // klasik (bawaan)
+  return (
+    <svg width={size} height={size} viewBox="0 0 100 100">
+      <circle cx="50" cy="50" r="42" fill="none" stroke="#000" strokeWidth="1.5" />
+      <circle cx="50" cy="50" r="38" fill="none" stroke="#000" strokeWidth="0.8" strokeDasharray="2,2" />
+      <polygon points="50,14 45,50 50,45" fill="#000" />
+      <polygon points="50,14 55,50 50,45" fill="#fff" stroke="#000" strokeWidth="0.5" />
+      <polygon points="50,86 55,50 50,55" fill="#000" />
+      <polygon points="50,86 45,50 50,55" fill="#fff" stroke="#000" strokeWidth="0.5" />
+      <polygon points="86,50 50,55 55,50" fill="#000" />
+      <polygon points="86,50 50,45 55,50" fill="#fff" stroke="#000" strokeWidth="0.5" />
+      <polygon points="14,50 50,45 45,50" fill="#000" />
+      <polygon points="14,50 50,55 45,50" fill="#fff" stroke="#000" strokeWidth="0.5" />
+      <text x="50" y="10" fontSize="14" fontWeight="bold" textAnchor="middle" fill="#000" fontFamily={f}>U</text>
+    </svg>
+  );
+};
+
 const Panel = ({ title, children, bodyStyle, style }: { title: string; children: ReactNode; bodyStyle?: CSSProperties; style?: CSSProperties }) => (
   <div style={{ border: '1.5px solid #000', backgroundColor: '#ffffff', display: 'flex', flexDirection: 'column', minWidth: 0, ...style }}>
     <div style={{ fontSize: '9px', fontWeight: 'bold', letterSpacing: '1px', textAlign: 'center', textTransform: 'uppercase', borderBottom: '1px solid #ccc', margin: '6px 6px 0', paddingBottom: '2px' }}>
@@ -1237,6 +1324,10 @@ const APP_CSS = `
 .gl-toolbar__sub{font-size:12px;color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .gl-toolbar__chips{display:flex;gap:8px}
 .gl-chip{display:inline-flex;align-items:center;height:28px;padding:0 10px;border-radius:999px;border:1px solid var(--line);background:var(--paper);font-size:12px;font-weight:500;color:var(--ink-2);font-variant-numeric:tabular-nums;white-space:nowrap}
+.gl-compassopts{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.gl-compassopt{display:flex;flex-direction:column;align-items:center;gap:4px;padding:8px 4px 6px;border:1px solid var(--line);border-radius:12px;background:#fff;cursor:pointer;font-size:11px;font-weight:600;color:var(--ink-2);transition:border-color .15s,box-shadow .15s,background .15s}
+.gl-compassopt:hover{border-color:var(--brand)}
+.gl-compassopt.is-on{border-color:var(--brand);background:var(--brand-soft);box-shadow:0 0 0 2px var(--brand-soft)}
 .gl-menu-btn{display:none}
 .gl-paper{flex:1;min-height:0;overflow:auto;display:grid;place-items:center;padding:20px;background-color:#e4ede8;background-image:radial-gradient(#c3d6cb 1px,transparent 1px);background-size:18px 18px}
 .gl-backdrop{display:none}
@@ -1686,6 +1777,8 @@ export default function App() {
   // --- SIMBOLOGI & TAMPILAN WILAYAH ---
   const [basemapKey, setBasemapKey] = useState<string>('citra');
   const [insetBasemapKey, setInsetBasemapKey] = useState<string>(DEFAULT_INSET_BASEMAP);
+  const [showInsetContext, setShowInsetContext] = useState<boolean>(true); // garis desa sekitar di peta inset
+  const [compassStyle, setCompassStyle] = useState<CompassStyle>('klasik'); // gaya arah mata angin di lembar peta
 
   // --- LAYER GOOGLE EARTH ENGINE ---
   const [geeActive, setGeeActive] = useState<Record<string, boolean>>({});
@@ -1865,6 +1958,8 @@ useEffect(() => {
   basemapKeyRef.current = basemapKey;
   const insetKey = insetBasemapKey === INSET_SYNC ? basemapKey : insetBasemapKey;
   const insetKeyRef = useRef<string>(insetKey);
+  const showInsetContextRef = useRef<boolean>(showInsetContext);
+  showInsetContextRef.current = showInsetContext;
   insetKeyRef.current = insetKey;
   const aoiListRef = useRef<AoiItem[]>([]);
   aoiListRef.current = aoiList;
@@ -2112,6 +2207,9 @@ useEffect(() => {
     const ctxColor = tone === 'sat' ? '#ffffff' : tone === 'dark' ? '#94a3b8' : '#64748b';
     if (inset.getLayer('inset-context-line')) inset.setPaintProperty('inset-context-line', 'line-color', ctxColor);
     if (inset.getLayer('inset-context-fill')) inset.setPaintProperty('inset-context-fill', 'fill-color', ctxColor);
+    const ctxVis = showInsetContextRef.current ? 'visible' : 'none';
+    if (inset.getLayer('inset-context-line')) inset.setLayoutProperty('inset-context-line', 'visibility', ctxVis);
+    if (inset.getLayer('inset-context-fill')) inset.setLayoutProperty('inset-context-fill', 'visibility', ctxVis);
     if (inset.getLayer('inset-selected-fill')) inset.setPaintProperty('inset-selected-fill', 'fill-color', fillColorRef.current);
     if (inset.getLayer('inset-selected-line')) inset.setPaintProperty('inset-selected-line', 'line-color', strokeColorRef.current);
 
@@ -2163,7 +2261,7 @@ useEffect(() => {
   // Wilayah / warna berubah -> inset menyesuaikan otomatis
   useEffect(() => {
     refreshInset();
-  }, [listDesa, selectedDesa, selectedKab, fillColor, strokeColor, activePage]);
+  }, [listDesa, selectedDesa, selectedKab, fillColor, strokeColor, activePage, showInsetContext]);
 
   // Peta dasar inset berubah (pilihan inset atau peta utama bila mode ikuti utama) -> inset ikut berganti
   useEffect(() => {
@@ -3145,6 +3243,7 @@ useEffect(() => {
                   })}
                 </div>
                 <div className="gl-note">Peta inset di lembar peta bebas dipilih terpisah dari peta utama. Bawaannya peta terang tanpa label, seperti peta letak pada umumnya.</div>
+                <Toggle label="Tampilkan garis batas desa sekitar di inset" checked={showInsetContext} onChange={setShowInsetContext} />
               </div>
             </Section>
 
@@ -3168,6 +3267,22 @@ useEffect(() => {
                 </button>
               )}
               <Toggle label="Tampilkan grid dan koordinat" checked={showCoordinateGrid} onChange={setShowCoordinateGrid} />
+              <div className="gl-divider" />
+              <div className="gl-bmgroup">
+                <div className="gl-subhead">Arah mata angin</div>
+                <div className="gl-compassopts" role="group" aria-label="Gaya arah mata angin">
+                  {COMPASS_CHOICES.map((c) => (
+                    <button
+                      type="button" key={c.key}
+                      className={`gl-compassopt ${compassStyle === c.key ? 'is-on' : ''}`}
+                      onClick={() => setCompassStyle(c.key)} aria-pressed={compassStyle === c.key}
+                    >
+                      <CompassRose variant={c.key} size={40} />
+                      <span>{c.name}</span>
+                    </button>
+                  ))}
+                </div>
+              </div>
               <div className="gl-divider" />
                 <Toggle label="Gelapkan area di luar desa" checked={dimOn} onChange={setDimOn} />
                 {dimOn && (
@@ -3659,22 +3774,12 @@ useEffect(() => {
                       );
                     })()}
 
-                    <div style={{ display: 'grid', gridTemplateColumns: '62px 1fr', gap: '7px' }}>
-                      <Panel title="Utara" bodyStyle={{ display: 'flex', justifyContent: 'center', alignItems: 'center', padding: '4px 0 5px' }}>
-                        <svg width="38" height="38" viewBox="0 0 100 100">
-                          <circle cx="50" cy="50" r="42" fill="none" stroke="#000" strokeWidth="1.5" />
-                          <circle cx="50" cy="50" r="38" fill="none" stroke="#000" strokeWidth="0.8" strokeDasharray="2,2" />
-                          <polygon points="50,14 45,50 50,45" fill="#000" />
-                          <polygon points="50,14 55,50 50,45" fill="#fff" stroke="#000" strokeWidth="0.5" />
-                          <polygon points="50,86 55,50 50,55" fill="#000" />
-                          <polygon points="50,86 45,50 50,55" fill="#fff" stroke="#000" strokeWidth="0.5" />
-                          <polygon points="86,50 50,55 55,50" fill="#000" />
-                          <polygon points="86,50 50,45 55,50" fill="#fff" stroke="#000" strokeWidth="0.5" />
-                          <polygon points="14,50 50,45 45,50" fill="#000" />
-                          <polygon points="14,50 50,55 45,50" fill="#fff" stroke="#000" strokeWidth="0.5" />
-                          <text x="50" y="10" fontSize="14" fontWeight="bold" textAnchor="middle" fill="#000" fontFamily="Arial, Helvetica, sans-serif">U</text>
-                        </svg>
-                      </Panel>
+                    <div style={{ display: 'grid', gridTemplateColumns: compassStyle === 'none' ? '1fr' : '62px 1fr', gap: '7px' }}>
+                      {compassStyle !== 'none' && (
+                        <Panel title="Utara" bodyStyle={{ display: 'flex', justifyContent: 'center', alignItems: 'center', padding: '4px 0 5px' }}>
+                          <CompassRose variant={compassStyle} size={38} />
+                        </Panel>
+                      )}
 
                       <Panel title="Skala Peta" bodyStyle={{ display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', gap: '4px' }}>
                         <div style={{ fontSize: '11px', fontWeight: 'bold', fontFamily: SHEET_MONO }}>1 : {mapScale.toLocaleString('id-ID')}</div>
